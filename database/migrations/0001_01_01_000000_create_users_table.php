@@ -13,10 +13,29 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+
+            $table->string('cui')->unique();
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('surname');
+            $table->string('second_surname')->nullable();
+            $table->string('married_surname')->nullable();
+
             $table->string('name');
+
+            $table->enum('civil_status', ['Soltero', 'Casado', 'Viudo', 'Divorciado'])->default('Soltero');
+            $table->date('birthdate');
+            $table->string('gender');
+
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            $table->string('cellphone')->nullable();
+            $table->string('personal_email')->nullable();
+            $table->text('address')->nullable();
+            $table->boolean('is_active')->default(true);
+
             $table->rememberToken();
             $table->timestamps();
         });

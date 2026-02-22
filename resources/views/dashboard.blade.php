@@ -2,8 +2,12 @@
 
 @section('title', 'Dashboard')
 
+@section('adminlte_css')
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+@stop
+
 @section('content_header')
-    <h1>Dashboard</h1>
+    <h1 class="text-white">Dashboard</h1>
 @stop
 
 @section('content')

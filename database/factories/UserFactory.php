@@ -24,10 +24,26 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'cui' => fake()->unique()->numerify('#############'),
+            'first_name' => fake()->firstName(),
+            'middle_name' => fake()->optional()->firstName(),
+            'surname' => fake()->lastName(),
+            'second_surname' => fake()->optional()->lastName(),
+            'married_surname' => null,
+            'name' => '', // Se llenará automáticamente por el método boot() en el modelo User
+            'civil_status' => fake()->randomElement(['Soltero', 'Casado', 'Viudo', 'Divorciado']),
+            'birthdate' => fake()->dateTimeBetween('-50 years', '-10 years')->format('Y-m-d'),
+            'gender' => fake()->randomElement(['Masculino', 'Femenino']),
+
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+
+            'cellphone' => fake()->phoneNumber(),
+            'personal_email' => fake()->unique()->safeEmail(),
+            'address' => fake()->address(),
+            'is_active' => fake()->boolean(100),
+
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -40,7 +56,7 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'email_verified_at' => null,
         ]);
     }
@@ -50,7 +66,7 @@ class UserFactory extends Factory
      */
     public function withTwoFactor(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),

@@ -2,12 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Redirigimos la raíz (/) directamente a la ruta de login
+Route::redirect('/', '/login');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::view('dashboard', 'dashboard')->name('dashboard');
 
-require __DIR__.'/settings.php';
+    // Vista contenedora del perfil
+    Route::view('profile', 'profile')->name('profile');
+});
+
+// Las rutas de configuración adicionales de tu Starter Kit
+require __DIR__ . '/settings.php';

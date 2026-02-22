@@ -1,0 +1,9 @@
+.background-svg {
+    background-image: url('../images/background-content_2.svg') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;
+    background-color: transparent !important;
+    /* Para que no se vea el fondo gris debajo */
+}
