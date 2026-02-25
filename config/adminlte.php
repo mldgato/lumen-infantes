@@ -319,6 +319,23 @@ return [
             'icon' => 'fas fa-fw fa-user',
         ],
 
+        [
+            'header' => 'ADMINISTRACIÓN',
+            'can'   => 'admin.menu',
+        ],
+        [
+            'text'  => 'Estudiantes',
+            'route' => 'admin.students.index',
+            'icon'  => 'fas fa-fw fa-user-graduate',
+            'can'   => 'admin.students.index',
+        ],
+        [
+            'text'  => 'Personal Administrativo',
+            'route' => 'admin.users.index',
+            'icon'  => 'fas fa-fw fa-users',
+            'can'   => 'admin.users.index',
+        ],
+
         // Sidebar items:
         /* [
             'type' => 'sidebar-menu-search',
