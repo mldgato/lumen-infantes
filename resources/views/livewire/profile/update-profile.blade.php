@@ -88,7 +88,8 @@
                         <div class="input-group mb-3">
                             <div class="input-group-prepend"><span class="input-group-text"><i
                                         class="fas fa-calendar"></i></span></div>
-                            <div class="form-control bg-light text-truncate">{{ auth()->user()->birthdate }}</div>
+                            <div class="form-control bg-light text-truncate">
+                                {{ \Carbon\Carbon::parse(auth()->user()->birthdate)->format('d-m-Y') }}</div>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -152,7 +153,7 @@
                         <div class="input-group input-group-sm">
                             <div class="input-group-prepend"><span class="input-group-text"><i
                                         class="fas fa-unlock"></i></span></div>
-                            <input type="password" wire:model="current_password" class="form-control">
+                            <input type="password" wire:model.blur="current_password" class="form-control">
                         </div>
                     </div>
                     <div class="form-group mb-2">
@@ -160,7 +161,7 @@
                         <div class="input-group input-group-sm">
                             <div class="input-group-prepend"><span class="input-group-text"><i
                                         class="fas fa-lock"></i></span></div>
-                            <input type="password" wire:model="password" class="form-control">
+                            <input type="password" wire:model.blur="password" class="form-control">
                         </div>
                     </div>
                     <div class="form-group mb-0">
@@ -168,24 +169,32 @@
                         <div class="input-group input-group-sm">
                             <div class="input-group-prepend"><span class="input-group-text"><i
                                         class="fas fa-check"></i></span></div>
-                            <input type="password" wire:model="password_confirmation" class="form-control">
+                            <input type="password" wire:model.blur="password_confirmation" class="form-control">
                         </div>
                     </div>
                 </div>
                 <div class="card-footer p-2">
-                    <button type="submit" class="btn btn-success btn-sm btn-block shadow-sm">Guardar Cambios</button>
+                    <button type="submit" class="btn btn-success btn-sm btn-block shadow-sm"
+                        wire:loading.attr="disabled" wire:target="updatePassword">
+                        <span wire:loading.remove wire:target="updatePassword">
+                            Guardar <i class="fas fa-save ml-1"></i>
+                        </span>
+                        <span wire:loading wire:target="updatePassword">
+                            Guardando <i class="fas fa-spinner fa-pulse ml-1"></i>
+                        </span>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-@if (session()->has('image_message') || session()->has('password_message'))
+@if (session()->has('image_message') || session()->has('password_message') || session()->has('profile_message'))
     @push('js')
         <script>
             Swal.fire({
                 title: '¡Hecho!',
-                text: '{{ session('image_message') ?? session('password_message') }}',
+                text: '{{ session('image_message') ?? (session('password_message') ?? session('profile_message')) }}',
                 icon: 'success',
                 confirmButtonText: 'Entendido',
                 confirmButtonColor: '#28a745'

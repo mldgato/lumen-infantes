@@ -57,6 +57,15 @@ class UpdateProfile extends Component
         $this->redirect(route('profile'));
     }
 
+    public function updated($propertyName)
+    {
+        // Valida únicamente el campo que el usuario acaba de modificar
+        $this->validateOnly($propertyName, [
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+    }
+
     public function render()
     {
         return view('livewire.profile.update-profile');
