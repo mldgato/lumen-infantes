@@ -9,7 +9,18 @@ class MedicalRecord extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'user_id',
+        'takes_medication',
+        'medication_description',
+        'has_allergies',
+        'allergies_description',
+        'had_surgery',
+        'surgery_description',
+        'blood_type',
+        'weight',
+        'height',
+    ];
 
     protected $casts = [
         'takes_medication' => 'boolean',

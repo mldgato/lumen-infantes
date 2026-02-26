@@ -9,7 +9,17 @@ class Professor extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'user_id',
+        'hire_date',
+        'nit',
+        'teaching_cedula',
+        'igss_affiliation',
+        'title',
+        'bachelor_degree',
+        'spouse_name',
+        'spouse_phone',
+    ];
 
     protected $casts = [
         'hire_date' => 'date',

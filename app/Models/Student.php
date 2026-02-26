@@ -9,7 +9,12 @@ class Student extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'user_id',
+        'personal_code',
+        'carne',
+        'is_own_guardian',
+    ];
 
     protected $casts = [
         'is_own_guardian' => 'boolean',

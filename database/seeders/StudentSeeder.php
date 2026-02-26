@@ -16,7 +16,7 @@ class StudentSeeder extends Seeder
     public function run(): void
     {
         // Crea 10 estudiantes. El Factory de Student ya crea automáticamente el User asociado.
-        Student::factory(10)->create()->each(function ($student) {
+        Student::factory(20)->create()->each(function ($student) {
 
             // 1. Asignar el rol al usuario de este estudiante
             $student->user->assignRole('Estudiante');
@@ -33,7 +33,7 @@ class StudentSeeder extends Seeder
             $guardian = Guardian::factory()->create();
 
             // 5. Vincular el encargado con el estudiante en la tabla pivote
-            $relationship = collect(['father', 'mother', 'guardian'])->random();
+            $relationship = collect(['padre', 'madre', 'encargado'])->random();
             $student->guardians()->attach($guardian->id, [
                 'relationship_type' => $relationship
             ]);
