@@ -13,6 +13,8 @@ class MedicalRecord extends Model
         'user_id',
         'takes_medication',
         'medication_description',
+        'has_disease',
+        'disease_description',
         'has_allergies',
         'allergies_description',
         'had_surgery',
@@ -24,6 +26,7 @@ class MedicalRecord extends Model
 
     protected $casts = [
         'takes_medication' => 'boolean',
+        'has_disease' => 'boolean',
         'has_allergies' => 'boolean',
         'had_surgery' => 'boolean',
         'weight' => 'decimal:2',

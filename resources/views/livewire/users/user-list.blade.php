@@ -287,6 +287,27 @@
                                 </div>
                                 <div class="col-md-4 form-group mb-2">
                                     <div class="custom-control custom-switch mt-1">
+                                        <input type="checkbox" wire:model.live="medicalForm.has_disease"
+                                            class="custom-control-input" id="has_disease_user_list">
+                                        <label class="custom-control-label text-sm"
+                                            for="has_disease_user_list">¿Padece alguna enfermedad?</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-8 form-group mb-2">
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-hospital"></i></span>
+                                        </div>
+                                        <input type="text" wire:model="medicalForm.disease_description"
+                                            class="form-control" placeholder="Especifique cuál..."
+                                            @if (!$medicalForm->has_disease) disabled @endif>
+                                    </div>
+                                    @error('medicalForm.disease_description')
+                                        <span class="text-danger small">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="col-md-4 form-group mb-2">
+                                    <div class="custom-control custom-switch mt-1">
                                         <input type="checkbox" wire:model.live="medicalForm.has_allergies"
                                             class="custom-control-input" id="has_allergies_user">
                                         <label class="custom-control-label text-sm" for="has_allergies_user">¿Tiene

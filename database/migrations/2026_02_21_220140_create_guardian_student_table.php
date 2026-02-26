@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('guardian_id')->constrained()->cascadeOnDelete();
             $table->foreignId('student_id')->constrained()->cascadeOnDelete();
-            $table->enum('relationship_type', ['padre', 'madre', 'encargado']);
+            $table->enum('relationship_type', ['Papá', 'Mamá', 'Encargado']);
             $table->timestamps();
         });
     }

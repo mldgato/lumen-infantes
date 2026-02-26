@@ -9,6 +9,8 @@ class UpdateMedicalInfo extends Component
 {
     public $takes_medication = false;
     public $medication_description;
+    public $has_disease = false;
+    public $disease_description;
     public $has_allergies = false;
     public $allergies_description;
     public $had_surgery = false;
@@ -30,6 +32,8 @@ class UpdateMedicalInfo extends Component
         if ($record) {
             $this->takes_medication = $record->takes_medication;
             $this->medication_description = $record->medication_description;
+            $this->has_disease = $record->has_disease;
+            $this->disease_description = $record->disease_description;
             $this->has_allergies = $record->has_allergies;
             $this->allergies_description = $record->allergies_description;
             $this->had_surgery = $record->had_surgery;
@@ -45,6 +49,8 @@ class UpdateMedicalInfo extends Component
         $this->validate([
             'takes_medication' => 'boolean',
             'medication_description' => 'nullable|string',
+            'has_disease' => 'boolean',
+            'disease_description' => 'nullable|string',
             'has_allergies' => 'boolean',
             'allergies_description' => 'nullable|string',
             'had_surgery' => 'boolean',
@@ -59,6 +65,8 @@ class UpdateMedicalInfo extends Component
             [
                 'takes_medication' => $this->takes_medication,
                 'medication_description' => $this->takes_medication ? $this->medication_description : null,
+                'has_disease' => $this->has_disease,
+                'disease_description' => $this->has_disease ? $this->disease_description : null,
                 'has_allergies' => $this->has_allergies,
                 'allergies_description' => $this->has_allergies ? $this->allergies_description : null,
                 'had_surgery' => $this->had_surgery,

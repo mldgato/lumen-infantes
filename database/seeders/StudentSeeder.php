@@ -15,7 +15,7 @@ class StudentSeeder extends Seeder
      */
     public function run(): void
     {
-        // Crea 10 estudiantes. El Factory de Student ya crea automáticamente el User asociado.
+        // Creamos 20 estudiantes para tener una buena base de prueba
         Student::factory(20)->create()->each(function ($student) {
 
             // 1. Asignar el rol al usuario de este estudiante
@@ -26,17 +26,28 @@ class StudentSeeder extends Seeder
                 'user_id' => $student->user_id
             ]);
 
-            //3.  Usamos make() en lugar de create() para que la relación polimórfica llene los campos de ID y Type por nosotros
+            // 3. Imagen de perfil (Polimórfica)
             $student->user->image()->save(Image::factory()->make());
 
-            // 4. Crear un encargado (padre, madre o tutor)
-            $guardian = Guardian::factory()->create();
+            // 4. Lógica de Encargados (Simulación de Núcleo Familiar)
+            // Definimos los tipos permitidos
+            $rolesDisponibles = ['Papá', 'Mamá', 'Encargado'];
 
-            // 5. Vincular el encargado con el estudiante en la tabla pivote
-            $relationship = collect(['padre', 'madre', 'encargado'])->random();
-            $student->guardians()->attach($guardian->id, [
-                'relationship_type' => $relationship
-            ]);
+            // Barajamos los roles y tomamos una cantidad aleatoria entre 1 y 3 
+            // para probar cómo se ve el PDF con diferentes cantidades de familiares.
+            $rolesAAsignar = collect($rolesDisponibles)->random(rand(1, 3));
+
+            foreach ($rolesAAsignar as $relationship) {
+                // Creamos un encargado único para este rol
+                $guardian = Guardian::factory()->create();
+
+                // 5. Vincular con la tabla pivote respetando el tipo
+                $student->guardians()->attach($guardian->id, [
+                    'relationship_type' => $relationship,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         });
     }
 }

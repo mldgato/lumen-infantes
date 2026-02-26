@@ -3,7 +3,7 @@
         'name' => 'laravel/livewire-starter-kit',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'f2e6fdf2f275f63939fd92575ed2e544ad5c3152',
+        'reference' => 'a249727813b6b870d3f2c402748e99afc1f0dc28',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -715,7 +715,7 @@
         'laravel/livewire-starter-kit' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'f2e6fdf2f275f63939fd92575ed2e544ad5c3152',
+            'reference' => 'a249727813b6b870d3f2c402748e99afc1f0dc28',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -1429,6 +1429,15 @@
             'install_path' => __DIR__ . '/../sebastian/version',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'setasign/fpdf' => array(
+            'pretty_version' => '1.8.6',
+            'version' => '1.8.6.0',
+            'reference' => '0838e0ee4925716fcbbc50ad9e1799b5edfae0a0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../setasign/fpdf',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'spatie/laravel-package-tools' => array(
             'pretty_version' => '1.93.0',

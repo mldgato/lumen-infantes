@@ -281,6 +281,27 @@
                                 </div>
                                 <div class="col-md-4 form-group mb-2">
                                     <div class="custom-control custom-switch mt-1">
+                                        <input type="checkbox" wire:model.live="medicalForm.has_disease"
+                                            class="custom-control-input" id="has_disease_student">
+                                        <label class="custom-control-label text-sm" for="has_disease_student">¿Padece
+                                            alguna enfermedad?</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-8 form-group mb-2">
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-hospital"></i></span>
+                                        </div>
+                                        <input type="text" wire:model="medicalForm.disease_description"
+                                            class="form-control" placeholder="Especifique cuál..."
+                                            @if (!$medicalForm->has_disease) disabled @endif>
+                                    </div>
+                                    @error('medicalForm.disease_description')
+                                        <span class="text-danger small">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="col-md-4 form-group mb-2">
+                                    <div class="custom-control custom-switch mt-1">
                                         <input type="checkbox" wire:model.live="medicalForm.has_allergies"
                                             class="custom-control-input" id="has_allergies_student">
                                         <label class="custom-control-label text-sm" for="has_allergies_student">¿Tiene
@@ -374,12 +395,15 @@
                                             </div>
                                             <div class="card-body p-2 text-sm">
                                                 <p class="m-0"><i class="fas fa-id-card text-muted mr-1"></i>
-                                                    <strong>CUI:</strong> {{ $guardian->cui }}</p>
+                                                    <strong>CUI:</strong> {{ $guardian->cui }}
+                                                </p>
                                                 <p class="m-0"><i class="fas fa-phone text-muted mr-1"></i>
-                                                    <strong>Teléfono:</strong> {{ $guardian->phone ?? 'N/A' }}</p>
+                                                    <strong>Teléfono:</strong> {{ $guardian->phone ?? 'N/A' }}
+                                                </p>
                                                 <p class="m-0 text-truncate"><i
                                                         class="fas fa-envelope text-muted mr-1"></i>
-                                                    <strong>Correo:</strong> {{ $guardian->email ?? 'N/A' }}</p>
+                                                    <strong>Correo:</strong> {{ $guardian->email ?? 'N/A' }}
+                                                </p>
                                             </div>
                                             <div class="card-footer p-2 text-right bg-white border-top">
                                                 <button wire:click="editGuardian({{ $guardian->id }})"
@@ -669,6 +693,11 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
+                                    <a href="{{ route('admin.students.pdf', $student->id) }}" target="_blank"
+                                        class="btn btn-sm btn-danger shadow-sm mr-1" title="Imprimir Ficha PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+
                                     <button wire:click="manageGuardians({{ $student->id }})" data-toggle="modal"
                                         data-target="#GuardianModal" class="btn btn-sm btn-info shadow-sm mr-1"
                                         title="Ver Perfil Familiar (Encargados)">
