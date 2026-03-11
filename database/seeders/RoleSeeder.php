@@ -117,5 +117,47 @@ class RoleSeeder extends Seeder
             'name'        => 'admin.classrooms.delete',
             'description' => 'Administración - Eliminar aulas'
         ])->assignRole($role1);
+
+        // Cursos
+        Permission::create([
+            'name'        => 'admin.courses.index',
+            'description' => 'Administración - Listado de cursos'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.courses.create',
+            'description' => 'Administración - Crear cursos'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.courses.edit',
+            'description' => 'Administración - Editar cursos'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.courses.delete',
+            'description' => 'Administración - Eliminar cursos'
+        ])->assignRole($role1);
+
+        // Pénsum
+        Permission::create([
+            'name'        => 'admin.pensums.index',
+            'description' => 'Administración - Listado de pénsum'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.pensums.create',
+            'description' => 'Administración - Crear pénsum'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.pensums.edit',
+            'description' => 'Administración - Editar pénsum'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.pensums.delete',
+            'description' => 'Administración - Eliminar pénsum'
+        ])->assignRole($role1);
     }
 }

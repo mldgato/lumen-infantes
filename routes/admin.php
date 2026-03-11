@@ -8,6 +8,9 @@ use App\Http\Controllers\Admin\LevelController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\SectionController;
 use App\Http\Controllers\Admin\ClassroomController;
+use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\PensumController;
+
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
@@ -32,3 +35,11 @@ Route::get('sections', [SectionController::class, 'index'])
 Route::get('/classrooms', [ClassroomController::class, 'index'])
     ->name('admin.classrooms.index')
     ->middleware('can:admin.classrooms.index');
+
+Route::get('/courses', [CourseController::class, 'index'])
+    ->name('admin.courses.index')
+    ->middleware('can:admin.courses.index');
+
+Route::get('/pensums', [PensumController::class, 'index'])
+    ->name('admin.pensums.index')
+    ->middleware('can:admin.pensums.index');

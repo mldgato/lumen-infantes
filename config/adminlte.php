@@ -366,6 +366,25 @@ return [
                 ],
             ],
         ],
+        [
+            'text'    => 'Cursos y Pénsum',
+            'icon'    => 'fas fa-fw fa-book',
+            'can'     => 'admin.courses.index',
+            'submenu' => [
+                [
+                    'text'  => 'Cursos',
+                    'route' => 'admin.courses.index',
+                    'icon'  => 'fas fa-fw fa-file',
+                    'can'   => 'admin.courses.index',
+                ],
+                [
+                    'text'  => 'Pénsum',
+                    'route' => 'admin.pensums.index',
+                    'icon'  => 'fas fa-fw fa-list-alt',
+                    'can'   => 'admin.pensums.index',
+                ],
+            ]
+        ],
     ],
 
     /*

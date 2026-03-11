@@ -13,4 +13,9 @@ class Grade extends Model
     {
         return $this->hasMany(Classroom::class);
     }
+
+    public function pensums(): HasMany
+    {
+        return $this->hasMany(Pensum::class);
+    }
 }

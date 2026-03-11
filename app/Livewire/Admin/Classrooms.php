@@ -94,7 +94,18 @@ class Classrooms extends Component
     {
         $this->authorize('admin.classrooms.delete');
 
-        Classroom::findOrFail($id)->delete();
+        $classroom = Classroom::findOrFail($id);
+
+        if ($classroom->enrollments()->exists()) {
+            $this->dispatch('showAlert', [
+                'title'   => 'No se puede eliminar',
+                'message' => 'Este aula tiene estudiantes inscritos.',
+                'type'    => 'warning',
+            ]);
+            return;
+        }
+
+        $classroom->delete();
 
         $this->dispatch('showAlert', [
             'title'   => '¡Eliminado!',
