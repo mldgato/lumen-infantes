@@ -7,7 +7,7 @@
 @stop
 
 @section('content_header')
-    <h1 class="text-white">Dashboard</h1>
+    <h1 class="text-white"><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
 @stop
 
 @section('content')

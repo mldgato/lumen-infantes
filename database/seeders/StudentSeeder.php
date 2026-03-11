@@ -16,7 +16,7 @@ class StudentSeeder extends Seeder
     public function run(): void
     {
         // Creamos 20 estudiantes para tener una buena base de prueba
-        Student::factory(20)->create()->each(function ($student) {
+        Student::factory(150)->create()->each(function ($student) {
 
             // 1. Asignar el rol al usuario de este estudiante
             $student->user->assignRole('Estudiante');

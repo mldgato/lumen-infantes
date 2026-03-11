@@ -29,6 +29,12 @@
                                 wire:click.prevent="$set('activeTab', 'medical')" href="#"><i
                                     class="fas fa-notes-medical"></i> Ficha Médica</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ $activeTab == 'enrollment' ? 'active font-weight-bold text-primary' : '' }}"
+                                wire:click.prevent="$set('activeTab', 'enrollment')" href="#">
+                                <i class="fas fa-school"></i> Inscripción
+                            </a>
+                        </li>
                     </ul>
 
                     <div class="tab-content p-3">
@@ -335,6 +341,123 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="tab-pane {{ $activeTab == 'enrollment' ? 'd-block' : 'd-none' }}">
+
+                            {{-- Inscripción año actual --}}
+                            <div class="card card-outline card-primary mb-3">
+                                <div class="card-header">
+                                    <h3 class="card-title"><i class="fas fa-edit mr-1"></i> Inscripción
+                                        {{ date('Y') }}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8 form-group mb-2">
+                                            <label class="text-sm mb-1">Aula Asignada <span
+                                                    class="text-danger">*</span></label>
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-chalkboard"></i></span>
+                                                </div>
+                                                <select wire:model="enrollment_classroom_id"
+                                                    class="form-control @error('enrollment_classroom_id') is-invalid @enderror">
+                                                    <option value="">-- Seleccione un aula --</option>
+                                                    @foreach ($currentYearClassrooms as $classroom)
+                                                        <option value="{{ $classroom->id }}">
+                                                            {{ $classroom->level->level_name }} -
+                                                            {{ $classroom->grade->grade_name }} -
+                                                            {{ $classroom->section->section_name }}
+                                                            ({{ $classroom->year }})
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('enrollment_classroom_id')
+                                                    <span class="invalid-feedback">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 form-group mb-2">
+                                            <label class="text-sm mb-1">Estado <span
+                                                    class="text-danger">*</span></label>
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-toggle-on"></i></span>
+                                                </div>
+                                                <select wire:model="enrollment_status"
+                                                    class="form-control @error('enrollment_status') is-invalid @enderror">
+                                                    <option value="Activo">Activo</option>
+                                                    <option value="Retirado">Retirado</option>
+                                                </select>
+                                                @error('enrollment_status')
+                                                    <span class="invalid-feedback">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer text-right">
+                                    <button wire:click.prevent="saveEnrollment" class="btn btn-primary btn-sm"
+                                        wire:loading.attr="disabled" wire:target="saveEnrollment">
+                                        <span wire:loading.remove wire:target="saveEnrollment">
+                                            <i class="fas fa-save"></i> Guardar Inscripción
+                                        </span>
+                                        <span wire:loading wire:target="saveEnrollment">
+                                            <i class="fas fa-spinner fa-pulse"></i> Guardando...
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- Historial de años anteriores --}}
+                            @if (count($enrollmentHistory) > 0)
+                                <div class="card card-outline card-secondary">
+                                    <div class="card-header">
+                                        <h3 class="card-title"><i class="fas fa-history mr-1"></i> Historial de
+                                            Inscripciones</h3>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <table class="table table-striped table-hover mb-0">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th>Año</th>
+                                                    <th>Nivel</th>
+                                                    <th>Grado</th>
+                                                    <th>Sección</th>
+                                                    <th>Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($enrollmentHistory as $enrollment)
+                                                    <tr>
+                                                        <td><span
+                                                                class="badge badge-secondary">{{ $enrollment->classroom->year }}</span>
+                                                        </td>
+                                                        <td>{{ $enrollment->classroom->level->level_name }}</td>
+                                                        <td>{{ $enrollment->classroom->grade->grade_name }}</td>
+                                                        <td>{{ $enrollment->classroom->section->section_name }}</td>
+                                                        <td>
+                                                            @if ($enrollment->status === 'Activo')
+                                                                <span class="badge badge-success">Activo</span>
+                                                            @else
+                                                                <span class="badge badge-danger">Retirado</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-light border text-center text-muted">
+                                    <i class="fas fa-history fa-2x mb-2"></i><br>
+                                    No hay historial de inscripciones anteriores.
+                                </div>
+                            @endif
+
                         </div>
 
                     </div>

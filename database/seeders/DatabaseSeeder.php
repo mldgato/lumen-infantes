@@ -22,6 +22,11 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             StudentSeeder::class,
             ProfessorSeeder::class,
+            LevelSeeder::class,
+            GradeSeeder::class,
+            SectionSeeder::class,
+            ClassroomSeeder::class,
+            StudentEnrollmentSeeder::class,
         ]);
     }
 }

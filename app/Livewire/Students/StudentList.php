@@ -10,6 +10,8 @@ use App\Livewire\Forms\UserForm;
 use App\Livewire\Forms\StudentForm;
 use App\Livewire\Forms\MedicalForm;
 use App\Livewire\Forms\GuardianForm;
+use App\Models\Classroom;
+use App\Models\StudentEnrollment;
 
 class StudentList extends Component
 {
@@ -34,6 +36,12 @@ class StudentList extends Component
     public $managingStudent = null;
     public $relationship_type = '';
     public $showGuardianForm = false; // Alterna entre ver la lista y ver el formulario
+
+    // Inscripción
+    public $enrollment_classroom_id = '';
+    public $enrollment_status       = 'Activo';
+    public $currentEnrollment       = null;
+    public $enrollmentHistory       = [];
 
     protected $queryString = [
         'cant' => ['except' => '10'],
@@ -70,18 +78,40 @@ class StudentList extends Component
         $this->userForm->resetForm();
         $this->studentForm->resetForm();
         $this->medicalForm->resetForm();
-        $this->activeTab = 'general';
+        $this->activeTab              = 'general';
+        $this->enrollment_classroom_id = '';
+        $this->enrollment_status      = 'Activo';
+        $this->currentEnrollment      = null;
+        $this->enrollmentHistory      = [];
         $this->resetValidation();
     }
 
     public function edit($id)
     {
         $this->resetFields();
-        $user = User::with(['student', 'medicalRecord'])->findOrFail($id);
+        $user = User::with(['student.enrollments.classroom.level', 'student.enrollments.classroom.grade', 'student.enrollments.classroom.section', 'medicalRecord'])->findOrFail($id);
 
         $this->userForm->setUser($user);
         $this->studentForm->setStudent($user->student);
         $this->medicalForm->setMedicalRecord($user->medicalRecord);
+
+        if ($user->student) {
+            $currentYear = date('Y');
+
+            $this->currentEnrollment = $user->student->enrollments
+                ->filter(fn($e) => $e->classroom->year == $currentYear)
+                ->first();
+
+            if ($this->currentEnrollment) {
+                $this->enrollment_classroom_id = $this->currentEnrollment->classroom_id;
+                $this->enrollment_status       = $this->currentEnrollment->status;
+            }
+
+            $this->enrollmentHistory = $user->student->enrollments
+                ->filter(fn($e) => $e->classroom->year != $currentYear)
+                ->sortByDesc(fn($e) => $e->classroom->year)
+                ->values();
+        }
     }
 
     public function update()
@@ -194,6 +224,58 @@ class StudentList extends Component
         ]);
     }
 
+    public function saveEnrollment()
+    {
+        $this->validate([
+            'enrollment_classroom_id' => 'required|exists:classrooms,id',
+            'enrollment_status'       => 'required|in:Activo,Retirado',
+        ], [
+            'enrollment_classroom_id.required' => 'Debe seleccionar un aula.',
+            'enrollment_classroom_id.exists'   => 'El aula seleccionada no es válida.',
+            'enrollment_status.required'       => 'El estado es obligatorio.',
+        ]);
+
+        $student = $this->userForm->user->student;
+        $currentYear = date('Y');
+
+        $classroom = Classroom::findOrFail($this->enrollment_classroom_id);
+
+        if ($classroom->year != $currentYear) {
+            $this->addError('enrollment_classroom_id', 'Solo puede asignar aulas del año actual.');
+            return;
+        }
+
+        StudentEnrollment::updateOrCreate(
+            [
+                'student_id'   => $student->id,
+                'classroom_id' => $this->enrollment_classroom_id,
+            ],
+            [
+                'status' => $this->enrollment_status,
+            ]
+        );
+
+        // Recargar
+        $user = User::with(['student.enrollments.classroom.level', 'student.enrollments.classroom.grade', 'student.enrollments.classroom.section'])->find($this->userForm->user->id);
+
+        $this->currentEnrollment = $user->student->enrollments
+            ->filter(fn($e) => $e->classroom->year == $currentYear)
+            ->first();
+
+        $this->enrollment_classroom_id = $this->currentEnrollment->classroom_id;
+        $this->enrollment_status       = $this->currentEnrollment->status;
+
+        $this->enrollmentHistory = $user->student->enrollments
+            ->filter(fn($e) => $e->classroom->year != $currentYear)
+            ->sortByDesc(fn($e) => $e->classroom->year)
+            ->values();
+
+        $this->dispatch('toastMessage', [
+            'type'    => 'success',
+            'message' => 'Inscripción guardada correctamente.',
+        ]);
+    }
+
     public function render()
     {
         if ($this->readyToLoad) {
@@ -209,6 +291,10 @@ class StudentList extends Component
             $students = [];
         }
 
-        return view('livewire.students.student-list', compact('students'));
+        $currentYearClassrooms = Classroom::with(['level', 'grade', 'section'])
+            ->where('year', date('Y'))
+            ->get();
+
+        return view('livewire.students.student-list', compact('students', 'currentYearClassrooms'));
     }
 }

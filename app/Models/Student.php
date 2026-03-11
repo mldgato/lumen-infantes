@@ -31,4 +31,9 @@ class Student extends Model
             ->withPivot('relationship_type')
             ->withTimestamps();
     }
+
+    public function enrollments()
+    {
+        return $this->hasMany(StudentEnrollment::class);
+    }
 }

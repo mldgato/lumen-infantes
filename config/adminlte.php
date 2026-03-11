@@ -335,89 +335,37 @@ return [
             'icon'  => 'fas fa-fw fa-users',
             'can'   => 'admin.users.index',
         ],
-
-        // Sidebar items:
-        /* [
-            'type' => 'sidebar-menu-search',
-            'text' => 'search',
-        ],
         [
-            'text' => 'blog',
-            'url' => 'admin/blog',
-            'can' => 'manage-blog',
-        ],
-        [
-            'text' => 'pages',
-            'url' => 'admin/pages',
-            'icon' => 'far fa-fw fa-file',
-            'label' => 4,
-            'label_color' => 'success',
-        ],
-        ['header' => 'account_settings'],
-        [
-            'text' => 'profile',
-            'url' => 'admin/settings',
-            'icon' => 'fas fa-fw fa-user',
-        ],
-        [
-            'text' => 'change_password',
-            'url' => 'admin/settings',
-            'icon' => 'fas fa-fw fa-lock',
-        ],
-        [
-            'text' => 'multilevel',
-            'icon' => 'fas fa-fw fa-share',
+            'text'    => 'Grados y Secciones',
+            'icon'    => 'fas fa-fw fa-school',
+            'can'     => 'admin.levels.index',
             'submenu' => [
                 [
-                    'text' => 'level_one',
-                    'url' => '#',
+                    'text'  => 'Niveles',
+                    'route' => 'admin.levels.index',
+                    'icon'  => 'fas fa-fw fa-layer-group',
+                    'can'   => 'admin.levels.index',
                 ],
                 [
-                    'text' => 'level_one',
-                    'url' => '#',
-                    'submenu' => [
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                        ],
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                            'submenu' => [
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                            ],
-                        ],
-                    ],
+                    'text'  => 'Grados',
+                    'route' => 'admin.grades.index',
+                    'icon'  => 'fas fa-fw fa-graduation-cap',
+                    'can'   => 'admin.grades.index',
                 ],
                 [
-                    'text' => 'level_one',
-                    'url' => '#',
+                    'text'  => 'Secciones',
+                    'route' => 'admin.sections.index',
+                    'icon'  => 'fas fa-fw fa-tags',
+                    'can'   => 'admin.sections.index',
+                ],
+                [
+                    'text'  => 'Aulas',
+                    'route' => 'admin.classrooms.index',
+                    'icon'  => 'fas fa-fw fa-chalkboard',
+                    'can'   => 'admin.classrooms.index',
                 ],
             ],
         ],
-        ['header' => 'labels'],
-        [
-            'text' => 'important',
-            'icon_color' => 'red',
-            'url' => '#',
-        ],
-        [
-            'text' => 'warning',
-            'icon_color' => 'yellow',
-            'url' => '#',
-        ],
-        [
-            'text' => 'information',
-            'icon_color' => 'cyan',
-            'url' => '#',
-        ], */
     ],
 
     /*
