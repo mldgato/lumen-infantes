@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\AcademicConfiguration;
 
 class GradeBook extends Model
 {
@@ -56,5 +57,10 @@ class GradeBook extends Model
     public function isRejected(): bool
     {
         return $this->status === 'rejected';
+    }
+
+    public function getImprovementConfig(): AcademicConfiguration
+    {
+        return $this->academicConfiguration;
     }
 }

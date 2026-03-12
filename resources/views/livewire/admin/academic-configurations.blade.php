@@ -44,6 +44,50 @@
                             @enderror
                         </div>
                     </div>
+                    {{-- Tipo de Mejora --}}
+                    <div class="form-group mb-3">
+                        <label class="text-sm mb-1">Tipo de Proceso de Mejora <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-chart-line"></i></span>
+                            </div>
+                            <select wire:model.live="form.improvement_type"
+                                class="form-control @error('form.improvement_type') is-invalid @enderror">
+                                <option value="full">100% — Puede obtener el total de la actividad</option>
+                                <option value="percentage">Porcentaje — Solo puede obtener un % del total</option>
+                                <option value="additive">Suma — Se suma a la nota original sin sobrepasar el total
+                                </option>
+                            </select>
+                            @error('form.improvement_type')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    {{-- Porcentaje (solo si el tipo es percentage) --}}
+                    @if ($form->improvement_type === 'percentage')
+                        <div class="form-group mb-3">
+                            <label class="text-sm mb-1">Porcentaje de Mejora <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-percent"></i></span>
+                                </div>
+                                <input type="number" wire:model="form.improvement_percentage"
+                                    class="form-control @error('form.improvement_percentage') is-invalid @enderror"
+                                    placeholder="Ej. 60" min="1" max="100" step="0.01">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                @error('form.improvement_percentage')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                            <small class="text-muted">
+                                Ejemplo: si la actividad vale 10 pts y el porcentaje es 60%, el máximo en mejora es 6
+                                pts.
+                            </small>
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"
@@ -82,7 +126,8 @@
                             </span>
                         @endif
                     </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" wire:click="resetActivityForm">
+                    <button type="button" class="close text-white" data-dismiss="modal"
+                        wire:click="resetActivityForm">
                         <span>&times;</span>
                     </button>
                 </div>
@@ -407,6 +452,7 @@
                                     class="fas fa-sort{{ $sort === 'year' ? '-' . ($direction === 'asc' ? 'up' : 'down') : ' text-muted' }}"></i>
                             </th>
                             <th>Modo</th>
+                            <th>Mejora</th>
                             <th>Actividades</th>
                             <th class="text-center">Acciones</th>
                         </tr>
@@ -421,6 +467,16 @@
                                         <span class="badge badge-secondary">Libre</span>
                                     @else
                                         <span class="badge badge-primary">Asignada</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($configuration->improvement_type === 'full')
+                                        <span class="badge badge-success">100%</span>
+                                    @elseif ($configuration->improvement_type === 'percentage')
+                                        <span
+                                            class="badge badge-warning">{{ $configuration->improvement_percentage }}%</span>
+                                    @elseif ($configuration->improvement_type === 'additive')
+                                        <span class="badge badge-info">Suma</span>
                                     @endif
                                 </td>
                                 <td>

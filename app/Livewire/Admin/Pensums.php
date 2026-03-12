@@ -28,6 +28,7 @@ class Pensums extends Component
     // Gestión de cursos del pénsum
     public ?int $managingPensumId = null;
     public ?Pensum $managingPensum = null;
+    public bool $courseIsOfficial = true;
 
     // Formulario de curso
     public bool $showCourseForm  = false;
@@ -146,6 +147,7 @@ class Pensums extends Component
         $this->subCourseCount  = 0;
         $this->subCourses      = [];
         $this->editingCourseId = null;
+        $this->courseIsOfficial = true;
         $this->courseOrdering = 0;
         $this->resetValidation();
     }
@@ -170,6 +172,7 @@ class Pensums extends Component
         $this->course_id       = $pc->course_id;
         $this->showCourseForm  = true;
         $this->courseOrdering = $pc->ordering;
+        $this->courseIsOfficial = $pc->is_official;
 
         if ($pc->is_main) {
             $this->scenario       = 'main';
@@ -238,6 +241,7 @@ class Pensums extends Component
                 'course_id' => $this->course_id,
                 'units'     => $mainUnits,
                 'is_main'   => $isMain,
+                'is_official' => $this->courseIsOfficial,
                 'ordering'  => $this->courseOrdering,
             ]);
             $pc->subCourses()->delete();
@@ -248,6 +252,7 @@ class Pensums extends Component
                 'parent_id' => null,
                 'units'     => $mainUnits,
                 'is_main'   => $isMain,
+                'is_official' => $this->courseIsOfficial,
                 'ordering'  => $this->courseOrdering,
             ]);
         }
@@ -337,6 +342,7 @@ class Pensums extends Component
                 'parent_id' => null,
                 'units'     => $pc->units,
                 'is_main'   => $pc->is_main,
+                'is_official' => $pc->is_official,
                 'ordering'  => $pc->ordering,
             ]);
 

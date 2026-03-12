@@ -14,10 +14,12 @@ class GradeBookScore extends Model
         'grade_book_activity_id',
         'student_id',
         'score',
+        'improvement_score',
     ];
 
     protected $casts = [
-        'score' => 'decimal:2',
+        'score'             => 'decimal:2',
+        'improvement_score' => 'decimal:2',
     ];
 
     public function activity(): BelongsTo

@@ -11,11 +11,12 @@ class PensumCourse extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['pensum_id', 'course_id', 'parent_id', 'units', 'is_main', 'ordering'];
+    protected $fillable = ['pensum_id', 'course_id', 'parent_id', 'units', 'is_main', 'is_official', 'ordering'];
 
     protected $casts = [
-        'units'   => 'array',
-        'is_main' => 'boolean',
+        'units'       => 'array',
+        'is_main'     => 'boolean',
+        'is_official' => 'boolean',
     ];
 
     public function pensum(): BelongsTo

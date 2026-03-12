@@ -118,6 +118,7 @@
                                         <tr>
                                             <th>Curso</th>
                                             <th>Tipo</th>
+                                            <th>Oficial</th>
                                             <th>Orden</th>
                                             <th>Unidades</th>
                                             <th class="text-center">Acciones</th>
@@ -136,6 +137,15 @@
                                                         <span class="badge badge-warning">Parcial</span>
                                                     @else
                                                         <span class="badge badge-success">Completo</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if ($pc->is_official)
+                                                        <span class="badge badge-info"><i
+                                                                class="fas fa-check mr-1"></i>Sí</span>
+                                                    @else
+                                                        <span class="badge badge-secondary"><i
+                                                                class="fas fa-times mr-1"></i>No</span>
                                                     @endif
                                                 </td>
                                                 <td><span class="badge badge-light border">{{ $pc->ordering }}</span>
@@ -203,7 +213,7 @@
                                 <div class="row">
 
                                     {{-- Curso --}}
-                                    <div class="col-md-5 form-group mb-3">
+                                    <div class="col-md-4 form-group mb-3">
                                         <label class="text-sm mb-1">Curso <span class="text-danger">*</span></label>
                                         <div class="input-group input-group-sm">
                                             <div class="input-group-prepend">
@@ -224,7 +234,7 @@
                                     </div>
 
                                     {{-- Escenario --}}
-                                    <div class="col-md-5 form-group mb-3">
+                                    <div class="col-md-3 form-group mb-3">
                                         <label class="text-sm mb-1">Escenario <span
                                                 class="text-danger">*</span></label>
                                         <div class="input-group input-group-sm">
@@ -256,6 +266,19 @@
                                             @error('courseOrdering')
                                                 <span class="invalid-feedback">{{ $message }}</span>
                                             @enderror
+                                        </div>
+                                    </div>
+
+                                    {{-- Oficial --}}
+                                    <div class="col-md-3 form-group mb-3">
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" wire:model="courseIsOfficial"
+                                                class="custom-control-input" id="courseIsOfficial">
+                                            <label class="custom-control-label" for="courseIsOfficial">
+                                                Curso Oficial
+                                                <small class="text-muted ml-1">(desmarca si no es un curso
+                                                    del CNB)</small>
+                                            </label>
                                         </div>
                                     </div>
 

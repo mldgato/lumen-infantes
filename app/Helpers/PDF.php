@@ -233,4 +233,35 @@ class PDF extends FPDF
     {
         return $this->convertToWindowsCharset($txt);
     }
+
+    public function rotatedHeader(float $x, float $y, float $w, float $h, string $text): void
+    {
+        $currentY = $this->GetY();
+        $this->SetXY($x, $y);
+        $this->Cell($w, $h, '', 1, 0, 'C', true);
+
+        $angle = 90 * M_PI / 180;
+        $c  = cos($angle);
+        $s  = sin($angle);
+        $textX = $x + $w / 2 + 1.5;
+        $textY = $y + $h - 1;
+        $cx = $textX * $this->k;
+        $cy = ($this->h - $textY) * $this->k;
+
+        $this->_out(sprintf(
+            'q %.5F %.5F %.5F %.5F %.2F %.2F cm 1 0 0 1 %.2F %.2F cm',
+            $c,
+            $s,
+            -$s,
+            $c,
+            $cx,
+            $cy,
+            -$cx,
+            -$cy
+        ));
+        $this->Text($textX, $textY, $text);
+        $this->_out('Q');
+
+        $this->SetY($currentY);
+    }
 }

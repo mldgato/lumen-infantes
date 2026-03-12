@@ -242,8 +242,10 @@ class AcademicConfigurations extends Component
         $original = AcademicConfiguration::with('activities')->findOrFail($this->copyingConfigurationId);
 
         $nueva = AcademicConfiguration::create([
-            'year' => $this->copy_year,
-            'mode' => $original->mode,
+            'year'                   => $this->copy_year,
+            'mode'                   => $original->mode,
+            'improvement_type'       => $original->improvement_type,
+            'improvement_percentage' => $original->improvement_percentage,
         ]);
 
         foreach ($original->activities as $activity) {

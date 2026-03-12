@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
             PensumCourseSeeder::class,
             ClassroomCourseAssignmentSeeder::class,
             ActivityTypeSeeder::class,
+            AcademicConfigurationSeeder::class,
+            GradeBookSeeder::class,
         ]);
     }
 }

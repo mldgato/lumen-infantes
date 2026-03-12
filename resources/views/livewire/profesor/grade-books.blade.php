@@ -13,13 +13,7 @@
                         </h5>
                     </div>
                     <div class="col-md-8 d-flex justify-content-end align-items-center">
-                        <span class="mr-2 text-sm">Mostrar</span>
-                        <select wire:model.live="cant" class="form-control form-control-sm w-auto mr-3">
-                            <option value="10">10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                        </select>
-                        <div class="input-group input-group-sm" style="width: 250px;">
+                        <div class="input-group input-group-sm" style="width: 280px;">
                             <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
                                 placeholder="Buscar curso o aula...">
                             <div class="input-group-append">
@@ -32,48 +26,57 @@
                 </div>
             </div>
             <div class="card-body table-responsive p-0">
-                @if ($readyToLoad && count($assignments))
-                    <table class="table table-hover table-striped text-nowrap">
+                @if ($readyToLoad && $assignments->count())
+                    <table class="table table-hover table-striped">
                         <thead>
                             <tr>
                                 <th>Nivel</th>
                                 <th>Grado</th>
                                 <th>Sección</th>
                                 <th>Curso</th>
-                                <th class="text-center">Unidad</th>
-                                <th class="text-center">Estado</th>
-                                <th class="text-center">Acciones</th>
+                                <th>Unidades</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($assignments as $assignment)
+                            @foreach ($assignments as $groupKey => $group)
+                                @php $first = $group->first(); @endphp
                                 <tr>
-                                    <td>{{ $assignment->classroom->level->level_name }}</td>
-                                    <td>{{ $assignment->classroom->grade->grade_name }}</td>
-                                    <td>{{ $assignment->classroom->section->section_name }}</td>
-                                    <td>{{ $assignment->pensumCourse->course->course_name }}</td>
-                                    <td class="text-center">
-                                        <span class="badge badge-secondary">U{{ $assignment->unit }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        @if (!$assignment->gradeBook)
-                                            <span class="badge badge-light border">Sin cuadro</span>
-                                        @elseif ($assignment->gradeBook->status === 'open')
-                                            <span class="badge badge-success">Abierto</span>
-                                        @elseif ($assignment->gradeBook->status === 'locked')
-                                            <span class="badge badge-secondary">Bloqueado</span>
-                                        @elseif ($assignment->gradeBook->status === 'rejected')
-                                            <span class="badge badge-danger">Rechazado</span>
-                                        @elseif ($assignment->gradeBook->status === 'approved')
-                                            <span class="badge badge-primary">Aprobado</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        <button wire:click="openGradeBook({{ $assignment->id }})"
-                                            class="btn btn-sm btn-primary shadow-sm">
-                                            <i class="fas fa-book-open"></i>
-                                            {{ $assignment->gradeBook ? 'Abrir Cuadro' : 'Crear Cuadro' }}
-                                        </button>
+                                    <td>{{ $first->classroom->level->level_name }}</td>
+                                    <td>{{ $first->classroom->grade->grade_name }}</td>
+                                    <td>{{ $first->classroom->section->section_name }}</td>
+                                    <td>{{ $first->pensumCourse->course->course_name }}</td>
+                                    <td>
+                                        @foreach ($group as $assignment)
+                                            @php
+                                                $status = $assignment->gradeBook?->status;
+                                                $btnClass = match ($status) {
+                                                    'open' => 'btn-success',
+                                                    'locked' => 'btn-secondary',
+                                                    'rejected' => 'btn-danger',
+                                                    'approved' => 'btn-primary',
+                                                    default => 'btn-outline-secondary',
+                                                };
+                                                $icon = match ($status) {
+                                                    'open' => 'fa-book-open',
+                                                    'locked' => 'fa-lock',
+                                                    'rejected' => 'fa-times-circle',
+                                                    'approved' => 'fa-check-circle',
+                                                    default => 'fa-plus-circle',
+                                                };
+                                                $title = match ($status) {
+                                                    'open' => 'Abierto',
+                                                    'locked' => 'Bloqueado',
+                                                    'rejected' => 'Rechazado',
+                                                    'approved' => 'Aprobado',
+                                                    default => 'Sin cuadro',
+                                                };
+                                            @endphp
+                                            <button wire:click="openGradeBook({{ $assignment->id }})"
+                                                class="btn btn-sm {{ $btnClass }} shadow-sm mr-1"
+                                                title="{{ $title }}">
+                                                <i class="fas {{ $icon }} mr-1"></i> U{{ $assignment->unit }}
+                                            </button>
+                                        @endforeach
                                     </td>
                                 </tr>
                             @endforeach
@@ -90,11 +93,6 @@
                     </div>
                 @endif
             </div>
-            @if ($readyToLoad && count($assignments) && $assignments->hasPages())
-                <div class="card-footer clearfix">
-                    <div class="float-right">{{ $assignments->links() }}</div>
-                </div>
-            @endif
         </div>
     @else
         {{-- Cuadro de calificaciones --}}
@@ -124,12 +122,25 @@
                             <span class="badge badge-primary mr-2">Aprobado</span>
                         @endif
 
+                        @if ($gradeBook->isApproved())
+                            <a href="{{ route('profesor.grade-books.pdf', $gradeBook->id) }}" target="_blank"
+                                class="btn btn-sm btn-danger shadow-sm">
+                                <i class="fas fa-file-pdf"></i> Descargar PDF
+                            </a>
+                        @endif
+
                         @if ($gradeBook->isOpen())
                             <button wire:click="openActivityForm" class="btn btn-sm btn-primary mr-2 shadow-sm">
                                 <i class="fas fa-plus"></i> Nueva Actividad
                             </button>
                             <button onclick="confirmLock()" class="btn btn-sm btn-secondary shadow-sm">
                                 <i class="fas fa-lock"></i> Bloquear Cuadro
+                            </button>
+                        @endif
+
+                        @if ($gradeBook->isRejected())
+                            <button onclick="confirmReopen()" class="btn btn-sm btn-warning shadow-sm">
+                                <i class="fas fa-lock-open"></i> Reabrir para Edición
                             </button>
                         @endif
                     </div>
@@ -279,14 +290,47 @@
 
                 {{-- Formulario de calificaciones --}}
                 @if ($showScoresForm && $scoringActivity)
+                    @php
+                        $config = $gradeBook->academicConfiguration;
+                        $improvementLabel = match ($config->improvement_type) {
+                            'full' => 'Mejora (máx: ' . $scoringActivity->max_points . ' pts)',
+                            'percentage' => 'Mejora (máx: ' .
+                                number_format(
+                                    ($scoringActivity->max_points * $config->improvement_percentage) / 100,
+                                    2,
+                                ) .
+                                ' pts — ' .
+                                $config->improvement_percentage .
+                                '%)',
+                            'additive' => 'Mejora (suma sin sobrepasar ' . $scoringActivity->max_points . ' pts)',
+                            default => 'Mejora',
+                        };
+                    @endphp
                     <div class="card border-success shadow-sm mb-3">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h6 class="card-title text-bold text-success m-0">
-                                <i class="fas fa-pen mr-1"></i>
-                                Calificaciones — {{ $scoringActivity->name }}
-                                <span class="badge badge-secondary ml-1">Máx: {{ $scoringActivity->max_points }}
-                                    pts</span>
-                            </h6>
+                            <div>
+                                <h6 class="card-title text-bold text-success m-0">
+                                    <i class="fas fa-pen mr-1"></i>
+                                    Calificaciones — {{ $scoringActivity->name }}
+                                    <span class="badge badge-secondary ml-1">Máx: {{ $scoringActivity->max_points }}
+                                        pts</span>
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Proceso de mejora:
+                                    @if ($config->improvement_type === 'full')
+                                        <span class="badge badge-success">100% — hasta
+                                            {{ $scoringActivity->max_points }} pts</span>
+                                    @elseif ($config->improvement_type === 'percentage')
+                                        <span class="badge badge-warning">{{ $config->improvement_percentage }}% —
+                                            hasta
+                                            {{ number_format(($scoringActivity->max_points * $config->improvement_percentage) / 100, 2) }}
+                                            pts</span>
+                                    @elseif ($config->improvement_type === 'additive')
+                                        <span class="badge badge-info">Suma — depende de la nota original</span>
+                                    @endif
+                                </small>
+                            </div>
                             <button wire:click="closeScores" class="btn btn-sm btn-secondary">
                                 <i class="fas fa-times"></i> Cerrar
                             </button>
@@ -295,24 +339,68 @@
                             <table class="table table-hover table-striped mb-0">
                                 <thead class="thead-light">
                                     <tr>
-                                        <th>#</th>
+                                        <th style="width:40px">#</th>
                                         <th>Estudiante</th>
-                                        <th style="width:180px">Nota</th>
+                                        <th style="width:160px">
+                                            Nota
+                                            <small class="d-block text-muted font-weight-normal">Máx:
+                                                {{ $scoringActivity->max_points }}</small>
+                                        </th>
+                                        <th style="width:200px">
+                                            {{ $improvementLabel }}
+                                            <small class="d-block text-muted font-weight-normal">Dejar vacío si no
+                                                aplica</small>
+                                        </th>
+                                        <th style="width:120px" class="text-center">
+                                            Nota Efectiva
+                                            <small class="d-block text-muted font-weight-normal">Con mejora</small>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($students as $index => $student)
+                                        @php
+                                            $currentScore = $scores[$student->id] ?? 0;
+                                            $currentImprovement = $improvement_scores[$student->id] ?? null;
+                                            $effective = $config->effectiveScore(
+                                                (float) $currentScore,
+                                                is_numeric($currentImprovement) ? (float) $currentImprovement : null,
+                                                (float) $scoringActivity->max_points,
+                                            );
+                                            $maxImprovement = $config->maxImprovementScore(
+                                                (float) $currentScore,
+                                                (float) $scoringActivity->max_points,
+                                            );
+                                        @endphp
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
                                             <td>{{ $student->user->name }}</td>
                                             <td>
-                                                <input type="number" wire:model="scores.{{ $student->id }}"
+                                                <input type="number" wire:model.live="scores.{{ $student->id }}"
                                                     class="score-input form-control form-control-sm @error('scores.' . $student->id) is-invalid @enderror"
-                                                    data-index="{{ $index }}" min="0"
-                                                    max="{{ $scoringActivity->max_points }}" step="0.01">
+                                                    data-index="{{ $index }}" data-type="score"
+                                                    min="0" max="{{ $scoringActivity->max_points }}"
+                                                    step="0.01">
                                                 @error('scores.' . $student->id)
                                                     <span class="invalid-feedback">{{ $message }}</span>
                                                 @enderror
+                                            </td>
+                                            <td>
+                                                <input type="number"
+                                                    wire:model.live="improvement_scores.{{ $student->id }}"
+                                                    class="improvement-input form-control form-control-sm @error('improvement_scores.' . $student->id) is-invalid @enderror"
+                                                    data-index="{{ $index }}" data-type="improvement"
+                                                    min="0" max="{{ $maxImprovement }}" step="0.01"
+                                                    placeholder="—">
+                                                @error('improvement_scores.' . $student->id)
+                                                    <span class="invalid-feedback">{{ $message }}</span>
+                                                @enderror
+                                            </td>
+                                            <td class="text-center">
+                                                <span
+                                                    class="badge {{ $effective > $currentScore ? 'badge-success' : 'badge-secondary' }} px-2 py-1">
+                                                    {{ number_format($effective, 2) }}
+                                                </span>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -434,10 +522,33 @@
                                         @foreach ($gradeBook->activities as $activity)
                                             @php
                                                 $score = $activity->scores->firstWhere('student_id', $student->id);
+                                                $rawScore = $score ? (float) $score->score : null;
+                                                $improvement = $score ? $score->improvement_score : null;
+                                                $effective = $score
+                                                    ? $gradeBook->academicConfiguration->effectiveScore(
+                                                        (float) $rawScore,
+                                                        $improvement,
+                                                        (float) $activity->max_points,
+                                                    )
+                                                    : null;
                                             @endphp
                                             <td
                                                 class="text-center {{ $activity->activityType->is_extra ? 'table-warning' : '' }}">
-                                                {{ $score ? number_format($score->score, 2) : '—' }}
+                                                @if (!is_null($rawScore))
+                                                    <span>{{ number_format($rawScore, 2) }}</span>
+                                                    @if (!is_null($improvement) && $improvement > 0)
+                                                        <br>
+                                                        <small class="text-success" title="Mejora">
+                                                            <i class="fas fa-arrow-up"></i>
+                                                            {{ number_format($improvement, 2) }}
+                                                        </small>
+                                                        <br>
+                                                        <span
+                                                            class="badge badge-success">{{ number_format($effective, 2) }}</span>
+                                                    @endif
+                                                @else
+                                                    —
+                                                @endif
                                             </td>
                                         @endforeach
                                         <td class="text-center font-weight-bold">
@@ -507,6 +618,23 @@
                 });
             }
 
+            function confirmReopen() {
+                Swal.fire({
+                    title: '¿Reabrir el cuadro?',
+                    text: 'El cuadro volverá al estado Abierto para que puedas corregirlo y bloquearlo nuevamente.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f6a821',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, reabrir',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        @this.reopenGradeBook();
+                    }
+                });
+            }
+
             document.addEventListener('livewire:init', () => {
                 Livewire.on('showAlert', (event) => {
                     let payload = event[0] || event;
@@ -540,13 +668,31 @@
 
             function setupEnterNavigation() {
                 document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && e.target.classList.contains('score-input')) {
-                        e.preventDefault();
-                        const currentIndex = parseInt(e.target.getAttribute('data-index'));
-                        const nextInput = document.querySelector(`.score-input[data-index="${currentIndex + 1}"]`);
-                        if (nextInput) {
-                            nextInput.focus();
-                            nextInput.select();
+                    if (e.key !== 'Enter') return;
+
+                    const target = e.target;
+                    const isScore = target.classList.contains('score-input');
+                    const isImprovement = target.classList.contains('improvement-input');
+
+                    if (!isScore && !isImprovement) return;
+
+                    e.preventDefault();
+
+                    const currentIndex = parseInt(target.getAttribute('data-index'));
+
+                    if (isScore) {
+                        // Ir a la casilla de mejora del mismo estudiante
+                        const improvement = document.querySelector(`.improvement-input[data-index="${currentIndex}"]`);
+                        if (improvement) {
+                            improvement.focus();
+                            improvement.select();
+                        }
+                    } else if (isImprovement) {
+                        // Ir a la nota del siguiente estudiante
+                        const nextScore = document.querySelector(`.score-input[data-index="${currentIndex + 1}"]`);
+                        if (nextScore) {
+                            nextScore.focus();
+                            nextScore.select();
                         }
                     }
                 });
