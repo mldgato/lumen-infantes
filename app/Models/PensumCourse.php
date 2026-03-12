@@ -37,4 +37,9 @@ class PensumCourse extends Model
     {
         return $this->hasMany(PensumCourse::class, 'parent_id');
     }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(ClassroomCourseAssignment::class);
+    }
 }

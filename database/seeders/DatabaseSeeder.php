@@ -28,6 +28,10 @@ class DatabaseSeeder extends Seeder
             ClassroomSeeder::class,
             StudentEnrollmentSeeder::class,
             CourseSeeder::class,
+            PensumSeeder::class,
+            PensumCourseSeeder::class,
+            ClassroomCourseAssignmentSeeder::class,
+            ActivityTypeSeeder::class,
         ]);
     }
 }

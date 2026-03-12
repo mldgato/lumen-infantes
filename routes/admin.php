@@ -10,7 +10,9 @@ use App\Http\Controllers\Admin\SectionController;
 use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\PensumController;
-
+use App\Http\Controllers\Admin\ClassroomCourseAssignmentController;
+use App\Http\Controllers\Admin\AcademicConfigurationController;
+use App\Http\Controllers\Admin\GradeBookController;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
@@ -43,3 +45,15 @@ Route::get('/courses', [CourseController::class, 'index'])
 Route::get('/pensums', [PensumController::class, 'index'])
     ->name('admin.pensums.index')
     ->middleware('can:admin.pensums.index');
+
+Route::get('/classroom-course-assignments', [ClassroomCourseAssignmentController::class, 'index'])
+    ->name('admin.classroom-course-assignments.index')
+    ->middleware('can:admin.classroom-course-assignments.index');
+
+Route::get('/academic-configurations', [AcademicConfigurationController::class, 'index'])
+    ->name('admin.academic-configurations.index')
+    ->middleware('can:admin.academic-configurations.index');
+
+Route::get('/grade-books', [GradeBookController::class, 'index'])
+    ->name('admin.grade-books.index')
+    ->middleware('can:admin.grade-books.index');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
@@ -35,5 +36,15 @@ class Student extends Model
     public function enrollments()
     {
         return $this->hasMany(StudentEnrollment::class);
+    }
+
+    public function gradeBookScores(): HasMany
+    {
+        return $this->hasMany(GradeBookScore::class);
+    }
+
+    public function gradeBookTotals(): HasMany
+    {
+        return $this->hasMany(GradeBookTotal::class);
     }
 }

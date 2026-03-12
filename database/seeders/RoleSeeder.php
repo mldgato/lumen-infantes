@@ -159,5 +159,84 @@ class RoleSeeder extends Seeder
             'name'        => 'admin.pensums.delete',
             'description' => 'Administración - Eliminar pénsum'
         ])->assignRole($role1);
+
+        // Asignación de Profesores
+        Permission::create([
+            'name'        => 'admin.classroom-course-assignments.index',
+            'description' => 'Administración - Listado de asignación de profesores'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.classroom-course-assignments.create',
+            'description' => 'Administración - Crear asignación de profesores'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.classroom-course-assignments.edit',
+            'description' => 'Administración - Editar asignación de profesores'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.classroom-course-assignments.delete',
+            'description' => 'Administración - Eliminar asignación de profesores'
+        ])->assignRole($role1);
+
+        // Configuración Académica
+        Permission::create([
+            'name'        => 'admin.academic-configurations.index',
+            'description' => 'Administración - Listado de configuración académica'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.academic-configurations.create',
+            'description' => 'Administración - Crear configuración académica'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.academic-configurations.edit',
+            'description' => 'Administración - Editar configuración académica'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.academic-configurations.delete',
+            'description' => 'Administración - Eliminar configuración académica'
+        ])->assignRole($role1);
+
+        // Cuadros de Calificaciones - Admin
+        Permission::create([
+            'name'        => 'admin.grade-books.index',
+            'description' => 'Administración - Listado de cuadros de calificaciones'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.grade-books.approve',
+            'description' => 'Administración - Aprobar cuadros de calificaciones'
+        ])->assignRole($role1);
+
+        Permission::create([
+            'name'        => 'admin.grade-books.reject',
+            'description' => 'Administración - Rechazar cuadros de calificaciones'
+        ])->assignRole($role1);
+
+        // Cuadros de Calificaciones - Profesor
+        Permission::create([
+            'name'        => 'profesor.grade-books.index',
+            'description' => 'Profesor - Listado de cuadros de calificaciones'
+        ])->assignRole($role4);
+
+        Permission::create([
+            'name'        => 'profesor.grade-books.create',
+            'description' => 'Profesor - Crear cuadros de calificaciones'
+        ])->assignRole($role4);
+
+        Permission::create([
+            'name'        => 'profesor.grade-books.edit',
+            'description' => 'Profesor - Editar cuadros de calificaciones'
+        ])->assignRole($role4);
+
+        Permission::create([
+            'name'        => 'profesor.grade-books.lock',
+            'description' => 'Profesor - Bloquear cuadros de calificaciones'
+        ])->assignRole($role4);
     }
 }

@@ -138,7 +138,8 @@
                                                         <span class="badge badge-success">Completo</span>
                                                     @endif
                                                 </td>
-                                                <td><span class="badge badge-light border">{{ $pc->ordering }}</span></td>
+                                                <td><span class="badge badge-light border">{{ $pc->ordering }}</span>
+                                                </td>
                                                 <td>
                                                     @if ($pc->units)
                                                         @foreach ($pc->units as $u)
@@ -436,6 +437,76 @@
         </div>
     </div>
 
+    {{-- Modal Copiar Pénsum --}}
+    <div wire:ignore.self class="modal fade" id="CopyPensumModal" tabindex="-1" role="dialog"
+        data-backdrop="static">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-copy"></i> Copiar Pénsum
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border text-sm mb-3">
+                        <i class="fas fa-info-circle text-info mr-1"></i>
+                        Se copiará la estructura completa del pénsum (cursos, sub cursos y unidades) al grado y año que
+                        seleccione.
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="text-sm mb-1">Grado Destino <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-graduation-cap"></i></span>
+                            </div>
+                            <select wire:model="copy_grade_id"
+                                class="form-control @error('copy_grade_id') is-invalid @enderror">
+                                <option value="">-- Seleccione un grado --</option>
+                                @foreach ($grades as $grade)
+                                    <option value="{{ $grade->id }}">{{ $grade->grade_name }}</option>
+                                @endforeach
+                            </select>
+                            @error('copy_grade_id')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="text-sm mb-1">Año Destino <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                            </div>
+                            <input type="number" wire:model="copy_year"
+                                class="form-control @error('copy_year') is-invalid @enderror" placeholder="Ej. 2027"
+                                min="2000" max="2100">
+                            @error('copy_year')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button wire:click.prevent="copyPensum" type="button" class="btn btn-info btn-sm"
+                        wire:loading.attr="disabled" wire:target="copyPensum">
+                        <span wire:loading.remove wire:target="copyPensum">
+                            <i class="fas fa-copy"></i> Copiar Pénsum
+                        </span>
+                        <span wire:loading wire:target="copyPensum">
+                            <i class="fas fa-spinner fa-pulse"></i> Copiando...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Card principal --}}
     <div class="card card-primary card-outline">
         <div class="card-header">
@@ -510,6 +581,11 @@
                                         onclick="confirmDelete({{ $pensum->id }}, '¿Eliminar el pénsum de {{ addslashes($pensum->grade->grade_name) }} {{ $pensum->year }}?')"
                                         class="btn btn-sm btn-danger shadow-sm" title="Eliminar">
                                         <i class="fas fa-trash"></i>
+                                    </button>
+                                    <button wire:click="openCopyModal({{ $pensum->id }})" data-toggle="modal"
+                                        data-target="#CopyPensumModal" class="btn btn-sm btn-info shadow-sm"
+                                        title="Copiar Pénsum">
+                                        <i class="fas fa-copy"></i>
                                     </button>
                                 </td>
                             </tr>

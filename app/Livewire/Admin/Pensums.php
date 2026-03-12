@@ -9,6 +9,7 @@ use App\Models\Pensum;
 use App\Models\PensumCourse;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Validation\Rule;
 
 class Pensums extends Component
 {
@@ -37,6 +38,11 @@ class Pensums extends Component
     public int|string $courseOrdering = 0;
     public array $subCourses     = []; // [['course_id' => '', 'units' => []]]
     public ?int $editingCourseId = null;
+
+    //Copia de pénsum
+    public ?int $copyingPensumId     = null;
+    public int|string $copy_grade_id = '';
+    public string $copy_year         = '';
 
     protected $queryString = [
         'cant'      => ['except' => '10'],
@@ -287,6 +293,74 @@ class Pensums extends Component
         $this->dispatch('toastMessage', [
             'type'    => 'info',
             'message' => 'Curso eliminado del pénsum.',
+        ]);
+    }
+
+    public function openCopyModal(int $id): void
+    {
+        $this->copyingPensumId = $id;
+        $this->copy_grade_id   = '';
+        $this->copy_year       = '';
+        $this->resetValidation();
+    }
+
+    public function copyPensum(): void
+    {
+        $this->validate([
+            'copy_grade_id' => 'required|exists:grades,id',
+            'copy_year' => [
+                'required',
+                'digits:4',
+                'integer',
+                Rule::unique('pensums', 'year')->where(fn($q) => $q->where('grade_id', $this->copy_grade_id)),
+            ],
+        ], [
+            'copy_grade_id.required' => 'El grado destino es obligatorio.',
+            'copy_grade_id.exists'   => 'El grado seleccionado no es válido.',
+            'copy_year.required'     => 'El año destino es obligatorio.',
+            'copy_year.digits'       => 'El año debe tener exactamente 4 dígitos.',
+            'copy_year.unique'       => 'Ya existe un pénsum para ese grado y año.',
+        ]);
+
+        $original = Pensum::with('mainCourses.subCourses')->findOrFail($this->copyingPensumId);
+
+        $nuevo = Pensum::create([
+            'grade_id' => $this->copy_grade_id,
+            'year'     => $this->copy_year,
+            'units'    => $original->units,
+        ]);
+
+        foreach ($original->mainCourses as $pc) {
+            $nuevoPc = PensumCourse::create([
+                'pensum_id' => $nuevo->id,
+                'course_id' => $pc->course_id,
+                'parent_id' => null,
+                'units'     => $pc->units,
+                'is_main'   => $pc->is_main,
+                'ordering'  => $pc->ordering,
+            ]);
+
+            foreach ($pc->subCourses as $sub) {
+                PensumCourse::create([
+                    'pensum_id' => $nuevo->id,
+                    'course_id' => $sub->course_id,
+                    'parent_id' => $nuevoPc->id,
+                    'units'     => $sub->units,
+                    'is_main'   => false,
+                    'ordering'  => $sub->ordering,
+                ]);
+            }
+        }
+
+        $this->copyingPensumId = null;
+        $this->copy_grade_id   = '';
+        $this->copy_year       = '';
+
+        $this->dispatch('closeModalMessaje', [
+            'title'   => '¡Copiado!',
+            'message' => 'Pénsum copiado exitosamente.',
+            'type'    => 'success',
+            'modalId' => 'CopyPensumModal',
         ]);
     }
 

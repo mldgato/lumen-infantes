@@ -385,6 +385,30 @@ return [
                 ],
             ]
         ],
+        [
+            'text'    => 'Asignación de Profesores',
+            'icon'    => 'fas fa-fw fa-chalkboard-teacher',
+            'route'   => 'admin.classroom-course-assignments.index',
+            'can'     => 'admin.classroom-course-assignments.index',
+        ],
+        [
+            'text'    => 'Conf. Académica',
+            'icon'    => 'fas fa-fw fa-cogs',
+            'route'   => 'admin.academic-configurations.index',
+            'can'     => 'admin.academic-configurations.index',
+        ],
+        [
+            'text'  => 'Cuadros de Calificaciones',
+            'icon'  => 'fas fa-fw fa-book-open',
+            'route' => 'admin.grade-books.index',
+            'can'   => 'admin.grade-books.index',
+        ],
+        [
+            'text'  => 'Mis Cuadros',
+            'icon'  => 'fas fa-fw fa-book-open',
+            'route' => 'profesor.grade-books.index',
+            'can'   => 'profesor.grade-books.index',
+        ],
     ],
 
     /*

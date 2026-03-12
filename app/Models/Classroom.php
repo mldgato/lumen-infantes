@@ -32,4 +32,21 @@ class Classroom extends Model
     {
         return $this->hasMany(StudentEnrollment::class);
     }
+
+    public function courseAssignments(): HasMany
+    {
+        return $this->hasMany(ClassroomCourseAssignment::class);
+    }
+
+    public function pensum()
+    {
+        return $this->hasOneThrough(
+            Pensum::class,
+            Grade::class,
+            'id',
+            'grade_id',
+            'grade_id',
+            'id'
+        )->whereColumn('pensums.year', 'classrooms.year');
+    }
 }

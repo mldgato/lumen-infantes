@@ -15,7 +15,7 @@ class ProfessorSeeder extends Seeder
     public function run(): void
     {
         // Crea 5 profesores. El Factory de Professor crea automáticamente su User asociado.
-        Professor::factory(5)->create()->each(function ($professor) {
+        Professor::factory(10)->create()->each(function ($professor) {
 
             // Asignar el rol al usuario de este profesor
             $professor->user->assignRole('Profesor');
