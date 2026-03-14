@@ -323,6 +323,23 @@ return [
             'header' => 'ADMINISTRACIÓN',
             'can'   => 'admin.menu',
         ],
+        'text'    => 'Roles y permisos',
+        'icon'    => 'fas fa-fw fa-user-shield',
+        'can'     => 'admin.levels.index',
+        'submenu' => [
+            [
+                'text'    => 'Roles',
+                'url'     => 'admin/roles',
+                'icon'    => 'fas fa-user-tag',
+                'can'     => 'admin.roles.index',
+            ],
+            [
+                'text'    => 'Permisos',
+                'url'     => 'admin/permissions',
+                'icon'    => 'fas fa-key',
+                'can'     => 'admin.permissions.index',
+            ],
+        ],
         [
             'text'  => 'Estudiantes',
             'route' => 'admin.students.index',
@@ -398,7 +415,7 @@ return [
             'can'     => 'admin.academic-configurations.index',
         ],
         [
-            'text'  => 'Cuadros de Calificaciones',
+            'text'  => 'Validación de cuadros',
             'icon'  => 'fas fa-fw fa-book-open',
             'route' => 'admin.grade-books.index',
             'can'   => 'admin.grade-books.index',
@@ -408,6 +425,25 @@ return [
             'icon'  => 'fas fa-fw fa-book-open',
             'route' => 'profesor.grade-books.index',
             'can'   => 'profesor.grade-books.index',
+        ],
+        [
+            'text'    => 'Reportes',
+            'icon'    => 'fas fa-chart-bar',
+            'can'     => 'admin.reports.sabana-unidad',
+            'submenu' => [
+                [
+                    'text'    => 'Sábanas',
+                    'icon'    => 'fas fa-table',
+                    'submenu' => [
+                        [
+                            'text' => 'Sábana por Unidad',
+                            'url'  => 'admin/reports/sabana-unidad',
+                            'icon' => 'fas fa-file-excel',
+                            'can'  => 'admin.reports.sabana-unidad',
+                        ],
+                    ],
+                ],
+            ],
         ],
     ],
 

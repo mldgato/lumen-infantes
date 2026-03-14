@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\PensumController;
 use App\Http\Controllers\Admin\ClassroomCourseAssignmentController;
 use App\Http\Controllers\Admin\AcademicConfigurationController;
 use App\Http\Controllers\Admin\GradeBookController;
+use App\Http\Controllers\Admin\ReportController;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
@@ -57,3 +58,20 @@ Route::get('/academic-configurations', [AcademicConfigurationController::class, 
 Route::get('/grade-books', [GradeBookController::class, 'index'])
     ->name('admin.grade-books.index')
     ->middleware('can:admin.grade-books.index');
+
+
+Route::get('/reports/sabana-unidad', [ReportController::class, 'sabanaUnidad'])
+    ->name('admin.reports.sabana-unidad.index')
+    ->middleware('can:admin.reports.sabana-unidad');
+
+Route::get('/reports/sabana-unidad/export', [ReportController::class, 'exportSabanaUnidad'])
+    ->name('admin.reports.sabana-unidad.export')
+    ->middleware('can:admin.reports.sabana-unidad');
+
+Route::get('/roles', fn() => view('admin.roles.index'))
+    ->name('admin.roles.index')
+    ->middleware('can:admin.roles.index');
+
+Route::get('/permissions', fn() => view('admin.permissions.index'))
+    ->name('admin.permissions.index')
+    ->middleware('can:admin.permissions.index');

@@ -238,5 +238,14 @@ class RoleSeeder extends Seeder
             'name'        => 'profesor.grade-books.lock',
             'description' => 'Profesor - Bloquear cuadros de calificaciones'
         ])->assignRole($role4);
+
+        Permission::create([
+            'name'        => 'admin.reports.sabana-unidad',
+            'description' => 'Administración - Generar sábana por unidad'
+        ])->assignRole($role1);
+
+        Permission::create(['name' => 'admin.roles.index',       'description' => 'Ver roles'])->assignRole($role1);
+        Permission::create(['name' => 'admin.permissions.index', 'description' => 'Ver permisos'])->assignRole($role1);
+        Permission::create(['name' => 'admin.reports.sabana-unidad', 'description' => 'Reporte sábana por unidad'])->assignRole($role1);
     }
 }

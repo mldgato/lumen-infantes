@@ -404,15 +404,15 @@
                                             </td>
                                         @endforeach
                                         <td class="text-center font-weight-bold">
-                                            {{ $total ? number_format($total->normal_points, 2) : '0.00' }}
+                                            {{ $total ? number_format(ceil($total->normal_points), 0) : '0' }}
                                         </td>
                                         @if ($extraMax > 0)
                                             <td class="text-center font-weight-bold text-warning">
-                                                {{ $total ? number_format($total->extra_points, 2) : '0.00' }}
+                                                {{ $total ? number_format(ceil($total->extra_points), 0) : '0' }}
                                             </td>
                                         @endif
                                         <td class="text-center font-weight-bold text-primary">
-                                            {{ $total ? number_format($total->total_points, 2) : '0.00' }}
+                                            {{ $total ? number_format(ceil($total->total_points), 0) : '0' }}
                                         </td>
                                     </tr>
                                 @endforeach

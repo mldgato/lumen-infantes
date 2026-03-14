@@ -386,7 +386,7 @@ class GradeBooks extends Component
                 [
                     'normal_points' => $normalPoints,
                     'extra_points'  => $extraPoints,
-                    'total_points'  => $normalPoints + $extraPoints,
+                    'total_points'  => ceil($normalPoints + $extraPoints), // <-- ceil aquí
                 ]
             );
         }

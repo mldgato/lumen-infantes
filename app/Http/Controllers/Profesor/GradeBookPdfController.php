@@ -228,28 +228,28 @@ class GradeBookPdfController extends Controller
             }
 
             // Totales
-            $normalPts = $total ? (float) $total->normal_points : 0;
-            $extraPts  = $total ? (float) $total->extra_points : 0;
-            $totalPts  = $total ? (float) $total->total_points : 0;
+            $normalPts = $total ? (int) ceil((float) $total->normal_points) : 0;
+            $extraPts  = $total ? (int) ceil((float) $total->extra_points)  : 0;
+            $totalPts  = $total ? (int) ceil((float) $total->total_points)  : 0;
 
             $fillTotal = $num % 2 === 0 ? [200, 200, 200] : [230, 230, 230];
             $pdf->SetFillColor(...$fillTotal);
 
             $pdf->SetXY($currentX, $pdf->GetY());
             $pdf->SetFont('Arial', 'B', 8);
-            $pdf->CellUTF8(10, $rowH, number_format($normalPts, 1), 1, 0, 'C', true);
+            $pdf->CellUTF8(10, $rowH, number_format($normalPts, 0), 1, 0, 'C', true);
             $currentX += 10;
 
             if ($hasExtra) {
                 $pdf->SetFillColor(255, 235, 156);
                 $pdf->SetXY($currentX, $pdf->GetY());
-                $pdf->CellUTF8(10, $rowH, number_format($extraPts, 1), 1, 0, 'C', true);
+                $pdf->CellUTF8(10, $rowH, number_format($extraPts, 0), 1, 0, 'C', true);
                 $currentX += 10;
             }
 
             $pdf->SetFillColor(...$fillTotal);
             $pdf->SetXY($currentX, $pdf->GetY());
-            $pdf->CellUTF8(10, $rowH, number_format($totalPts, 1), 1, 0, 'C', true);
+            $pdf->CellUTF8(10, $rowH, number_format($totalPts, 0), 1, 0, 'C', true);
 
             $pdf->SetFont('Arial', '', 8);
             $pdf->Ln($rowH);
