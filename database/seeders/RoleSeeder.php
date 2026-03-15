@@ -254,5 +254,7 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'profesor.reports.cuadros-unidad', 'description' => 'Mis cuadros por unidad'])->assignRole($role4);
         Permission::create(['name' => 'profesor.reports.student-list', 'description' => 'Listado de estudiantes PDF'])->assignRole($role4);
         Permission::create(['name' => 'profesor.reports.student-list-excel', 'description' => 'Listado de estudiantes Excel'])->assignRole($role4);
+        Permission::create(['name' => 'admin.reports.student-list',       'description' => 'Listado de estudiantes PDF Administración'])->assignRole($role1);
+        Permission::create(['name' => 'admin.reports.student-list-excel', 'description' => 'Listado de estudiantes Excel Administración'])->assignRole($role1);
     }
 }

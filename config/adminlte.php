@@ -456,6 +456,24 @@ return [
                             'icon'  => 'fas fa-file-pdf',
                             'can'   => 'admin.reports.cuadros-classroom',
                         ],
+                        [
+                            'text'    => 'Listados',
+                            'icon'    => 'fas fa-list',
+                            'submenu' => [
+                                [
+                                    'text'  => 'Listado de Estudiantes PDF',
+                                    'route' => 'admin.reports.student-list.index',
+                                    'icon'  => 'fas fa-file-pdf',
+                                    'can'   => 'admin.reports.student-list',
+                                ],
+                                [
+                                    'text'  => 'Listado de Estudiantes Excel',
+                                    'route' => 'admin.reports.student-list-excel.index',
+                                    'icon'  => 'fas fa-file-excel',
+                                    'can'   => 'admin.reports.student-list-excel',
+                                ],
+                            ],
+                        ],
                     ],
                 ],
             ],

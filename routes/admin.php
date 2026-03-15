@@ -109,3 +109,19 @@ Route::get('/reports/cuadros-classroom/{gradeBook}/view', [GradeBookPdfControlle
 Route::get('/reports/cuadros-classroom/view-all', [GradeBookPdfController::class, 'viewAll'])
     ->name('admin.reports.cuadros-classroom.view-all')
     ->middleware('can:admin.reports.cuadros-classroom');
+
+Route::get('/reports/student-list', [ReportController::class, 'studentList'])
+    ->name('admin.reports.student-list')
+    ->middleware('can:admin.reports.student-list');
+
+Route::get('/reports/student-list/index', fn() => view('admin.reports.student-list.index'))
+    ->name('admin.reports.student-list.index')
+    ->middleware('can:admin.reports.student-list');
+
+Route::get('/reports/student-list-excel', [ReportController::class, 'studentListExcel'])
+    ->name('admin.reports.student-list-excel')
+    ->middleware('can:admin.reports.student-list-excel');
+
+Route::get('/reports/student-list-excel/index', fn() => view('admin.reports.student-list-excel.index'))
+    ->name('admin.reports.student-list-excel.index')
+    ->middleware('can:admin.reports.student-list-excel');
