@@ -97,11 +97,11 @@ class GradeBookPdfController extends Controller
         // ENCABEZADO
         // ==========================================
         // LOGO
-        $logoPath = config('adminlte.logo_img', 'vendor/adminlte/dist/img/InfantesLogo.png');
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
         $pdf->addImage($logoPath, 10, 6, 16);
 
         $pdf->SetFont('Arial', 'B', 13);
-        $pdf->CellUTF8(310, 6, $pdf->dec(strip_tags(config('adminlte.logo', 'Institución Educativa'))), 0, 1, 'C');
+        $pdf->CellUTF8(310, 6, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
 
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->CellUTF8(310, 5, $pdf->dec('Registro de Notas'), 0, 1, 'C');

@@ -96,11 +96,11 @@ class ReportController extends Controller
         // ==========================================
         // ENCABEZADO
         // ==========================================
-        $logoPath = config('adminlte.logo_img', 'vendor/adminlte/dist/img/InfantesLogo.png');
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
         $pdf->addImage($logoPath, 10, 6, 16);
 
         $pdf->SetFont('Arial', 'B', 13);
-        $pdf->CellUTF8(310, 6, $pdf->dec(strip_tags(config('adminlte.logo', 'Institución Educativa'))), 0, 1, 'C');
+        $pdf->CellUTF8(310, 6, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
 
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->CellUTF8(310, 5, $pdf->dec('Sábana de Calificaciones'), 0, 1, 'C');
@@ -343,11 +343,11 @@ class ReportController extends Controller
         $pdf->AddPage();
 
         // ENCABEZADO
-        $logoPath = config('adminlte.logo_img', 'vendor/adminlte/dist/img/InfantesLogo.png');
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
         $pdf->addImage($logoPath, 10, 6, 16);
 
         $pdf->SetFont('Arial', 'B', 13);
-        $pdf->CellUTF8(310, 6, $pdf->dec(strip_tags(config('adminlte.logo', 'Institución Educativa'))), 0, 1, 'C');
+        $pdf->CellUTF8(310, 6, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
 
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->CellUTF8(310, 5, $pdf->dec('Registro de Notas'), 0, 1, 'C');
@@ -706,11 +706,11 @@ class ReportController extends Controller
         }
 
         // ENCABEZADO
-        $logoPath = config('adminlte.logo_img', 'vendor/adminlte/dist/img/InfantesLogo.png');
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
         $pdf->addImage($logoPath, 10, 6, 16);
 
         $pdf->SetFont('Arial', 'B', 13);
-        $pdf->CellUTF8(310, 6, $pdf->dec(strip_tags(config('adminlte.logo', 'Institución Educativa'))), 0, 1, 'C');
+        $pdf->CellUTF8(310, 6, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
 
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->CellUTF8(310, 5, $pdf->dec('Registro de Notas'), 0, 1, 'C');
@@ -898,11 +898,11 @@ class ReportController extends Controller
         $pdf->AddPage();
 
         // HEADER
-        $logoPath = config('adminlte.logo_img', 'vendor/adminlte/dist/img/InfantesLogo.png');
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
         $pdf->addImage($logoPath, 15, 12, 18);
 
         $pdf->SetFont('Arial', 'B', 14);
-        $pdf->CellUTF8(180, 7, $pdf->dec(strip_tags(config('adminlte.logo', 'Institución Educativa'))), 0, 1, 'C');
+        $pdf->CellUTF8(180, 7, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
 
         $pdf->SetFont('Arial', 'B', 12);
         $pdf->CellUTF8(180, 6, $pdf->dec('Listado de Estudiantes'), 0, 1, 'C');

@@ -22,12 +22,12 @@ class StudentPdfController extends Controller
         $pdf->AddPage();
 
         // LOGO E INTERFAZ
-        $logoPath = config('adminlte.logo_img', 'vendor/adminlte/dist/img/InfantesLogo.png');
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
         $pdf->addImage($logoPath, 10, 8, 30);
 
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->Cell(80);
-        $nombreColegio = strip_tags(config('adminlte.logo', 'Colegio Infantes'));
+        $nombreColegio = strip_tags(env('APP_INSTITUTION_NAME', 'Institución Educativa'));
         $pdf->CellUTF8(30, 5, 'Colegio ' . $nombreColegio, 0, 1, 'C');
         $pdf->Cell(80);
         $pdf->SetFont('Arial', 'I', 10);

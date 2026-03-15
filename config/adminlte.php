@@ -63,12 +63,12 @@ return [
     |
     */
 
-    'logo' => '<b>I</b>nfantes',
-    'logo_img' => 'vendor/adminlte/dist/img/InfantesLogo.png',
-    'logo_img_class' => 'brand-image img-circle',
-    'logo_img_xl' => null,
+    'logo'             => env('APP_INSTITUTION_LOGO', '<b>App</b>'),
+    'logo_img'         => 'vendor/adminlte/dist/img/LumenLogo.png',
+    'logo_img_class'   => 'brand-image img-circle',
+    'logo_img_xl'      => null,
     'logo_img_xl_class' => 'brand-image-xs',
-    'logo_img_alt' => 'Infantes Logo',
+    'logo_img_alt'     => env('APP_INSTITUTION_NAME', 'Logo'),
 
     /*
     |--------------------------------------------------------------------------
@@ -86,8 +86,8 @@ return [
     'auth_logo' => [
         'enabled' => false,
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/InfantesLogo.png',
-            'alt' => 'Infantes Logo',
+            'path' => 'vendor/adminlte/dist/img/LumenLogo.png',
+            'alt' => 'Lumen Logo',
             'class' => '',
             'width' => 50,
             'height' => 50,
@@ -113,7 +113,7 @@ return [
         'enabled' => true,
         'mode' => 'cwrapper',
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/InfantesLogo.png',
+            'path' => 'vendor/adminlte/dist/img/LogoGif.gif',
             'alt' => 'Infantes Preloader Image',
             'effect' => 'animation__shake',
             'width' => 60,
