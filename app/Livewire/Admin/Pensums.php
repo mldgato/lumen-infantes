@@ -333,6 +333,7 @@ class Pensums extends Component
             'grade_id' => $this->copy_grade_id,
             'year'     => $this->copy_year,
             'units'    => $original->units,
+            'unit_percentages'  => $original->unit_percentages,
         ]);
 
         foreach ($original->mainCourses as $pc) {

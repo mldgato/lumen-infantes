@@ -26,11 +26,20 @@ class ImageFactory extends Factory
         $name = urlencode(fake()->name());
         $url = "https://ui-avatars.com/api/?name={$name}&background=random&color=fff&size=256";
 
-        // 3. Descargamos la imagen de internet
-        $imageContent = file_get_contents($url);
-
-        // 4. La guardamos físicamente en tu carpeta storage/app/public/userImages
-        Storage::disk('public')->put('userImages/' . $fileName, $imageContent);
+        // Después
+        try {
+            $imageContent = @file_get_contents($url);
+            if ($imageContent === false) {
+                throw new \Exception('No se pudo descargar la imagen');
+            }
+            Storage::disk('public')->put('userImages/' . $fileName, $imageContent);
+        } catch (\Exception $e) {
+            // Crear una imagen placeholder de 1x1 pixel transparente (PNG mínimo válido)
+            $placeholder = base64_decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+            );
+            Storage::disk('public')->put('userImages/' . $fileName, $placeholder);
+        }
 
         // 5. Retornamos solo la URL relativa para la base de datos
         return [

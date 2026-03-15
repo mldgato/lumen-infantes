@@ -302,42 +302,39 @@ return [
     */
 
     'menu' => [
-        // Navbar items:
         [
-            'type' => 'navbar-search',
-            'text' => 'search',
+            'type'         => 'navbar-search',
+            'text'         => 'search',
             'topnav_right' => false,
         ],
         [
-            'type' => 'fullscreen-widget',
+            'type'         => 'fullscreen-widget',
             'topnav_right' => false,
         ],
         ['header' => 'account_settings'],
         [
-            'text' => 'profile',
+            'text'  => 'profile',
             'route' => 'profile',
-            'icon' => 'fas fa-fw fa-user',
+            'icon'  => 'fas fa-fw fa-user',
         ],
-
+        'ADMINISTRACIÓN',
         [
-            'header' => 'ADMINISTRACIÓN',
-            'can'   => 'admin.menu',
-        ],
-        'text'    => 'Roles y permisos',
-        'icon'    => 'fas fa-fw fa-user-shield',
-        'can'     => 'admin.levels.index',
-        'submenu' => [
-            [
-                'text'    => 'Roles',
-                'url'     => 'admin/roles',
-                'icon'    => 'fas fa-user-tag',
-                'can'     => 'admin.roles.index',
-            ],
-            [
-                'text'    => 'Permisos',
-                'url'     => 'admin/permissions',
-                'icon'    => 'fas fa-key',
-                'can'     => 'admin.permissions.index',
+            'text'    => 'Roles y permisos',
+            'icon'    => 'fas fa-fw fa-user-shield',
+            'can'     => 'admin.roles.index',
+            'submenu' => [
+                [
+                    'text'  => 'Roles',
+                    'route' => 'admin.roles.index',
+                    'icon'  => 'fas fa-user-tag',
+                    'can'   => 'admin.roles.index',
+                ],
+                [
+                    'text'  => 'Permisos',
+                    'route' => 'admin.permissions.index',
+                    'icon'  => 'fas fa-key',
+                    'can'   => 'admin.permissions.index',
+                ],
             ],
         ],
         [
@@ -400,19 +397,19 @@ return [
                     'icon'  => 'fas fa-fw fa-list-alt',
                     'can'   => 'admin.pensums.index',
                 ],
-            ]
+            ],
         ],
         [
-            'text'    => 'Asignación de Profesores',
-            'icon'    => 'fas fa-fw fa-chalkboard-teacher',
-            'route'   => 'admin.classroom-course-assignments.index',
-            'can'     => 'admin.classroom-course-assignments.index',
+            'text'  => 'Asignación de Profesores',
+            'icon'  => 'fas fa-fw fa-chalkboard-teacher',
+            'route' => 'admin.classroom-course-assignments.index',
+            'can'   => 'admin.classroom-course-assignments.index',
         ],
         [
-            'text'    => 'Conf. Académica',
-            'icon'    => 'fas fa-fw fa-cogs',
-            'route'   => 'admin.academic-configurations.index',
-            'can'     => 'admin.academic-configurations.index',
+            'text'  => 'Conf. Académica',
+            'icon'  => 'fas fa-fw fa-cogs',
+            'route' => 'admin.academic-configurations.index',
+            'can'   => 'admin.academic-configurations.index',
         ],
         [
             'text'  => 'Validación de cuadros',
@@ -436,12 +433,67 @@ return [
                     'icon'    => 'fas fa-table',
                     'submenu' => [
                         [
-                            'text' => 'Sábana por Unidad',
-                            'url'  => 'admin/reports/sabana-unidad',
-                            'icon' => 'fas fa-file-excel',
-                            'can'  => 'admin.reports.sabana-unidad',
+                            'text'  => 'Sábana por Unidad',
+                            'route' => 'admin.reports.sabana-unidad.index',
+                            'icon'  => 'fas fa-file-excel',
+                            'can'   => 'admin.reports.sabana-unidad',
+                        ],
+                        [
+                            'text'  => 'Sábana General',
+                            'route' => 'admin.reports.sabana-general.index',
+                            'icon'  => 'fas fa-file-excel',
+                            'can'   => 'admin.reports.sabana-general',
+                        ],
+                        [
+                            'text'  => 'Sábana Promedio Final',
+                            'route' => 'admin.reports.sabana-promedio.index',
+                            'icon'  => 'fas fa-file-excel',
+                            'can'   => 'admin.reports.sabana-promedio',
+                        ],
+                        [
+                            'text'  => 'Cuadros por Aula',
+                            'route' => 'admin.reports.cuadros-classroom.index',
+                            'icon'  => 'fas fa-file-pdf',
+                            'can'   => 'admin.reports.cuadros-classroom',
                         ],
                     ],
+                ],
+            ],
+        ],
+        [
+            'text'    => 'Reportes y documentos',
+            'icon'    => 'fas fa-chart-bar',
+            'can'     => 'profesor.reports.sabana-promedio',
+            'submenu' => [
+                [
+                    'text'  => 'Acumulado',
+                    'icon'  => 'fas fa-fw fa-file-pdf',
+                    'route' => 'profesor.reports.sabana-promedio.index',
+                    'can'   => 'profesor.reports.sabana-promedio',
+                ],
+                [
+                    'text'  => 'Mis Cuadros por Unidad',
+                    'icon'  => 'fas fa-fw fa-file-pdf',
+                    'route' => 'profesor.reports.cuadros-unidad.index',
+                    'can'   => 'profesor.reports.cuadros-unidad',
+                ],
+                [
+                    'text'  => 'Cuadro Vacío',
+                    'icon'  => 'fas fa-fw fa-print',
+                    'route' => 'profesor.reports.cuadro-vacio.index',
+                    'can'   => 'profesor.reports.cuadro-vacio',
+                ],
+                [
+                    'text'  => 'Listado de Estudiantes',
+                    'icon'  => 'fas fa-fw fa-list',
+                    'route' => 'profesor.reports.student-list.index',
+                    'can'   => 'profesor.reports.student-list',
+                ],
+                [
+                    'text'  => 'Listado de Estudiantes Excel',
+                    'icon'  => 'fas fa-fw fa-file-excel',
+                    'route' => 'profesor.reports.student-list-excel.index',
+                    'can'   => 'profesor.reports.student-list-excel',
                 ],
             ],
         ],

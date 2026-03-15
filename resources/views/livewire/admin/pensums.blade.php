@@ -60,6 +60,48 @@
                             @enderror
                         </div>
                     </div>
+                    {{-- Porcentajes por Unidad --}}
+                    @if ($form->units >= 1)
+                        <div class="form-group mb-0">
+                            <label class="text-sm mb-1">
+                                Porcentaje por Unidad <span class="text-danger">*</span>
+                                <small class="text-muted ml-1">(deben sumar exactamente 100%)</small>
+                            </label>
+                            @error('unit_percentages')
+                                <div class="alert alert-danger py-1 px-2 text-sm mb-2">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>{{ $message }}
+                                </div>
+                            @enderror
+                            <div class="row">
+                                @for ($u = 1; $u <= (int) $form->units; $u++)
+                                    <div
+                                        class="col-md-{{ (int) $form->units <= 3 ? 4 : ((int) $form->units <= 4 ? 3 : 2) }} form-group mb-2">
+                                        <label class="text-sm mb-1">Unidad {{ $u }}</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number"
+                                                wire:model.live="form.unit_percentages.{{ $u - 1 }}"
+                                                class="form-control @error('unit_percentages.' . ($u - 1)) is-invalid @enderror"
+                                                min="0" max="100" step="1" placeholder="0">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                            @error('unit_percentages.' . ($u - 1))
+                                                <span class="invalid-feedback">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                @endfor
+                            </div>
+                            @php $sum = array_sum(array_map('floatval', $form->unit_percentages)); @endphp
+                            <div class="text-right">
+                                <small class="{{ $sum == 100 ? 'text-success' : 'text-danger' }} font-weight-bold">
+                                    <i
+                                        class="fas {{ $sum == 100 ? 'fa-check-circle' : 'fa-exclamation-circle' }} mr-1"></i>
+                                    Total: {{ $sum }}%
+                                </small>
+                            </div>
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"
@@ -94,7 +136,8 @@
                         {{ $managingPensum ? '— ' . $managingPensum->year : '' }}
                         {{ $managingPensum ? '(' . $managingPensum->units . ' unidades)' : '' }}
                     </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" wire:click="resetCourseForm">
+                    <button type="button" class="close text-white" data-dismiss="modal"
+                        wire:click="resetCourseForm">
                         <span>&times;</span>
                     </button>
                 </div>

@@ -10,8 +10,9 @@ class GradeForm extends Form
 {
     public ?Grade $grade = null;
 
-    public string $grade_name = '';
-    public int $ordering = 0;
+    public string $grade_name          = '';
+    public int $ordering               = 0;
+    public bool $supervised_practice   = false;
 
     public function rules(): array
     {
@@ -22,7 +23,8 @@ class GradeForm extends Form
                 'max:255',
                 Rule::unique('grades', 'grade_name')->ignore($this->grade),
             ],
-            'ordering' => ['required', 'integer', 'min:0'],
+            'ordering'             => ['required', 'integer', 'min:0'],
+            'supervised_practice'  => ['boolean'],
         ];
     }
 
@@ -36,9 +38,10 @@ class GradeForm extends Form
 
     public function setGrade(Grade $grade): void
     {
-        $this->grade      = $grade;
-        $this->grade_name = $grade->grade_name;
-        $this->ordering   = $grade->ordering;
+        $this->grade               = $grade;
+        $this->grade_name          = $grade->grade_name;
+        $this->ordering            = $grade->ordering;
+        $this->supervised_practice = (bool) $grade->supervised_practice;
     }
 
     public function store(): void
@@ -46,8 +49,9 @@ class GradeForm extends Form
         $this->validate();
 
         Grade::create([
-            'grade_name' => $this->grade_name,
-            'ordering'   => $this->ordering,
+            'grade_name'           => $this->grade_name,
+            'ordering'             => $this->ordering,
+            'supervised_practice'  => $this->supervised_practice,
         ]);
     }
 
@@ -56,15 +60,17 @@ class GradeForm extends Form
         $this->validate();
 
         $this->grade->update([
-            'grade_name' => $this->grade_name,
-            'ordering'   => $this->ordering,
+            'grade_name'           => $this->grade_name,
+            'ordering'             => $this->ordering,
+            'supervised_practice'  => $this->supervised_practice,
         ]);
     }
 
     public function resetForm(): void
     {
         $this->reset();
-        $this->grade    = null;
-        $this->ordering = 0;
+        $this->grade               = null;
+        $this->ordering            = 0;
+        $this->supervised_practice = false;
     }
 }

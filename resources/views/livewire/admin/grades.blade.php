@@ -40,6 +40,17 @@
                             @enderror
                         </div>
                     </div>
+                    <div class="form-group mb-3">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" wire:model="form.supervised_practice" class="custom-control-input"
+                                id="supervisedPractice">
+                            <label class="custom-control-label" for="supervisedPractice">
+                                Práctica Supervisada
+                                <small class="text-muted ml-1">(marcar si este grado incluye práctica
+                                    supervisada)</small>
+                            </label>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"

@@ -1991,6 +1991,7 @@ namespace App\Models {
      *
      * @property \Illuminate\Support\Carbon|null $updated_at
      * @property \Illuminate\Support\Carbon|null $created_at
+     * @property boolean $supervised_practice
      * @property int $ordering
      * @property string $grade_name
      * @property int $id
@@ -2001,6 +2002,7 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<Grade>|Grade whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Grade>|Grade whereGradeName($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Grade>|Grade whereOrdering($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Grade>|Grade whereSupervisedPractice($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Grade>|Grade whereCreatedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Grade>|Grade whereUpdatedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Grade>|Grade newModelQuery()
@@ -5006,6 +5008,7 @@ namespace App\Models {
      *
      * @property \Illuminate\Support\Carbon|null $updated_at
      * @property \Illuminate\Support\Carbon|null $created_at
+     * @property array|null $unit_percentages
      * @property bool $units
      * @property string $year
      * @property int $grade_id
@@ -5019,6 +5022,7 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<Pensum>|Pensum whereGradeId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Pensum>|Pensum whereYear($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Pensum>|Pensum whereUnits($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Pensum>|Pensum whereUnitPercentages($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Pensum>|Pensum whereCreatedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Pensum>|Pensum whereUpdatedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Pensum>|Pensum newModelQuery()

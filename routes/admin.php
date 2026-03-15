@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ClassroomCourseAssignmentController;
 use App\Http\Controllers\Admin\AcademicConfigurationController;
 use App\Http\Controllers\Admin\GradeBookController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\GradeBookPdfController;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
@@ -75,3 +76,36 @@ Route::get('/roles', fn() => view('admin.roles.index'))
 Route::get('/permissions', fn() => view('admin.permissions.index'))
     ->name('admin.permissions.index')
     ->middleware('can:admin.permissions.index');
+
+
+Route::get('/reports/sabana-general', [ReportController::class, 'sabanaGeneral'])
+    ->name('admin.reports.sabana-general.index')
+    ->middleware('can:admin.reports.sabana-general');
+
+Route::get('/reports/sabana-general/export', [ReportController::class, 'exportSabanaGeneral'])
+    ->name('admin.reports.sabana-general.export')
+    ->middleware('can:admin.reports.sabana-general');
+
+Route::get('/reports/sabana-promedio', [ReportController::class, 'sabanaPromedio'])
+    ->name('admin.reports.sabana-promedio.index')
+    ->middleware('can:admin.reports.sabana-promedio');
+
+Route::get('/reports/sabana-promedio/export', [ReportController::class, 'exportSabanaPromedio'])
+    ->name('admin.reports.sabana-promedio.export')
+    ->middleware('can:admin.reports.sabana-promedio');
+
+Route::get('/reports/cuadros-classroom', [GradeBookPdfController::class, 'downloadAll'])
+    ->name('admin.reports.cuadros-classroom.download')
+    ->middleware('can:admin.reports.cuadros-classroom');
+
+Route::get('/reports/cuadros-classroom/index', fn() => view('admin.reports.cuadros-classroom.index'))
+    ->name('admin.reports.cuadros-classroom.index')
+    ->middleware('can:admin.reports.cuadros-classroom');
+
+Route::get('/reports/cuadros-classroom/{gradeBook}/view', [GradeBookPdfController::class, 'viewOne'])
+    ->name('admin.reports.cuadros-classroom.view')
+    ->middleware('can:admin.reports.cuadros-classroom');
+
+Route::get('/reports/cuadros-classroom/view-all', [GradeBookPdfController::class, 'viewAll'])
+    ->name('admin.reports.cuadros-classroom.view-all')
+    ->middleware('can:admin.reports.cuadros-classroom');

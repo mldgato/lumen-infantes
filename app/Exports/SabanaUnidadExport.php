@@ -74,8 +74,13 @@ class SabanaUnidadExport implements FromArray, ShouldAutoSize, WithEvents, WithT
                 $noAprobRow   = $dataEndRow + 2;
                 $promedioRow  = $dataEndRow + 3;
 
-                $lastColIndex  = 2 + $courseCount;
-                $lastColLetter = Coordinate::stringFromColumnIndex($lastColIndex + 1);
+                // Columnas
+                $firstCourseColIndex = 3;
+                $lastCourseColIndex  = 2 + $courseCount;
+                $lastCourseColLetter = Coordinate::stringFromColumnIndex($lastCourseColIndex);
+                $promedioColIndex    = $lastCourseColIndex + 1;
+                $promedioColLetter   = Coordinate::stringFromColumnIndex($promedioColIndex);
+                $lastColLetter       = $promedioColLetter;
 
                 // ==========================================
                 // FILA 1: TÍTULO
@@ -105,6 +110,18 @@ class SabanaUnidadExport implements FromArray, ShouldAutoSize, WithEvents, WithT
                     $sheet->setCellValue("{$col}2", $assignment->pensumCourse->course->course_name);
                 }
 
+                // Encabezado columna Promedio
+                $sheet->setCellValue("{$promedioColLetter}2", 'Promedio');
+                $sheet->getStyle("{$promedioColLetter}2")->applyFromArray([
+                    'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '375623']],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical'   => Alignment::VERTICAL_CENTER,
+                        'wrapText'   => true,
+                    ],
+                ]);
+
                 $sheet->getStyle("A2:{$lastColLetter}2")->applyFromArray([
                     'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                     'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2E75B6']],
@@ -114,6 +131,13 @@ class SabanaUnidadExport implements FromArray, ShouldAutoSize, WithEvents, WithT
                         'wrapText'   => true,
                     ],
                 ]);
+
+                // Re-aplicar color verde al encabezado Promedio (sobreescribe el azul)
+                $sheet->getStyle("{$promedioColLetter}2")->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '375623']],
+                ]);
+
                 $sheet->getRowDimension(2)->setRowHeight(50);
 
                 // ==========================================
@@ -146,15 +170,41 @@ class SabanaUnidadExport implements FromArray, ShouldAutoSize, WithEvents, WithT
                                 $sheet->getStyle("{$col}{$row}")
                                     ->getNumberFormat()
                                     ->setFormatCode('0');
+
+                                // Marcar reprobado
+                                if ((int) ceil($total->total_points) < 60) {
+                                    $sheet->getStyle("{$col}{$row}")->applyFromArray([
+                                        'font' => ['bold' => true, 'color' => ['rgb' => '9C0006']],
+                                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFC7CE']],
+                                    ]);
+                                }
                             }
                         }
                     }
 
+                    // Fórmula promedio por fila (ignora celdas vacías)
+                    $rowRange = "C{$row}:{$lastCourseColLetter}{$row}";
+                    $sheet->setCellValue(
+                        "{$promedioColLetter}{$row}",
+                        "=IFERROR(ROUND(AVERAGEIF({$rowRange},\"<>\"),0),\"\")"
+                    );
+
+                    // Estilos fila completa
                     $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $fill]],
                     ]);
                     $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("C{$row}:{$lastColLetter}{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                    // Estilo especial celda promedio
+                    $fillProm = $idx % 2 === 0 ? 'D6E4BC' : 'C6EFCE';
+                    $sheet->getStyle("{$promedioColLetter}{$row}")->applyFromArray([
+                        'font' => ['bold' => true, 'color' => ['rgb' => '375623']],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $fillProm]],
+                    ]);
+                    $sheet->getStyle("{$promedioColLetter}{$row}")
+                        ->getNumberFormat()
+                        ->setFormatCode('0');
                 }
 
                 // ==========================================
@@ -175,6 +225,7 @@ class SabanaUnidadExport implements FromArray, ShouldAutoSize, WithEvents, WithT
                         'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
                     ]);
 
+                    // Celdas por curso
                     foreach ($assignments as $colIdx => $assignment) {
                         $col   = Coordinate::stringFromColumnIndex($colIdx + 3);
                         $range = "{$col}{$dataStartRow}:{$col}{$dataEndRow}";
@@ -190,6 +241,19 @@ class SabanaUnidadExport implements FromArray, ShouldAutoSize, WithEvents, WithT
                             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                         ]);
                     }
+
+                    // Celda promedio general en columna Promedio
+                    $promRange = "{$promedioColLetter}{$dataStartRow}:{$promedioColLetter}{$dataEndRow}";
+                    $formulaProm = $cfg['avg']
+                        ? "=IFERROR(ROUND(AVERAGE({$promRange}),0),\"\")"
+                        : "=COUNTIF({$promRange},\"{$cfg['op']}\")";
+
+                    $sheet->setCellValue("{$promedioColLetter}{$row}", $formulaProm);
+                    $sheet->getStyle("{$promedioColLetter}{$row}")->applyFromArray([
+                        'font'      => ['bold' => true, 'color' => ['rgb' => $cfg['fg']]],
+                        'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $cfg['bg']]],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
                 }
 
                 // ==========================================
@@ -216,6 +280,7 @@ class SabanaUnidadExport implements FromArray, ShouldAutoSize, WithEvents, WithT
                     $col = Coordinate::stringFromColumnIndex($i + 3);
                     $sheet->getColumnDimension($col)->setWidth(20);
                 }
+                $sheet->getColumnDimension($promedioColLetter)->setWidth(12);
             },
         ];
     }

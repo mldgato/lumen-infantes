@@ -246,6 +246,13 @@ class RoleSeeder extends Seeder
 
         Permission::create(['name' => 'admin.roles.index',       'description' => 'Ver roles'])->assignRole($role1);
         Permission::create(['name' => 'admin.permissions.index', 'description' => 'Ver permisos'])->assignRole($role1);
-        Permission::create(['name' => 'admin.reports.sabana-unidad', 'description' => 'Reporte sábana por unidad'])->assignRole($role1);
+        Permission::create(['name' => 'admin.reports.sabana-general', 'description' => 'Reporte sábana general por unidades'])->assignRole($role1);
+        Permission::create(['name' => 'admin.reports.sabana-promedio', 'description' => 'Reporte sábana promedio final'])->assignRole($role1);
+        Permission::create(['name' => 'admin.reports.cuadros-classroom', 'description' => 'Descarga de cuadros por aula'])->assignRole($role1);
+        Permission::create(['name' => 'profesor.reports.sabana-promedio', 'description' => 'Sábana de calificaciones del profesor'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.reports.cuadro-vacio', 'description' => 'Imprimir cuadro vacío'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.reports.cuadros-unidad', 'description' => 'Mis cuadros por unidad'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.reports.student-list', 'description' => 'Listado de estudiantes PDF'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.reports.student-list-excel', 'description' => 'Listado de estudiantes Excel'])->assignRole($role4);
     }
 }

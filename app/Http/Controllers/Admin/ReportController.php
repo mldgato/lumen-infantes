@@ -38,4 +38,60 @@ class ReportController extends Controller
             $filename
         );
     }
+
+    public function sabanaGeneral()
+    {
+        return view('admin.reports.sabana-general.index');
+    }
+
+    public function exportSabanaGeneral(Request $request)
+    {
+        $request->validate([
+            'year'    => 'required',
+            'level'   => 'required|exists:levels,id',
+            'grade'   => 'required|exists:grades,id',
+            'section' => 'required|exists:sections,id',
+        ]);
+
+        $classroom = Classroom::where('year', $request->year)
+            ->where('level_id', $request->level)
+            ->where('grade_id', $request->grade)
+            ->where('section_id', $request->section)
+            ->firstOrFail();
+
+        $filename = 'SabanaGeneral_' . date('dmY_His') . '.xlsx';
+
+        return Excel::download(
+            new \App\Exports\SabanaGeneralExport($classroom->id),
+            $filename
+        );
+    }
+
+    public function sabanaPromedio()
+    {
+        return view('admin.reports.sabana-promedio.index');
+    }
+
+    public function exportSabanaPromedio(Request $request)
+    {
+        $request->validate([
+            'year'    => 'required',
+            'level'   => 'required|exists:levels,id',
+            'grade'   => 'required|exists:grades,id',
+            'section' => 'required|exists:sections,id',
+        ]);
+
+        $classroom = Classroom::where('year', $request->year)
+            ->where('level_id', $request->level)
+            ->where('grade_id', $request->grade)
+            ->where('section_id', $request->section)
+            ->firstOrFail();
+
+        $filename = 'SabanaPromedio_' . date('dmY_His') . '.xlsx';
+
+        return Excel::download(
+            new \App\Exports\SabanaPromedioExport($classroom->id),
+            $filename
+        );
+    }
 }

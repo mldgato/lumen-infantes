@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Grade extends Model
 {
-    protected $fillable = ['grade_name', 'ordering'];
+    protected $fillable = ['grade_name', 'ordering', 'supervised_practice'];
+
+    protected $casts = [
+        'supervised_practice' => 'boolean',
+    ];
 
     public function classrooms(): HasMany
     {
