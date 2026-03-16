@@ -1,4 +1,5 @@
 <div wire:init="loadData">
+
     @if (!$readyToLoad)
         <div class="text-center py-5">
             <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
@@ -53,8 +54,8 @@
             </div>
         </div>
 
+        {{-- CHARTS --}}
         <div class="row">
-            {{-- Bar chart by classroom --}}
             <div class="col-lg-8 mb-3">
                 <div class="card card-outline card-primary shadow-sm h-100">
                     <div class="card-header">
@@ -74,7 +75,6 @@
                 </div>
             </div>
 
-            {{-- Summary legend --}}
             <div class="col-lg-4 mb-3">
                 <div class="card card-outline card-success shadow-sm h-100">
                     <div class="card-header">
@@ -121,7 +121,7 @@
             </div>
         </div>
 
-        {{-- Actionable grade books --}}
+        {{-- ACTIONABLE GRADE BOOKS --}}
         @if (count($actionableGradeBooks) > 0)
             <div class="row">
                 <div class="col-12 mb-3">
@@ -186,84 +186,86 @@
             </div>
         @endif
 
-        @push('js')
-            <script>
-                document.addEventListener('livewire:init', () => {
-                    Livewire.on('profesorDashboardReady', () => {
-                        const rawData = @json($gradeBookStatusByClassroom);
-                        if (!rawData.length) return;
+    @endif
 
-                        const labels = rawData.map(d => d.label);
-                        const open = rawData.map(d => d.open);
-                        const locked = rawData.map(d => d.locked);
-                        const approved = rawData.map(d => d.approved);
-                        const rejected = rawData.map(d => d.rejected);
+    @script
+        <script>
+            $wire.watch('readyToLoad', (value) => {
+                if (!value) return;
 
-                        new Chart(document.getElementById('gradeBookByClassroomChart'), {
-                            type: 'bar',
-                            data: {
-                                labels,
-                                datasets: [{
-                                        label: 'Abiertos',
-                                        data: open,
-                                        backgroundColor: '#6c757d',
-                                        borderRadius: 3
-                                    },
-                                    {
-                                        label: 'En revisión',
-                                        data: locked,
-                                        backgroundColor: '#ffc107',
-                                        borderRadius: 3
-                                    },
-                                    {
-                                        label: 'Aprobados',
-                                        data: approved,
-                                        backgroundColor: '#28a745',
-                                        borderRadius: 3
-                                    },
-                                    {
-                                        label: 'Rechazados',
-                                        data: rejected,
-                                        backgroundColor: '#dc3545',
-                                        borderRadius: 3
-                                    },
-                                ]
+                const rawData = $wire.gradeBookStatusByClassroom;
+                if (!rawData || !rawData.length) return;
+
+                const labels = rawData.map(d => d.label);
+                const open = rawData.map(d => d.open);
+                const locked = rawData.map(d => d.locked);
+                const approved = rawData.map(d => d.approved);
+                const rejected = rawData.map(d => d.rejected);
+
+                new Chart(document.getElementById('gradeBookByClassroomChart'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                                label: 'Abiertos',
+                                data: open,
+                                backgroundColor: '#6c757d',
+                                borderRadius: 3
                             },
-                            options: {
-                                responsive: true,
-                                scales: {
-                                    x: {
-                                        stacked: true,
-                                        grid: {
-                                            display: false
-                                        }
-                                    },
-                                    y: {
-                                        stacked: true,
-                                        beginAtZero: true,
-                                        ticks: {
-                                            stepSize: 1,
-                                            precision: 0
-                                        },
-                                        grid: {
-                                            color: 'rgba(0,0,0,0.05)'
-                                        }
-                                    }
+                            {
+                                label: 'En revisión',
+                                data: locked,
+                                backgroundColor: '#ffc107',
+                                borderRadius: 3
+                            },
+                            {
+                                label: 'Aprobados',
+                                data: approved,
+                                backgroundColor: '#28a745',
+                                borderRadius: 3
+                            },
+                            {
+                                label: 'Rechazados',
+                                data: rejected,
+                                backgroundColor: '#dc3545',
+                                borderRadius: 3
+                            },
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                stacked: true,
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    precision: 0
                                 },
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                        labels: {
-                                            usePointStyle: true,
-                                            padding: 15
-                                        }
-                                    }
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)'
                                 }
                             }
-                        });
-                    });
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15
+                                }
+                            }
+                        }
+                    }
                 });
-            </script>
-        @endpush
-    @endif
+            });
+        </script>
+    @endscript
+
 </div>

@@ -13,6 +13,7 @@ class PensumSeeder extends Seeder
             ['id' => 1, 'grade_id' => 1, 'year' => 2026, 'units' => 4, 'unit_percentages' => [25, 25, 25, 25]],
             ['id' => 2, 'grade_id' => 2, 'year' => 2026, 'units' => 4, 'unit_percentages' => [25, 25, 25, 25]],
             ['id' => 3, 'grade_id' => 3, 'year' => 2026, 'units' => 4, 'unit_percentages' => [25, 25, 25, 25]],
+
             ['id' => 4, 'grade_id' => 4, 'year' => 2026, 'units' => 4, 'unit_percentages' => [25, 25, 25, 25]],
             ['id' => 5, 'grade_id' => 5, 'year' => 2026, 'units' => 4, 'unit_percentages' => [25, 25, 25, 25]],
             ['id' => 6, 'grade_id' => 6, 'year' => 2026, 'units' => 4, 'unit_percentages' => [25, 25, 25, 25]],

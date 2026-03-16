@@ -10,7 +10,7 @@ class ActivityTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['name' => 'Tareas',         'is_extra' => false],
+            ['name' => 'Tareas/Actividades',         'is_extra' => false],
             ['name' => 'Examen Parcial', 'is_extra' => false],
             ['name' => 'Examen Final',   'is_extra' => false],
             ['name' => 'Afectivo',       'is_extra' => false],

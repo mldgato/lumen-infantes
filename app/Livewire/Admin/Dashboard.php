@@ -14,26 +14,21 @@ class Dashboard extends Component
 {
     public bool $readyToLoad = false;
 
-    // KPIs
-    public int $totalStudents    = 0;
-    public int $totalProfessors  = 0;
-    public int $totalClassrooms  = 0;
+    public int $totalStudents     = 0;
+    public int $totalProfessors   = 0;
+    public int $totalClassrooms   = 0;
     public int $pendingGradeBooks = 0;
 
-    // Charts
     public array $studentsByGrade      = [];
     public array $gradeBookStatusChart = [];
 
-    // Recent activity
     public array $recentPendingRequests = [];
     public array $recentGradeBooks      = [];
 
-    /* public function loadData(): void
+    public function loadData(): void
     {
-        logger('loadData iniciado');
         $year = date('Y');
 
-        // KPIs
         $this->totalStudents = Student::whereHas(
             'enrollments',
             fn($q) =>
@@ -56,7 +51,6 @@ class Dashboard extends Component
                 $q->whereHas('classroom', fn($q) => $q->where('year', $year))
             )->count();
 
-        // Students by grade chart
         $enrollments = StudentEnrollment::with('classroom.grade')
             ->where('status', 'Activo')
             ->whereHas('classroom', fn($q) => $q->where('year', $year))
@@ -68,7 +62,6 @@ class Dashboard extends Component
             ->sortKeys()
             ->toArray();
 
-        // GradeBook status chart
         $statuses = GradeBook::whereHas(
             'assignment',
             fn($q) =>
@@ -85,7 +78,6 @@ class Dashboard extends Component
             'rejected' => $statuses['rejected'] ?? 0,
         ];
 
-        // Recent pending grade change requests
         $this->recentPendingRequests = GradeChangeRequest::with([
             'professor.user',
             'gradeBook.assignment.classroom.grade',
@@ -106,7 +98,6 @@ class Dashboard extends Component
             ])
             ->toArray();
 
-        // Recent grade books sent for review
         $this->recentGradeBooks = GradeBook::with([
             'assignment.classroom.grade',
             'assignment.classroom.section',
@@ -133,27 +124,6 @@ class Dashboard extends Component
             ->toArray();
 
         $this->readyToLoad = true;
-        logger('Antes del dispatch');
-        $this->dispatch('dashboardReady');
-    } */
-
-    public function loadData(): void
-    {
-        logger('loadData iniciado');
-        $year = date('Y');
-
-        $this->totalStudents   = 0;
-        $this->totalProfessors = 0;
-        $this->totalClassrooms = 0;
-        $this->pendingGradeBooks = 0;
-        $this->studentsByGrade = [];
-        $this->gradeBookStatusChart = ['open' => 0, 'locked' => 0, 'approved' => 0, 'rejected' => 0];
-        $this->recentPendingRequests = [];
-        $this->recentGradeBooks = [];
-
-        $this->readyToLoad = true;
-        logger('Antes del dispatch');
-        $this->dispatch('dashboardReady');
     }
 
     public function render()

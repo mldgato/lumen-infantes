@@ -13,17 +13,13 @@ class Dashboard extends Component
 {
     public bool $readyToLoad = false;
 
-    // KPIs
     public int $totalClassrooms       = 0;
     public int $approvedGradeBooks    = 0;
     public int $pendingGradeBooks     = 0;
     public int $pendingChangeRequests = 0;
 
-    // Charts
     public array $gradeBookStatusByClassroom = [];
-
-    // Action list
-    public array $actionableGradeBooks = [];
+    public array $actionableGradeBooks       = [];
 
     public function loadData(): void
     {
@@ -57,7 +53,6 @@ class Dashboard extends Component
             ->where('status', 'pending')
             ->count();
 
-        // Chart: grade books status per classroom
         $classrooms = Classroom::with(['grade', 'section'])
             ->whereIn('id', $classroomIds)
             ->get();
@@ -86,7 +81,6 @@ class Dashboard extends Component
         }
         $this->gradeBookStatusByClassroom = $chartData;
 
-        // Actionable grade books (open or rejected)
         $this->actionableGradeBooks = GradeBook::with([
             'assignment.classroom.grade',
             'assignment.classroom.section',
@@ -111,7 +105,6 @@ class Dashboard extends Component
             ])
             ->toArray();
 
-        $this->dispatch('profesorDashboardReady');
         $this->readyToLoad = true;
     }
 

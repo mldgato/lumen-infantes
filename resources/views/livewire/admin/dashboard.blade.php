@@ -1,4 +1,5 @@
 <div wire:init="loadData">
+
     @if (!$readyToLoad)
         <div class="text-center py-5">
             <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
@@ -58,7 +59,6 @@
 
         {{-- CHARTS --}}
         <div class="row">
-            {{-- Students by grade --}}
             <div class="col-lg-8 mb-3">
                 <div class="card card-outline card-primary shadow-sm h-100">
                     <div class="card-header">
@@ -72,7 +72,6 @@
                 </div>
             </div>
 
-            {{-- GradeBook status donut --}}
             <div class="col-lg-4 mb-3">
                 <div class="card card-outline card-success shadow-sm h-100">
                     <div class="card-header">
@@ -107,7 +106,6 @@
 
         {{-- RECENT ACTIVITY --}}
         <div class="row">
-            {{-- Pending change requests --}}
             <div class="col-lg-6 mb-3">
                 <div class="card card-outline card-danger shadow-sm">
                     <div class="card-header">
@@ -159,7 +157,6 @@
                 </div>
             </div>
 
-            {{-- Recent grade books for review --}}
             <div class="col-lg-6 mb-3">
                 <div class="card card-outline card-warning shadow-sm">
                     <div class="card-header">
@@ -211,87 +208,90 @@
             </div>
         </div>
 
-        @script
-            <script>
-                $wire.on('dashboardReady', (event) => {
-                    const data = event[0] ?? event;
-                    const gradeLabels = Object.keys(data.studentsByGrade);
-                    const gradeData = Object.values(data.studentsByGrade);
+    @endif
 
-                    new Chart(document.getElementById('studentsByGradeChart'), {
-                        type: 'bar',
-                        data: {
-                            labels: gradeLabels,
-                            datasets: [{
-                                label: 'Estudiantes',
-                                data: gradeData,
-                                backgroundColor: 'rgba(54, 116, 181, 0.75)',
-                                borderColor: 'rgba(54, 116, 181, 1)',
-                                borderWidth: 1,
-                                borderRadius: 4,
-                            }]
+    @script
+        <script>
+            $wire.watch('readyToLoad', (value) => {
+                if (!value) return;
+
+                const gradeLabels = Object.keys($wire.studentsByGrade);
+                const gradeData = Object.values($wire.studentsByGrade);
+
+                new Chart(document.getElementById('studentsByGradeChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: gradeLabels,
+                        datasets: [{
+                            label: 'Estudiantes',
+                            data: gradeData,
+                            backgroundColor: 'rgba(54, 116, 181, 0.75)',
+                            borderColor: 'rgba(54, 116, 181, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => ` ${ctx.parsed.y} estudiantes`
+                                }
+                            }
                         },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                legend: {
-                                    display: false
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    precision: 0
                                 },
-                                tooltip: {
-                                    callbacks: {
-                                        label: ctx => ` ${ctx.parsed.y} estudiantes`
-                                    }
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)'
                                 }
                             },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        stepSize: 1,
-                                        precision: 0
-                                    },
-                                    grid: {
-                                        color: 'rgba(0,0,0,0.05)'
-                                    }
-                                },
-                                x: {
-                                    grid: {
-                                        display: false
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    const s = data.gradeBookStatusChart;
-                    new Chart(document.getElementById('gradeBookStatusChart'), {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Abiertos', 'En revisión', 'Aprobados', 'Rechazados'],
-                            datasets: [{
-                                data: [s.open, s.locked, s.approved, s.rejected],
-                                backgroundColor: ['#6c757d', '#ffc107', '#28a745', '#dc3545'],
-                                borderWidth: 2,
-                                borderColor: '#fff',
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            cutout: '65%',
-                            plugins: {
-                                legend: {
+                            x: {
+                                grid: {
                                     display: false
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: ctx => ` ${ctx.label}: ${ctx.parsed}`
-                                    }
                                 }
                             }
                         }
-                    });
+                    }
                 });
-            </script>
-        @endscript
-    @endif
+
+                const s = $wire.gradeBookStatusChart;
+                new Chart(document.getElementById('gradeBookStatusChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Abiertos', 'En revisión', 'Aprobados', 'Rechazados'],
+                        datasets: [{
+                            data: [s.open, s.locked, s.approved, s.rejected],
+                            backgroundColor: ['#6c757d', '#ffc107', '#28a745', '#dc3545'],
+                            borderWidth: 2,
+                            borderColor: '#fff',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        cutout: '65%',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => ` ${ctx.label}: ${ctx.parsed}`
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    @endscript
+
 </div>

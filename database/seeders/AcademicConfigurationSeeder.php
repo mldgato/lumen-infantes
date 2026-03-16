@@ -33,7 +33,7 @@ class AcademicConfigurationSeeder extends Seeder
                 'id' => 1,
                 'academic_configuration_id' => 1,
                 'activity_type_id' => 1,
-                'quantity' => 3,
+                'quantity' => 6,
                 'points_each' => 10.00,
                 'created_at' => '2026-03-12 13:23:09',
                 'updated_at' => '2026-03-12 13:23:09'
@@ -41,9 +41,9 @@ class AcademicConfigurationSeeder extends Seeder
             [
                 'id' => 2,
                 'academic_configuration_id' => 1,
-                'activity_type_id' => 2,
-                'quantity' => 2,
-                'points_each' => 20.00,
+                'activity_type_id' => 4,
+                'quantity' => 1,
+                'points_each' => 10.00,
                 'created_at' => '2026-03-12 13:23:18',
                 'updated_at' => '2026-03-12 13:23:18'
             ],

@@ -20,20 +20,20 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             UserSeeder::class,
-            StudentSeeder::class,
-            ProfessorSeeder::class,
             LevelSeeder::class,
             GradeSeeder::class,
             SectionSeeder::class,
             ClassroomSeeder::class,
-            StudentEnrollmentSeeder::class,
+            StudentSeeder::class,
+            ProfessorSeeder::class,
+            /* StudentEnrollmentSeeder::class, */
             CourseSeeder::class,
             PensumSeeder::class,
             PensumCourseSeeder::class,
             ClassroomCourseAssignmentSeeder::class,
             ActivityTypeSeeder::class,
             AcademicConfigurationSeeder::class,
-            GradeBookSeeder::class,
+            /* GradeBookSeeder::class, */
         ]);
     }
 }
