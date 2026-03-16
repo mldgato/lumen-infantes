@@ -7,20 +7,20 @@
 @stop
 
 @section('content_header')
-    <h1 class="text-white"><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
-@stop
+    <h1 class="m-0 text-white">
+        <i class="fas fa-tachometer-alt mr-2"></i>
+        @can('admin.grade-books.index')
+            Panel de Administración
+        @else
+            Mi Panel
+        @endcan
+    </h1>
+@endsection
 
 @section('content')
-    <p>Welcome to this beautiful admin panel.</p>
-@stop
-
-@section('css')
-    {{-- Add here extra stylesheets --}}
-    {{-- <link rel="stylesheet" href="/css/admin_custom.css"> --}}
-@stop
-
-@section('js')
-    {{-- <script>
-        console.log("Hi, I'm using the Laravel-AdminLTE package!");
-    </script> --}}
-@stop
+    @can('admin.grade-books.index')
+        <livewire:admin.dashboard />
+    @else
+        <livewire:profesor.dashboard />
+    @endcan
+@endsection

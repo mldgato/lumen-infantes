@@ -256,5 +256,11 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'profesor.reports.student-list-excel', 'description' => 'Listado de estudiantes Excel'])->assignRole($role4);
         Permission::create(['name' => 'admin.reports.student-list',       'description' => 'Listado de estudiantes PDF Administración'])->assignRole($role1);
         Permission::create(['name' => 'admin.reports.student-list-excel', 'description' => 'Listado de estudiantes Excel Administración'])->assignRole($role1);
+
+        Permission::create(['name' => 'admin.grade-change-requests.index',   'description' => 'Ver solicitudes de cambio de notas'])->assignRole($role1);
+        Permission::create(['name' => 'admin.grade-change-requests.approve',  'description' => 'Aprobar o rechazar solicitudes de cambio de notas'])->assignRole($role1);
+        Permission::create(['name' => 'profesor.grade-change-requests.create', 'description' => 'Solicitar cambio de calificaciones'])->assignRole($role4);
+
+        Permission::create(['name' => 'admin.reports.report-cards', 'description' => 'Boletas de calificaciones'])->assignRole($role1);
     }
 }

@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\AcademicConfigurationController;
 use App\Http\Controllers\Admin\GradeBookController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\GradeBookPdfController;
+use App\Http\Controllers\Admin\ReportCardController;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
@@ -125,3 +126,19 @@ Route::get('/reports/student-list-excel', [ReportController::class, 'studentList
 Route::get('/reports/student-list-excel/index', fn() => view('admin.reports.student-list-excel.index'))
     ->name('admin.reports.student-list-excel.index')
     ->middleware('can:admin.reports.student-list-excel');
+
+Route::get('/grade-change-requests', fn() => view('admin.grade-change-requests.index'))
+    ->name('admin.grade-change-requests.index')
+    ->middleware('can:admin.grade-change-requests.index');
+
+Route::get('/reports/report-cards', fn() => view('admin.reports.report-cards.index'))
+    ->name('admin.reports.report-cards.index')
+    ->middleware('can:admin.reports.report-cards');
+
+Route::get('/reports/report-cards/all', [ReportCardController::class, 'all'])
+    ->name('admin.reports.report-cards.all')
+    ->middleware('can:admin.reports.report-cards');
+
+Route::get('/reports/report-cards/student', [ReportCardController::class, 'student'])
+    ->name('admin.reports.report-cards.student')
+    ->middleware('can:admin.reports.report-cards');

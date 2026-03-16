@@ -1,0 +1,260 @@
+<?php
+
+namespace App\Livewire\Admin;
+
+use App\Models\GradeBook;
+use App\Models\GradeBookScore;
+use App\Models\GradeBookTotal;
+use App\Models\GradeBookActivity;
+use App\Models\GradeChangeRequest;
+use App\Models\GradeChangeRequestItem;
+use App\Models\Student;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Livewire\WithPagination;
+
+class GradeChangeRequests extends Component
+{
+    use WithPagination;
+
+    protected $paginationTheme = 'bootstrap';
+
+    public bool $readyToLoad    = false;
+    public string $filterStatus = 'pending';
+    public string $search       = '';
+    public string $cant         = '10';
+
+    // Detail view
+    public ?GradeChangeRequest $viewingRequest = null;
+
+    // Rejection
+    public ?int $rejectingId        = null;
+    public string $rejectionReason  = '';
+
+    protected $queryString = [
+        'filterStatus' => ['except' => 'pending'],
+        'search'       => ['except' => ''],
+        'cant'         => ['except' => '10'],
+    ];
+
+    public function loadRequests(): void
+    {
+        $this->readyToLoad = true;
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    // ==========================================
+    // DETAIL VIEW
+    // ==========================================
+
+    public function openRequest(int $id): void
+    {
+        $this->viewingRequest = GradeChangeRequest::with([
+            'gradeBook.assignment.classroom.level',
+            'gradeBook.assignment.classroom.grade',
+            'gradeBook.assignment.classroom.section',
+            'gradeBook.assignment.pensumCourse.course',
+            'gradeBook.assignment.professor.user',
+            'professor.user',
+            'items.student.user',
+            'items.activity.activityType',
+            'reviewer',
+        ])->findOrFail($id);
+    }
+
+    public function closeRequest(): void
+    {
+        $this->viewingRequest  = null;
+        $this->rejectingId     = null;
+        $this->rejectionReason = '';
+        $this->resetValidation();
+    }
+
+    // ==========================================
+    // APPROVE
+    // ==========================================
+
+    public function approve(int $id): void
+    {
+        $this->authorize('admin.grade-change-requests.approve');
+
+        $request = GradeChangeRequest::with([
+            'items.activity',
+            'gradeBook.academicConfiguration',
+        ])->findOrFail($id);
+
+        if (! $request->isPending()) return;
+
+        DB::transaction(function () use ($request) {
+            // Apply score changes
+            foreach ($request->items as $item) {
+                GradeBookScore::updateOrCreate(
+                    [
+                        'grade_book_activity_id' => $item->grade_book_activity_id,
+                        'student_id'             => $item->student_id,
+                    ],
+                    [
+                        'score'             => $item->new_score,
+                        'improvement_score' => $item->new_improvement_score,
+                    ]
+                );
+            }
+
+            // Recalculate totals for affected students
+            $studentIds = $request->items->pluck('student_id')->unique();
+            $config     = $request->gradeBook->academicConfiguration;
+
+            $allActivities = GradeBookActivity::with(['scores', 'activityType'])
+                ->where('grade_book_id', $request->grade_book_id)
+                ->get();
+
+            foreach ($studentIds as $studentId) {
+                $normalPoints = 0;
+                $extraPoints  = 0;
+
+                foreach ($allActivities as $activity) {
+                    $score = $activity->scores->firstWhere('student_id', $studentId);
+
+                    $rawScore    = $score ? (float) $score->score : 0;
+                    $improvement = $score ? $score->improvement_score : null;
+                    $effective   = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
+
+                    if ($activity->activityType->is_extra) {
+                        $extraPoints += $effective;
+                    } else {
+                        $normalPoints += $effective;
+                    }
+                }
+
+                GradeBookTotal::updateOrCreate(
+                    [
+                        'grade_book_id' => $request->grade_book_id,
+                        'student_id'    => $studentId,
+                    ],
+                    [
+                        'normal_points' => $normalPoints,
+                        'extra_points'  => $extraPoints,
+                        'total_points'  => $normalPoints + $extraPoints,
+                    ]
+                );
+            }
+
+            // Mark request as approved
+            $request->update([
+                'status'      => 'approved',
+                'reviewed_by' => Auth::id(),
+                'reviewed_at' => now(),
+            ]);
+        });
+
+        if ($this->viewingRequest?->id === $id) {
+            $this->openRequest($id);
+        }
+
+        $this->dispatch('showAlert', [
+            'title'   => '¡Aprobado!',
+            'message' => 'Los cambios de calificaciones fueron aplicados exitosamente.',
+            'type'    => 'success',
+        ]);
+    }
+
+    // ==========================================
+    // REJECT
+    // ==========================================
+
+    public function openRejectModal(int $id): void
+    {
+        $this->rejectingId     = $id;
+        $this->rejectionReason = '';
+        $this->resetValidation();
+    }
+
+    public function reject(): void
+    {
+        $this->authorize('admin.grade-change-requests.approve');
+
+        $this->validate([
+            'rejectionReason' => 'required|string|min:10',
+        ], [
+            'rejectionReason.required' => 'El motivo del rechazo es obligatorio.',
+            'rejectionReason.min'      => 'El motivo debe tener al menos 10 caracteres.',
+        ]);
+
+        $request = GradeChangeRequest::findOrFail($this->rejectingId);
+
+        $request->update([
+            'status'           => 'rejected',
+            'rejection_reason' => $this->rejectionReason,
+            'reviewed_by'      => Auth::id(),
+            'reviewed_at'      => now(),
+        ]);
+
+        if ($this->viewingRequest?->id === $this->rejectingId) {
+            $this->openRequest($this->rejectingId);
+        }
+
+        $this->rejectingId     = null;
+        $this->rejectionReason = '';
+
+        $this->dispatch('closeModalMessaje', [
+            'title'   => 'Rechazado',
+            'message' => 'La solicitud fue rechazada.',
+            'type'    => 'warning',
+            'modalId' => 'RejectModal',
+        ]);
+    }
+
+    public function render()
+    {
+        $requests = $this->readyToLoad
+            ? GradeChangeRequest::with([
+                'gradeBook.assignment.classroom.grade',
+                'gradeBook.assignment.classroom.section',
+                'gradeBook.assignment.pensumCourse.course',
+                'professor.user',
+                'reviewer',
+                'items',
+            ])
+            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+            ->where(function ($q) {
+                $q->whereHas('gradeBook.assignment.classroom.grade', fn($q) =>
+                $q->where('grade_name', 'like', '%' . $this->search . '%'))
+                    ->orWhereHas('gradeBook.assignment.pensumCourse.course', fn($q) =>
+                    $q->where('course_name', 'like', '%' . $this->search . '%'))
+                    ->orWhereHas('professor.user', fn($q) =>
+                    $q->where('name', 'like', '%' . $this->search . '%'));
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate($this->cant)
+            : [];
+
+        $students = $this->viewingRequest
+            ? Student::whereHas(
+                'enrollments',
+                fn($q) =>
+                $q->where('classroom_id', $this->viewingRequest->gradeBook->assignment->classroom_id)
+                    ->where('status', 'Activo')
+            )
+            ->join('users', 'students.user_id', '=', 'users.id')
+            ->orderBy('users.surname')
+            ->orderBy('users.second_surname')
+            ->orderBy('users.first_name')
+            ->orderBy('users.middle_name')
+            ->select('students.*')
+            ->with('user')
+            ->get()
+            : collect();
+
+        return view('livewire.admin.grade-change-requests', compact('requests', 'students'));
+    }
+}

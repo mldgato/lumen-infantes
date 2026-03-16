@@ -418,10 +418,22 @@ return [
             'can'   => 'admin.grade-books.index',
         ],
         [
+            'text'  => 'Cambios de Notas',
+            'icon'  => 'fas fa-fw fa-clipboard-check',
+            'route' => 'admin.grade-change-requests.index',
+            'can'   => 'admin.grade-change-requests.index',
+        ],
+        [
             'text'  => 'Mis Cuadros',
             'icon'  => 'fas fa-fw fa-book-open',
             'route' => 'profesor.grade-books.index',
             'can'   => 'profesor.grade-books.index',
+        ],
+        [
+            'text'  => 'Solicitar Cambio de Notas',
+            'icon'  => 'fas fa-fw fa-edit',
+            'route' => 'profesor.grade-change-requests.index',
+            'can'   => 'profesor.grade-change-requests.create',
         ],
         [
             'text'    => 'Reportes',
@@ -450,31 +462,37 @@ return [
                             'icon'  => 'fas fa-file-excel',
                             'can'   => 'admin.reports.sabana-promedio',
                         ],
+                    ],
+                ],
+                [
+                    'text'  => 'Cuadros por Aula',
+                    'route' => 'admin.reports.cuadros-classroom.index',
+                    'icon'  => 'fas fa-file-pdf',
+                    'can'   => 'admin.reports.cuadros-classroom',
+                ],
+                [
+                    'text'    => 'Listados',
+                    'icon'    => 'fas fa-list',
+                    'submenu' => [
                         [
-                            'text'  => 'Cuadros por Aula',
-                            'route' => 'admin.reports.cuadros-classroom.index',
+                            'text'  => 'Listado de Estudiantes PDF',
+                            'route' => 'admin.reports.student-list.index',
                             'icon'  => 'fas fa-file-pdf',
-                            'can'   => 'admin.reports.cuadros-classroom',
+                            'can'   => 'admin.reports.student-list',
                         ],
                         [
-                            'text'    => 'Listados',
-                            'icon'    => 'fas fa-list',
-                            'submenu' => [
-                                [
-                                    'text'  => 'Listado de Estudiantes PDF',
-                                    'route' => 'admin.reports.student-list.index',
-                                    'icon'  => 'fas fa-file-pdf',
-                                    'can'   => 'admin.reports.student-list',
-                                ],
-                                [
-                                    'text'  => 'Listado de Estudiantes Excel',
-                                    'route' => 'admin.reports.student-list-excel.index',
-                                    'icon'  => 'fas fa-file-excel',
-                                    'can'   => 'admin.reports.student-list-excel',
-                                ],
-                            ],
+                            'text'  => 'Listado de Estudiantes Excel',
+                            'route' => 'admin.reports.student-list-excel.index',
+                            'icon'  => 'fas fa-file-excel',
+                            'can'   => 'admin.reports.student-list-excel',
                         ],
                     ],
+                ],
+                [
+                    'text'  => 'Boletas de Calificaciones',
+                    'route' => 'admin.reports.report-cards.index',
+                    'icon'  => 'fas fa-file-pdf',
+                    'can'   => 'admin.reports.report-cards',
                 ],
             ],
         ],
@@ -588,12 +606,12 @@ return [
             ],
         ],
         'Chartjs' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.0/Chart.bundle.min.js',
+                    'type'     => 'js',
+                    'asset'    => false,
+                    'location' => '//cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
                 ],
             ],
         ],

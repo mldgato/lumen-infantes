@@ -61,3 +61,7 @@ Route::get('/reports/student-list-excel', [ReportController::class, 'studentList
 Route::get('/reports/student-list-excel/index', fn() => view('profesor.reports.student-list-excel.index'))
     ->name('profesor.reports.student-list-excel.index')
     ->middleware('can:profesor.reports.student-list-excel');
+
+Route::get('/grade-change-requests', fn() => view('profesor.grade-change-requests.index'))
+    ->name('profesor.grade-change-requests.index')
+    ->middleware('can:profesor.grade-change-requests.create');
