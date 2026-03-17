@@ -65,3 +65,11 @@ Route::get('/reports/student-list-excel/index', fn() => view('profesor.reports.s
 Route::get('/grade-change-requests', fn() => view('profesor.grade-change-requests.index'))
     ->name('profesor.grade-change-requests.index')
     ->middleware('can:profesor.grade-change-requests.create');
+
+Route::get('/reports/missing-activities', fn() => view('profesor.reports.missing-activities.index'))
+    ->name('profesor.reports.missing-activities.index')
+    ->middleware('can:profesor.reports.missing-activities');
+
+Route::get('/reports/missing-activities/export', [ReportController::class, 'missingActivitiesExport'])
+    ->name('profesor.reports.missing-activities.export')
+    ->middleware('can:profesor.reports.missing-activities');

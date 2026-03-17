@@ -142,3 +142,19 @@ Route::get('/reports/report-cards/all', [ReportCardController::class, 'all'])
 Route::get('/reports/report-cards/student', [ReportCardController::class, 'student'])
     ->name('admin.reports.report-cards.student')
     ->middleware('can:admin.reports.report-cards');
+
+Route::get('/reports/missing-activities', fn() => view('admin.reports.missing-activities.index'))
+    ->name('admin.reports.missing-activities.index')
+    ->middleware('can:admin.reports.missing-activities');
+
+Route::get('/reports/missing-activities/export', [ReportController::class, 'missingActivitiesExport'])
+    ->name('admin.reports.missing-activities.export')
+    ->middleware('can:admin.reports.missing-activities');
+
+Route::get('/students/enrollments', fn() => view('admin.students.registrations'))
+    ->name('admin.students.enrollments.index')
+    ->middleware('can:admin.students.enrollments.index');
+
+Route::get('/audit', fn() => view('admin.audit.index'))
+    ->name('admin.audit.index')
+    ->middleware('can:admin.audit.index');

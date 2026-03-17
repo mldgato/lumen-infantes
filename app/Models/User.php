@@ -154,4 +154,9 @@ class User extends Authenticatable
 
         return $role ? $role->name : 'Usuario de EduCheck';
     }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
+    }
 }

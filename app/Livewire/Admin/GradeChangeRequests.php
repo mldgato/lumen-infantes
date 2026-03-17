@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Services\AuditService;
 
 class GradeChangeRequests extends Component
 {
@@ -84,87 +85,46 @@ class GradeChangeRequests extends Component
     // APPROVE
     // ==========================================
 
-    public function approve(int $id): void
+    public function approve(int $requestId): void
     {
-        $this->authorize('admin.grade-change-requests.approve');
-
         $request = GradeChangeRequest::with([
-            'items.activity',
-            'gradeBook.academicConfiguration',
-        ])->findOrFail($id);
-
-        if (! $request->isPending()) return;
+            'items',
+            'gradeBook.activities',
+        ])->findOrFail($requestId);
 
         DB::transaction(function () use ($request) {
-            // Apply score changes
             foreach ($request->items as $item) {
-                GradeBookScore::updateOrCreate(
-                    [
-                        'grade_book_activity_id' => $item->grade_book_activity_id,
-                        'student_id'             => $item->student_id,
-                    ],
-                    [
-                        'score'             => $item->new_score,
-                        'improvement_score' => $item->new_improvement_score,
-                    ]
-                );
-            }
+                $score = GradeBookScore::where('grade_book_activity_id', $item->grade_book_activity_id)
+                    ->where('student_id', $item->student_id)
+                    ->first();
 
-            // Recalculate totals for affected students
-            $studentIds = $request->items->pluck('student_id')->unique();
-            $config     = $request->gradeBook->academicConfiguration;
-
-            $allActivities = GradeBookActivity::with(['scores', 'activityType'])
-                ->where('grade_book_id', $request->grade_book_id)
-                ->get();
-
-            foreach ($studentIds as $studentId) {
-                $normalPoints = 0;
-                $extraPoints  = 0;
-
-                foreach ($allActivities as $activity) {
-                    $score = $activity->scores->firstWhere('student_id', $studentId);
-
-                    $rawScore    = $score ? (float) $score->score : 0;
-                    $improvement = $score ? $score->improvement_score : null;
-                    $effective   = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
-
-                    if ($activity->activityType->is_extra) {
-                        $extraPoints += $effective;
-                    } else {
-                        $normalPoints += $effective;
-                    }
+                if ($score) {
+                    $oldScore = (float) $score->score;
+                    $score->update(['score' => $item->new_score]);
+                    AuditService::scoreChanged(
+                        $score->load('student.user', 'activity'),
+                        $oldScore,
+                        (float) $item->new_score
+                    );
                 }
-
-                GradeBookTotal::updateOrCreate(
-                    [
-                        'grade_book_id' => $request->grade_book_id,
-                        'student_id'    => $studentId,
-                    ],
-                    [
-                        'normal_points' => $normalPoints,
-                        'extra_points'  => $extraPoints,
-                        'total_points'  => $normalPoints + $extraPoints,
-                    ]
-                );
             }
 
-            // Mark request as approved
-            $request->update([
-                'status'      => 'approved',
-                'reviewed_by' => Auth::id(),
-                'reviewed_at' => now(),
-            ]);
+            // Recalcular totales
+            $studentIds = $request->items->pluck('student_id')->unique();
+            foreach ($studentIds as $studentId) {
+                $this->recalculateTotal($request->gradeBook, $studentId);
+            }
+
+            $request->update(['status' => 'approved']);
+
+            AuditService::gradeChangeRequestResolved($request, 'approved');
         });
 
-        if ($this->viewingRequest?->id === $id) {
-            $this->openRequest($id);
-        }
-
-        $this->dispatch('showAlert', [
+        $this->dispatch('closeModalMessaje', [
             'title'   => '¡Aprobado!',
-            'message' => 'Los cambios de calificaciones fueron aplicados exitosamente.',
+            'message' => 'La solicitud fue aprobada y las notas actualizadas.',
             'type'    => 'success',
+            'modalId' => 'GradeChangeModal',
         ]);
     }
 
@@ -181,30 +141,23 @@ class GradeChangeRequests extends Component
 
     public function reject(): void
     {
-        $this->authorize('admin.grade-change-requests.approve');
-
         $this->validate([
-            'rejectionReason' => 'required|string|min:10',
+            'rejectionReason' => 'required|string|min:5',
         ], [
-            'rejectionReason.required' => 'El motivo del rechazo es obligatorio.',
-            'rejectionReason.min'      => 'El motivo debe tener al menos 10 caracteres.',
+            'rejectionReason.required' => 'El motivo de rechazo es obligatorio.',
+            'rejectionReason.min'      => 'El motivo debe tener al menos 5 caracteres.',
         ]);
 
-        $request = GradeChangeRequest::findOrFail($this->rejectingId);
-
+        $request = GradeChangeRequest::findOrFail($this->selectedRequestId);
         $request->update([
-            'status'           => 'rejected',
+            'status'          => 'rejected',
             'rejection_reason' => $this->rejectionReason,
-            'reviewed_by'      => Auth::id(),
-            'reviewed_at'      => now(),
         ]);
 
-        if ($this->viewingRequest?->id === $this->rejectingId) {
-            $this->openRequest($this->rejectingId);
-        }
+        AuditService::gradeChangeRequestResolved($request, 'rejected', $this->rejectionReason);
 
-        $this->rejectingId     = null;
-        $this->rejectionReason = '';
+        $this->rejectionReason    = '';
+        $this->selectedRequestId  = null;
 
         $this->dispatch('closeModalMessaje', [
             'title'   => 'Rechazado',

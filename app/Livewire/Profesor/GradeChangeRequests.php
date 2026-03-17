@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Services\AuditService;
 
 class GradeChangeRequests extends Component
 {
@@ -196,6 +197,8 @@ class GradeChangeRequests extends Component
                 'reason'        => $this->reason,
                 'status'        => 'pending',
             ]);
+
+            AuditService::gradeChangeRequestCreated($request);
 
             foreach ($items as $item) {
                 GradeChangeRequestItem::create(array_merge(

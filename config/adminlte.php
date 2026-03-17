@@ -338,6 +338,12 @@ return [
             ],
         ],
         [
+            'text'  => 'Inscripciones',
+            'route' => 'admin.students.enrollments.index',
+            'icon'  => 'fas fa-child',
+            'can'   => 'admin.students.enrollments.index',
+        ],
+        [
             'text'  => 'Estudiantes',
             'route' => 'admin.students.index',
             'icon'  => 'fas fa-fw fa-user-graduate',
@@ -489,6 +495,12 @@ return [
                     ],
                 ],
                 [
+                    'text'  => 'Actividades No Entregadas',
+                    'route' => 'admin.reports.missing-activities.index',
+                    'icon'  => 'fas fa-tasks',
+                    'can'   => 'admin.reports.missing-activities',
+                ],
+                [
                     'text'  => 'Boletas de Calificaciones',
                     'route' => 'admin.reports.report-cards.index',
                     'icon'  => 'fas fa-file-pdf',
@@ -530,6 +542,18 @@ return [
                     'icon'  => 'fas fa-fw fa-file-excel',
                     'route' => 'profesor.reports.student-list-excel.index',
                     'can'   => 'profesor.reports.student-list-excel',
+                ],
+                [
+                    'text'  => 'Actividades No Entregadas',
+                    'route' => 'profesor.reports.missing-activities.index',
+                    'icon'  => 'fas fa-tasks',
+                    'can'   => 'profesor.reports.missing-activities',
+                ],
+                [
+                    'text'  => 'Auditoría',
+                    'route' => 'admin.audit.index',
+                    'icon'  => 'fas fa-history',
+                    'can'   => 'admin.audit.index',
                 ],
             ],
         ],

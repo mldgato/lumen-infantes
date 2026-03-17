@@ -13,6 +13,7 @@ use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Services\AuditService;
 
 class GradeBooks extends Component
 {
@@ -400,7 +401,6 @@ class GradeBooks extends Component
     {
         $this->reloadGradeBook();
 
-        // Verificar que los puntos normales sumen 100
         $normalMax = $this->gradeBook->activities
             ->filter(fn($a) => !$a->activityType->is_extra)
             ->sum('max_points');
@@ -414,7 +414,19 @@ class GradeBooks extends Component
             return;
         }
 
+        $oldStatus = $this->gradeBook->status;
         $this->gradeBook->update(['status' => 'locked']);
+
+        AuditService::gradeBookStatusChanged(
+            $this->gradeBook->load(
+                'assignment.pensumCourse.course',
+                'assignment.classroom.grade',
+                'assignment.classroom.section'
+            ),
+            $oldStatus,
+            'locked'
+        );
+
         $this->reloadGradeBook();
 
         $this->dispatch('showAlert', [
@@ -426,10 +438,22 @@ class GradeBooks extends Component
 
     public function reopenGradeBook(): void
     {
+        $oldStatus = $this->gradeBook->status;
+
         $this->gradeBook->update([
             'status'           => 'open',
             'rejection_reason' => null,
         ]);
+
+        AuditService::gradeBookStatusChanged(
+            $this->gradeBook->load(
+                'assignment.pensumCourse.course',
+                'assignment.classroom.grade',
+                'assignment.classroom.section'
+            ),
+            $oldStatus,
+            'open'
+        );
 
         $this->reloadGradeBook();
 

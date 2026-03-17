@@ -987,4 +987,24 @@ class ReportController extends Controller
             $fileName
         );
     }
+
+    public function missingActivitiesExport(Request $request)
+    {
+        $request->validate([
+            'classroom_id'    => 'required|exists:classrooms,id',
+            'pensum_course_id' => 'required|exists:pensum_courses,id',
+            'unit'            => 'required|integer|min:1',
+        ]);
+
+        $professor = Auth::user()->professor;
+
+        $export = new \App\Exports\MissingActivitiesProfesorExport(
+            classroomId: (int) $request->classroom_id,
+            pensumCourseId: (int) $request->pensum_course_id,
+            unit: (int) $request->unit,
+            professorId: $professor->id,
+        );
+
+        return \Maatwebsite\Excel\Facades\Excel::download($export, 'actividades_faltantes_' . date('dmY') . '.xlsx');
+    }
 }

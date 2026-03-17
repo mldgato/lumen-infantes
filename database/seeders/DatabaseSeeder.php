@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
             ClassroomCourseAssignmentSeeder::class,
             ActivityTypeSeeder::class,
             AcademicConfigurationSeeder::class,
-            /* GradeBookSeeder::class, */
+            GradeBookSeeder::class,
         ]);
     }
 }

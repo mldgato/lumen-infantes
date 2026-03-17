@@ -2,179 +2,140 @@
 
 namespace Database\Seeders;
 
-use App\Models\AcademicConfiguration;
+use Illuminate\Database\Seeder;
 use App\Models\ClassroomCourseAssignment;
 use App\Models\GradeBook;
 use App\Models\GradeBookActivity;
 use App\Models\GradeBookScore;
 use App\Models\GradeBookTotal;
-use App\Models\Student;
-use Illuminate\Database\Seeder;
+use App\Models\StudentEnrollment;
 
 class GradeBookSeeder extends Seeder
 {
-    // Distribución de estados: 50% aprobado, 20% abierto, 15% en revisión, 15% rechazado
-    private array $statusPool = [
-        'approved',
-        'approved',
-        'approved',
-        'approved',
-        'approved',
-        'open',
-        'open',
-        'locked',
-        'locked',
-        'rejected',
-    ];
-
-    private array $rejectionReasons = [
-        'Las calificaciones no cuadran con el registro físico.',
-        'Falta completar actividades de mejora.',
-        'Se detectaron errores en los punteos ingresados.',
-        'El total de puntos excede el máximo permitido.',
-        'Revisar las notas de la prueba final.',
-    ];
-
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        $config = AcademicConfiguration::with('activities.activityType')->first();
+        $this->command->info('Iniciando la generación de Cuadros de Notas para la Unidad 1...');
 
-        if (! $config) {
-            $this->command->warn('No existe configuración académica. Omitiendo GradeBookSeeder.');
-            return;
-        }
+        // 1. Obtener ÚNICAMENTE las asignaciones correspondientes a la Unidad 1
+        $assignments = ClassroomCourseAssignment::where('unit', 1)->get();
+        $statuses = ['open', 'locked', 'approved', 'rejected'];
 
-        $activityTemplate = [];
-        foreach ($config->activities as $configActivity) {
-            $names = [];
-            for ($i = 1; $i <= $configActivity->quantity; $i++) {
-                $names[] = $configActivity->activityType->name . ' ' . $i;
-            }
-            $activityTemplate[$configActivity->activity_type_id] = [
-                'names'      => $names,
-                'max_points' => $configActivity->points_each,
-                'is_extra'   => $configActivity->activityType->is_extra,
-            ];
-        }
+        // Almacenar todos los estudiantes activos agrupados por aula para no repetir consultas
+        $studentsByClassroom = StudentEnrollment::where('status', 'Activo')
+            ->get()
+            ->groupBy('classroom_id');
 
-        $assignments = ClassroomCourseAssignment::with('classroom')->get();
-        $poolSize    = count($this->statusPool);
-        $index       = 0;
+        $totalGradeBooks = 0;
+        $totalScores = 0;
 
         foreach ($assignments as $assignment) {
-            // Rotar sobre el pool de estados
-            $status = $this->statusPool[$index % $poolSize];
-            $index++;
+            // Generar un estado aleatorio para el cuadro
+            $status = $statuses[array_rand($statuses)];
+            $rejectionReason = $status === 'rejected' ? 'Se requiere revisión en las notas del examen final.' : null;
 
-            $rejectionReason = $status === 'rejected'
-                ? fake()->randomElement($this->rejectionReasons)
-                : null;
+            // 2. Crear el GradeBook (Cuadro de notas)
+            $gradeBook = GradeBook::create([
+                'classroom_course_assignment_id' => $assignment->id,
+                'academic_configuration_id'      => 1, // ID quemado según tu requerimiento
+                'status'                         => $status,
+                'rejection_reason'               => $rejectionReason,
+            ]);
 
-            $gradeBook = GradeBook::firstOrCreate(
-                ['classroom_course_assignment_id' => $assignment->id],
-                [
-                    'academic_configuration_id' => $config->id,
-                    'status'                    => $status,
-                    'rejection_reason'          => $rejectionReason,
-                ]
-            );
+            $totalGradeBooks++;
 
-            // Si ya existe, actualizar estado para reflejar la distribución
-            if ($gradeBook->wasRecentlyCreated === false) {
-                $gradeBook->update([
-                    'status'           => $status,
-                    'rejection_reason' => $rejectionReason,
+            // 3. Crear las Actividades según el AcademicConfiguration ID 1
+            $activities = [];
+            $ordering = 1;
+
+            // a. 6 Tareas/Actividades (Type 1, 10pts)
+            for ($i = 1; $i <= 6; $i++) {
+                $activities[] = GradeBookActivity::create([
+                    'grade_book_id'    => $gradeBook->id,
+                    'activity_type_id' => 1,
+                    'name'             => "Tarea/Actividad {$i}",
+                    'max_points'       => 10.00,
+                    'ordering'         => $ordering++,
                 ]);
             }
 
-            // Crear actividades si no las tiene
-            if ($gradeBook->activities()->count() === 0) {
-                $ordering   = 1;
-                $activities = [];
+            // b. 1 Afectivo (Type 4, 10pts)
+            $activities[] = GradeBookActivity::create([
+                'grade_book_id'    => $gradeBook->id,
+                'activity_type_id' => 4,
+                'name'             => "Afectivo",
+                'max_points'       => 10.00,
+                'ordering'         => $ordering++,
+            ]);
 
-                foreach ($activityTemplate as $typeId => $data) {
-                    foreach ($data['names'] as $name) {
-                        $activities[] = GradeBookActivity::create([
-                            'grade_book_id'    => $gradeBook->id,
-                            'activity_type_id' => $typeId,
-                            'name'             => $name,
-                            'max_points'       => $data['max_points'],
-                            'ordering'         => $ordering++,
-                        ]);
-                    }
-                }
-            } else {
-                $activities = $gradeBook->activities()->get()->all();
-            }
+            // c. 1 Examen Final (Type 3, 30pts)
+            $activities[] = GradeBookActivity::create([
+                'grade_book_id'    => $gradeBook->id,
+                'activity_type_id' => 3,
+                'name'             => "Examen Final",
+                'max_points'       => 30.00,
+                'ordering'         => $ordering++,
+            ]);
 
-            // Solo crear scores si el cuadro no está abierto (abierto = sin notas aún)
-            if ($status === 'open') {
-                continue;
-            }
+            // 4. Llenar notas y totales para los estudiantes de esta aula
+            $classroomStudents = $studentsByClassroom->get($assignment->classroom_id, collect());
 
-            $students = Student::whereHas(
-                'enrollments',
-                fn($q) =>
-                $q->where('classroom_id', $assignment->classroom_id)
-                    ->where('status', 'Activo')
-            )->get();
+            $scoresToInsert = [];
+            $totalsToInsert = [];
 
-            foreach ($activities as $activity) {
-                foreach ($students as $student) {
-                    // Cuadros rechazados tienen scores pero con algunos valores bajos
-                    $minScore = $status === 'rejected'
-                        ? (float) $activity->max_points * 0.2
-                        : (float) $activity->max_points * 0.5;
-
-                    GradeBookScore::firstOrCreate(
-                        [
-                            'grade_book_activity_id' => $activity->id,
-                            'student_id'             => $student->id,
-                        ],
-                        [
-                            'score'             => fake()->randomFloat(2, $minScore, (float) $activity->max_points),
-                            'improvement_score' => null,
-                        ]
-                    );
-                }
-            }
-
-            // Calcular totales
-            $allActivities = $gradeBook->activities()->with(['scores', 'activityType'])->get();
-
-            foreach ($students as $student) {
+            foreach ($classroomStudents as $enrollment) {
+                $studentId = $enrollment->student_id;
                 $normalPoints = 0;
-                $extraPoints  = 0;
 
-                foreach ($allActivities as $activity) {
-                    $score     = $activity->scores->firstWhere('student_id', $student->id);
-                    $effective = $config->effectiveScore(
-                        $score ? (float) $score->score : 0,
-                        $score ? $score->improvement_score : null,
-                        (float) $activity->max_points,
-                    );
+                foreach ($activities as $activity) {
+                    // Generar una nota aleatoria realista (entre la mitad del punteo y el máximo)
+                    // 25% de probabilidad de que la actividad esté en cero (no entregada)
+                    $score = (mt_rand(1, 4) === 1)
+                        ? 0.00
+                        : round(mt_rand(($activity->max_points / 2) * 10, $activity->max_points * 10) / 10, 2);
 
-                    if ($activity->activityType->is_extra) {
-                        $extraPoints += $effective;
-                    } else {
-                        $normalPoints += $effective;
-                    }
+                    $scoresToInsert[] = [
+                        'grade_book_activity_id' => $activity->id,
+                        'student_id'             => $studentId,
+                        'score'                  => $score,
+                        'improvement_score'      => null,
+                        'created_at'             => now(),
+                        'updated_at'             => now(),
+                    ];
+
+                    $normalPoints += $score;
+                    $totalScores++;
                 }
 
-                GradeBookTotal::updateOrCreate(
-                    [
-                        'grade_book_id' => $gradeBook->id,
-                        'student_id'    => $student->id,
-                    ],
-                    [
-                        'normal_points' => $normalPoints,
-                        'extra_points'  => $extraPoints,
-                        'total_points'  => $normalPoints + $extraPoints,
-                    ]
-                );
+                // Generar el total del estudiante
+                $totalsToInsert[] = [
+                    'grade_book_id' => $gradeBook->id,
+                    'student_id'    => $studentId,
+                    'normal_points' => $normalPoints,
+                    'extra_points'  => 0, // No hay actividades extra en la config 1
+                    'total_points'  => $normalPoints,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ];
+            }
+
+            // Inserción masiva por cada GradeBook para optimizar velocidad
+            if (!empty($scoresToInsert)) {
+                // Dividimos en chunks por si la base de datos tiene límite de variables en una sola query
+                foreach (array_chunk($scoresToInsert, 500) as $chunk) {
+                    GradeBookScore::insert($chunk);
+                }
+            }
+
+            if (!empty($totalsToInsert)) {
+                foreach (array_chunk($totalsToInsert, 500) as $chunk) {
+                    GradeBookTotal::insert($chunk);
+                }
             }
         }
 
-        $this->command->info('GradeBookSeeder completado con distribución de estados.');
+        $this->command->info("¡Listo! Se generaron {$totalGradeBooks} cuadros de notas con {$totalScores} calificaciones para la Unidad 1.");
     }
 }

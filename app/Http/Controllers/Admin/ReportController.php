@@ -204,4 +204,19 @@ class ReportController extends Controller
             $fileName
         );
     }
+
+    public function missingActivitiesExport(Request $request)
+    {
+        $request->validate([
+            'classroom_id' => 'required|exists:classrooms,id',
+            'unit'         => 'required|integer|min:1',
+        ]);
+
+        $export = new \App\Exports\MissingActivitiesAdminExport(
+            classroomId: (int) $request->classroom_id,
+            unit: (int) $request->unit,
+        );
+
+        return \Maatwebsite\Excel\Facades\Excel::download($export, 'actividades_faltantes_aula_' . date('dmY') . '.xlsx');
+    }
 }

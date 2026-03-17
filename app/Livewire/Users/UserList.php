@@ -9,6 +9,7 @@ use Spatie\Permission\Models\Role;
 use App\Livewire\Forms\UserForm;
 use App\Livewire\Forms\MedicalForm;
 use App\Livewire\Forms\ProfessorForm;
+use App\Services\AuditService;
 
 class UserList extends Component
 {
@@ -90,10 +91,48 @@ class UserList extends Component
         ]);
 
         if ($this->userForm->user) {
+            $existingUser = User::findOrFail($this->userForm->user->id);
+            $oldValues    = $existingUser->only([
+                'first_name',
+                'middle_name',
+                'surname',
+                'second_surname',
+                'email',
+                'cellphone',
+                'address',
+                'is_active',
+            ]);
+
             $user = $this->userForm->update();
+
+            $newValues = $user->only([
+                'first_name',
+                'middle_name',
+                'surname',
+                'second_surname',
+                'email',
+                'cellphone',
+                'address',
+                'is_active',
+            ]);
+
+            $changed = array_filter(
+                array_map(
+                    fn($key) => $oldValues[$key] != $newValues[$key]
+                        ? ['old' => $oldValues[$key], 'new' => $newValues[$key]]
+                        : null,
+                    array_keys($oldValues)
+                )
+            );
+
+            if (count($changed) > 0) {
+                AuditService::userUpdated($user, $changed);
+            }
+
             $mensaje = 'Usuario actualizado exitosamente.';
         } else {
             $user = $this->userForm->store();
+            AuditService::userCreated($user);
             $mensaje = 'Usuario creado exitosamente.';
         }
 
@@ -106,28 +145,43 @@ class UserList extends Component
 
         $this->resetFields();
 
-        // En Livewire 3 es mejor enviar un array asociativo al JS
         $this->dispatch('closeModalMessaje', [
-            'title' => '¡Éxito!',
+            'title'   => '¡Éxito!',
             'message' => $mensaje,
-            'type' => 'success',
-            'modalId' => 'UserModal'
+            'type'    => 'success',
+            'modalId' => 'UserModal',
         ]);
     }
 
     public function render()
     {
-        $roles = Role::where('name', '!=', 'Estudiante')->get();
+        $isSuperAdmin = auth()->user()->hasRole('Super Administrador');
+
+        $roles = Role::where('name', '!=', 'Estudiante')
+            ->when(! $isSuperAdmin, fn($q) => $q->where('name', '!=', 'Super Administrador'))
+            ->get();
 
         if ($this->readyToLoad) {
-            $users = User::whereDoesntHave('roles', function ($query) {
-                $query->where('name', 'Estudiante');
-            })
-                ->where(function ($query) {
+            $users = User::whereDoesntHave(
+                'roles',
+                fn($q) =>
+                $q->where('name', 'Estudiante')
+            )
+                ->when(
+                    ! $isSuperAdmin,
+                    fn($q) =>
+                    $q->whereDoesntHave(
+                        'roles',
+                        fn($q) =>
+                        $q->where('name', 'Super Administrador')
+                    )
+                )
+                ->where(
+                    fn($query) =>
                     $query->where('name', 'like', '%' . $this->search . '%')
                         ->orWhere('cui', 'like', '%' . $this->search . '%')
-                        ->orWhere('email', 'like', '%' . $this->search . '%');
-                })
+                        ->orWhere('email', 'like', '%' . $this->search . '%')
+                )
                 ->orderBy($this->sort, $this->direction)
                 ->paginate($this->cant);
         } else {

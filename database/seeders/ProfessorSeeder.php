@@ -44,7 +44,7 @@ class ProfessorSeeder extends Seeder
             ]);
 
             // Crear el profesor vinculado
-            $professor = Professor::factory()->create([
+            $professor = Professor::create([
                 'user_id' => $user->id,
             ]);
 
@@ -55,8 +55,8 @@ class ProfessorSeeder extends Seeder
             $user->image()->save(Image::factory()->make());
 
             // Crear el registro médico
-            MedicalRecord::factory()->create([
-                'user_id' => $user->id,
+            MedicalRecord::create([
+                'user_id' => $user->id
             ]);
         }
     }

@@ -12,6 +12,7 @@ use App\Models\Student;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\ClassroomCourseAssignment;
+use App\Services\AuditService;
 
 class GradeBooks extends Component
 {
@@ -178,12 +179,21 @@ class GradeBooks extends Component
     {
         $this->authorize('admin.grade-books.approve');
 
-        GradeBook::findOrFail($id)->update([
+        $gradeBook = GradeBook::with([
+            'assignment.pensumCourse.course',
+            'assignment.classroom.grade',
+            'assignment.classroom.section',
+        ])->findOrFail($id);
+
+        $oldStatus = $gradeBook->status;
+
+        $gradeBook->update([
             'status'           => 'approved',
             'rejection_reason' => null,
         ]);
 
-        // Refrescar vista detalle si está abierta
+        AuditService::gradeBookStatusChanged($gradeBook, $oldStatus, 'approved');
+
         if ($this->viewingGradeBook && $this->viewingGradeBook->id === $id) {
             $this->openGradeBook($id);
         }
@@ -194,6 +204,7 @@ class GradeBooks extends Component
             'type'    => 'success',
         ]);
     }
+
 
     public function openRejectModal(int $id): void
     {
@@ -213,12 +224,21 @@ class GradeBooks extends Component
             'rejection_reason.min'      => 'El motivo debe tener al menos 10 caracteres.',
         ]);
 
-        GradeBook::findOrFail($this->rejectingId)->update([
+        $gradeBook = GradeBook::with([
+            'assignment.pensumCourse.course',
+            'assignment.classroom.grade',
+            'assignment.classroom.section',
+        ])->findOrFail($this->rejectingId);
+
+        $oldStatus = $gradeBook->status;
+
+        $gradeBook->update([
             'status'           => 'rejected',
             'rejection_reason' => $this->rejection_reason,
         ]);
 
-        // Refrescar vista detalle si está abierta
+        AuditService::gradeBookStatusChanged($gradeBook, $oldStatus, 'rejected', $this->rejection_reason);
+
         if ($this->viewingGradeBook && $this->viewingGradeBook->id === $this->rejectingId) {
             $this->openGradeBook($this->rejectingId);
         }

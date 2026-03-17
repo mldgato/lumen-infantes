@@ -141,8 +141,8 @@ class StudentSeeder extends Seeder
                 // 4. Crear imagen polimórfica utilizando el factory existente
                 $user->image()->save(Image::factory()->make());
 
-                // 5. Crear el registro médico vinculado al usuario
-                MedicalRecord::factory()->create([
+                // 5. Crear el registro médico vinculado al usuario dejando los demás campos vacíos
+                MedicalRecord::create([
                     'user_id' => $user->id
                 ]);
 

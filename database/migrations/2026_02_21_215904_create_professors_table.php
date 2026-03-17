@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('professors', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->date('hire_date');
+            $table->date('hire_date')->default('2026-01-01');
             $table->string('nit')->nullable();
             $table->string('teaching_cedula')->nullable();
             $table->string('igss_affiliation')->nullable();
