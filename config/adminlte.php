@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'title' => 'Colegio San José de los Infantes',
+    'title' => 'Clemente Martínez Rojas',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -114,7 +114,7 @@ return [
         'mode' => 'cwrapper',
         'img' => [
             'path' => 'vendor/adminlte/dist/img/LogoGif.gif',
-            'alt' => 'Infantes Preloader Image',
+            'alt' => 'Lumen Preloader Image',
             'effect' => 'animation__shake',
             'width' => 60,
             'height' => 60,

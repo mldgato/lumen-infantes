@@ -20,4 +20,9 @@ class ActivityType extends Model
     {
         return $this->hasMany(AcademicConfigurationActivity::class);
     }
+
+    public function gradeBookActivities(): HasMany
+    {
+        return $this->hasMany(GradeBookActivity::class);
+    }
 }

@@ -108,7 +108,19 @@ class AcademicConfigurations extends Component
     public function delete(int $id): void
     {
         $this->authorize('admin.academic-configurations.delete');
-        AcademicConfiguration::findOrFail($id)->delete();
+
+        $configuration = AcademicConfiguration::withCount('activities')->findOrFail($id);
+
+        if ($configuration->activities_count > 0) {
+            $this->dispatch('showAlert', [
+                'title'   => 'No permitido',
+                'message' => 'No se puede eliminar la configuración del año ' . $configuration->year . ' porque tiene actividades asignadas.',
+                'type'    => 'warning',
+            ]);
+            return;
+        }
+
+        $configuration->delete();
 
         $this->dispatch('showAlert', [
             'title'   => '¡Eliminado!',
@@ -149,6 +161,16 @@ class AcademicConfigurations extends Component
     public function editActivity(int $id): void
     {
         $activity = AcademicConfigurationActivity::findOrFail($id);
+
+        $tieneGradeBook = \App\Models\GradeBook::where('academic_configuration_id', $activity->academic_configuration_id)->exists();
+
+        if ($tieneGradeBook) {
+            $this->dispatch('toastMessage', [
+                'type'    => 'warning',
+                'message' => 'No se puede editar la actividad porque ya existen cuadros de notas para esta configuración.',
+            ]);
+            return;
+        }
 
         $this->editingActivityId = $activity->id;
         $this->activity_type_id  = $activity->activity_type_id;
@@ -201,7 +223,19 @@ class AcademicConfigurations extends Component
 
     public function deleteActivity(int $id): void
     {
-        AcademicConfigurationActivity::findOrFail($id)->delete();
+        $activity = AcademicConfigurationActivity::findOrFail($id);
+
+        $tieneGradeBook = \App\Models\GradeBook::where('academic_configuration_id', $activity->academic_configuration_id)->exists();
+
+        if ($tieneGradeBook) {
+            $this->dispatch('toastMessage', [
+                'type'    => 'warning',
+                'message' => 'No se puede eliminar la actividad porque ya existen cuadros de notas para esta configuración.',
+            ]);
+            return;
+        }
+
+        $activity->delete();
 
         $this->managingConfiguration = AcademicConfiguration::with([
             'activities.activityType',

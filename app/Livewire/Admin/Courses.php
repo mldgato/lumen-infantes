@@ -91,7 +91,18 @@ class Courses extends Component
     {
         $this->authorize('admin.courses.delete');
 
-        Course::findOrFail($id)->delete();
+        $course = Course::withCount('pensumCourses')->findOrFail($id);
+
+        if ($course->pensum_courses_count > 0) {
+            $this->dispatch('showAlert', [
+                'title'   => 'No permitido',
+                'message' => 'El curso "' . $course->course_name . '" no puede eliminarse porque está asignado a uno o más pénsums.',
+                'type'    => 'warning',
+            ]);
+            return;
+        }
+
+        $course->delete();
 
         $this->dispatch('showAlert', [
             'title'   => '¡Eliminado!',
