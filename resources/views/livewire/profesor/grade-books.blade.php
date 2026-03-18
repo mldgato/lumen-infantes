@@ -681,18 +681,26 @@
                     const currentIndex = parseInt(target.getAttribute('data-index'));
 
                     if (isScore) {
-                        // Ir a la casilla de mejora del mismo estudiante
-                        const improvement = document.querySelector(`.improvement-input[data-index="${currentIndex}"]`);
-                        if (improvement) {
-                            improvement.focus();
-                            improvement.select();
-                        }
-                    } else if (isImprovement) {
-                        // Ir a la nota del siguiente estudiante
+                        // Intentar ir a la nota del siguiente estudiante
                         const nextScore = document.querySelector(`.score-input[data-index="${currentIndex + 1}"]`);
                         if (nextScore) {
                             nextScore.focus();
                             nextScore.select();
+                        } else {
+                            // Era la última nota, saltar a la primera mejora
+                            const firstImprovement = document.querySelector('.improvement-input[data-index="0"]');
+                            if (firstImprovement) {
+                                firstImprovement.focus();
+                                firstImprovement.select();
+                            }
+                        }
+                    } else if (isImprovement) {
+                        // Intentar ir a la mejora del siguiente estudiante
+                        const nextImprovement = document.querySelector(
+                            `.improvement-input[data-index="${currentIndex + 1}"]`);
+                        if (nextImprovement) {
+                            nextImprovement.focus();
+                            nextImprovement.select();
                         }
                     }
                 });

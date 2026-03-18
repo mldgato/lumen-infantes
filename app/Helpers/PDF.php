@@ -7,6 +7,8 @@ use FPDF;
 
 class PDF extends FPDF
 {
+    public bool $hideFooter = false;
+
     public function addImage($path, $x = null, $y = null, $w = 0, $h = 0)
     {
         $imagePath = public_path($path);
@@ -73,6 +75,8 @@ class PDF extends FPDF
     // =====================================
     public function Footer()
     {
+        if ($this->hideFooter) return;
+        
         $this->SetY(-15);
         $this->SetFont('Arial', 'I', 8);
         $this->SetLineWidth(0.5);

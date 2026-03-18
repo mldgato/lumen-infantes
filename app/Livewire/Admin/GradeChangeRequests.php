@@ -148,16 +148,16 @@ class GradeChangeRequests extends Component
             'rejectionReason.min'      => 'El motivo debe tener al menos 5 caracteres.',
         ]);
 
-        $request = GradeChangeRequest::findOrFail($this->selectedRequestId);
+        $request = GradeChangeRequest::findOrFail($this->rejectingId);
         $request->update([
-            'status'          => 'rejected',
+            'status'           => 'rejected',
             'rejection_reason' => $this->rejectionReason,
         ]);
 
         AuditService::gradeChangeRequestResolved($request, 'rejected', $this->rejectionReason);
 
-        $this->rejectionReason    = '';
-        $this->selectedRequestId  = null;
+        $this->rejectionReason = '';
+        $this->rejectingId     = null;
 
         $this->dispatch('closeModalMessaje', [
             'title'   => 'Rechazado',

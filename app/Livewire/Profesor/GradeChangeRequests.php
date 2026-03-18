@@ -154,6 +154,34 @@ class GradeChangeRequests extends Component
             'reason.min'      => 'El motivo debe tener al menos 10 caracteres.',
         ]);
 
+        // Validar que los scores no superen el máximo de cada actividad
+        $activities = $this->selectedGradeBook->activities;
+        $config     = $this->selectedGradeBook->academicConfiguration;
+
+        foreach ($this->selectedStudents as $studentId) {
+            foreach ($activities as $activity) {
+                $newScore       = (float) ($this->scores[$studentId][$activity->id]['score'] ?? 0);
+                $newImprovement = $this->scores[$studentId][$activity->id]['improvement_score'] ?? null;
+                $newImprovement = $newImprovement !== '' ? (float) $newImprovement : null;
+                $maxPoints      = (float) $activity->max_points;
+
+                if ($newScore < 0 || $newScore > $maxPoints) {
+                    $studentName = Student::with('user')->find($studentId)?->user->name ?? "Estudiante #{$studentId}";
+                    $this->addError('reason', "La nota de \"{$activity->name}\" para {$studentName} debe estar entre 0 y {$maxPoints}.");
+                    return;
+                }
+
+                if (! is_null($newImprovement) && $newImprovement > 0) {
+                    $maxImprovement = $config->maxImprovementScore($newScore, $maxPoints);
+                    if ($newImprovement < 0 || $newImprovement > $maxImprovement) {
+                        $studentName = Student::with('user')->find($studentId)?->user->name ?? "Estudiante #{$studentId}";
+                        $this->addError('reason', "La mejora de \"{$activity->name}\" para {$studentName} no puede superar {$maxImprovement} puntos.");
+                        return;
+                    }
+                }
+            }
+        }
+
         $professor  = Auth::user()->professor;
         $activities = $this->selectedGradeBook->activities;
 

@@ -39,7 +39,7 @@ class GradeBookSeeder extends Seeder
             // 2. Crear el GradeBook (Cuadro de notas)
             $gradeBook = GradeBook::create([
                 'classroom_course_assignment_id' => $assignment->id,
-                'academic_configuration_id'      => 1, // ID quemado según tu requerimiento
+                'academic_configuration_id'      => 1, // ID configurado
                 'status'                         => $status,
                 'rejection_reason'               => $rejectionReason,
             ]);
@@ -50,13 +50,13 @@ class GradeBookSeeder extends Seeder
             $activities = [];
             $ordering = 1;
 
-            // a. 6 Tareas/Actividades (Type 1, 10pts)
+            // a. 6 Tareas/Actividades (Type 1, 10pts c/u)
             for ($i = 1; $i <= 6; $i++) {
                 $activities[] = GradeBookActivity::create([
                     'grade_book_id'    => $gradeBook->id,
                     'activity_type_id' => 1,
                     'name'             => "Tarea/Actividad {$i}",
-                    'max_points'       => 10.00,
+                    'max_points'       => 10,
                     'ordering'         => $ordering++,
                 ]);
             }
@@ -66,16 +66,34 @@ class GradeBookSeeder extends Seeder
                 'grade_book_id'    => $gradeBook->id,
                 'activity_type_id' => 4,
                 'name'             => "Afectivo",
-                'max_points'       => 10.00,
+                'max_points'       => 10,
                 'ordering'         => $ordering++,
             ]);
 
-            // c. 1 Examen Final (Type 3, 30pts)
+            // c. NUEVA: 1 Evaluación/Actividad (Type 2, 15pts)
+            $activities[] = GradeBookActivity::create([
+                'grade_book_id'    => $gradeBook->id,
+                'activity_type_id' => 2,
+                'name'             => "Evaluación Parcial", // Puedes cambiar este nombre
+                'max_points'       => 15,
+                'ordering'         => $ordering++,
+            ]);
+
+            // d. 1 Actividad de Mejoramiento (Type 5, 10pts)
+            $activities[] = GradeBookActivity::create([
+                'grade_book_id'    => $gradeBook->id,
+                'activity_type_id' => 5,
+                'name'             => "Actividad de Mejoramiento",
+                'max_points'       => 10,
+                'ordering'         => $ordering++,
+            ]);
+
+            // e. 1 Examen Final (Type 3, ajustado a 15pts)
             $activities[] = GradeBookActivity::create([
                 'grade_book_id'    => $gradeBook->id,
                 'activity_type_id' => 3,
                 'name'             => "Examen Final",
-                'max_points'       => 30.00,
+                'max_points'       => 15,
                 'ordering'         => $ordering++,
             ]);
 
@@ -88,15 +106,22 @@ class GradeBookSeeder extends Seeder
             foreach ($classroomStudents as $enrollment) {
                 $studentId = $enrollment->student_id;
                 $normalPoints = 0;
+                $studentScoresTemporales = [];
+                $improvementActivity = null;
 
+                // Paso A: Evaluar todas las actividades MENOS la de mejoramiento
                 foreach ($activities as $activity) {
-                    // Generar una nota aleatoria realista (entre la mitad del punteo y el máximo)
-                    // 25% de probabilidad de que la actividad esté en cero (no entregada)
-                    $score = (mt_rand(1, 4) === 1)
-                        ? 0.00
-                        : round(mt_rand(($activity->max_points / 2) * 10, $activity->max_points * 10) / 10, 2);
+                    if ($activity->activity_type_id == 5) {
+                        $improvementActivity = $activity;
+                        continue; // Saltamos el mejoramiento por ahora
+                    }
 
-                    $scoresToInsert[] = [
+                    // Generar una nota aleatoria realista en enteros (25% probabilidad de estar en cero)
+                    $score = (mt_rand(1, 4) === 1)
+                        ? 0
+                        : mt_rand(intval($activity->max_points / 2), intval($activity->max_points));
+
+                    $studentScoresTemporales[] = [
                         'grade_book_activity_id' => $activity->id,
                         'student_id'             => $studentId,
                         'score'                  => $score,
@@ -109,12 +134,40 @@ class GradeBookSeeder extends Seeder
                     $totalScores++;
                 }
 
+                // Paso B: Evaluar la actividad de Mejoramiento según la nota acumulada
+                if ($improvementActivity) {
+                    $improvementScore = 0;
+
+                    // Si sumó menos de 60, se le califica esta actividad con enteros
+                    if ($normalPoints < 60) {
+                        $improvementScore = mt_rand(intval($improvementActivity->max_points / 2), intval($improvementActivity->max_points));
+                    }
+
+                    $studentScoresTemporales[] = [
+                        'grade_book_activity_id' => $improvementActivity->id,
+                        'student_id'             => $studentId,
+                        'score'                  => $improvementScore,
+                        'improvement_score'      => null,
+                        'created_at'             => now(),
+                        'updated_at'             => now(),
+                    ];
+
+                    // Sumamos los puntos de mejoramiento al total (depende de la regla de tu colegio, lo sumo por defecto)
+                    $normalPoints += $improvementScore;
+                    $totalScores++;
+                }
+
+                // Paso C: Pasar las notas temporales al arreglo de inserción masiva
+                foreach ($studentScoresTemporales as $scoreData) {
+                    $scoresToInsert[] = $scoreData;
+                }
+
                 // Generar el total del estudiante
                 $totalsToInsert[] = [
                     'grade_book_id' => $gradeBook->id,
                     'student_id'    => $studentId,
                     'normal_points' => $normalPoints,
-                    'extra_points'  => 0, // No hay actividades extra en la config 1
+                    'extra_points'  => 0,
                     'total_points'  => $normalPoints,
                     'created_at'    => now(),
                     'updated_at'    => now(),
@@ -123,7 +176,6 @@ class GradeBookSeeder extends Seeder
 
             // Inserción masiva por cada GradeBook para optimizar velocidad
             if (!empty($scoresToInsert)) {
-                // Dividimos en chunks por si la base de datos tiene límite de variables en una sola query
                 foreach (array_chunk($scoresToInsert, 500) as $chunk) {
                     GradeBookScore::insert($chunk);
                 }
@@ -136,6 +188,6 @@ class GradeBookSeeder extends Seeder
             }
         }
 
-        $this->command->info("¡Listo! Se generaron {$totalGradeBooks} cuadros de notas con {$totalScores} calificaciones para la Unidad 1.");
+        $this->command->info("¡Listo! Se generaron {$totalGradeBooks} cuadros de notas con {$totalScores} calificaciones enteras para la Unidad 1.");
     }
 }

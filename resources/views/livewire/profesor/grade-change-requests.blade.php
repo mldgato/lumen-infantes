@@ -357,7 +357,8 @@
                                                 <input type="number"
                                                     wire:model.live="scores.{{ $student->id }}.{{ $activity->id }}.score"
                                                     class="form-control form-control-sm text-center" min="0"
-                                                    max="{{ $activity->max_points }}" step="0.01">
+                                                    max="{{ $activity->max_points }}" step="0.01"
+                                                    oninput="if(parseFloat(this.value) > {{ $activity->max_points }}) this.value = {{ $activity->max_points }}; if(parseFloat(this.value) < 0) this.value = 0;">
                                             </div>
                                             @if ($config && $config->improvement_type !== null)
                                                 <div>

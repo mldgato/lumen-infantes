@@ -24,10 +24,3 @@
         <livewire:profesor.dashboard />
     @endcan
 @endsection
-
-@section('footer')
-    <div class="float-right d-none d-sm-block">
-        <b>Version</b> 1.4.0
-    </div>
-    <strong>&copy; {{ date('Y') }} <a href="mailto:manueldardon@hotmail.com">Manuel Dardón</a>.</strong> Todos los derechos reservados.
-@endsection

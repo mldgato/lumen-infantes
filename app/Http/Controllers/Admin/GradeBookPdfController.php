@@ -127,6 +127,7 @@ class GradeBookPdfController extends Controller
         }
 
         $pdf = new PDF('L', 'mm', [215, 330]);
+        $pdf->hideFooter = true;
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(true, 14);
         $pdf->AliasNbPages();
@@ -152,21 +153,11 @@ class GradeBookPdfController extends Controller
         $pdf->CellUTF8(103, 4, $pdf->dec('NIVEL: ' . $nivel), 0, 0, 'L');
         $pdf->CellUTF8(103, 4, $pdf->dec('CURSO: ' . $curso), 0, 0, 'C');
         $pdf->CellUTF8(104, 4, $pdf->dec('PROFESOR(A): ' . $profesor), 0, 1, 'R');
-        $pdf->Ln(2);
-
-        $tipoMejora = match ($config->improvement_type) {
-            'full'       => 'Proceso de mejora: 100% del valor de la actividad',
-            'percentage' => 'Proceso de mejora: ' . $config->improvement_percentage . '% del valor de la actividad',
-            'additive'   => 'Proceso de mejora: Suma sin sobrepasar el valor de la actividad',
-            default      => '',
-        };
-        $pdf->SetFont('Arial', 'I', 7);
-        $pdf->CellUTF8(310, 4, $pdf->dec($tipoMejora), 0, 1, 'L');
         $pdf->Ln(1);
 
         // ENCABEZADO TABLA
         $headerY  = $pdf->GetY();
-        $headerH  = 22;
+        $headerH  = 12;
         $startX   = $pdf->GetX();
         $currentX = $startX;
 
@@ -184,10 +175,10 @@ class GradeBookPdfController extends Controller
         foreach ($activities as $activity) {
             $isExtra = $activity->activityType->is_extra;
             $pdf->SetFillColor($isExtra ? 255 : 217, $isExtra ? 243 : 217, $isExtra ? 205 : 217);
-            $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, $pdf->dec($activity->name . ' (' . $activity->max_points . ')'));
+            $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, (string) $activity->ordering);
             $currentX += $colWidth;
             $pdf->SetFillColor(198, 239, 206);
-            $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, $pdf->dec('Mejora'));
+            $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, 'Mejora');
             $currentX += $colWidth;
         }
 
@@ -227,11 +218,21 @@ class GradeBookPdfController extends Controller
             $pdf->CellUTF8($nameWidth, $rowH, $pdf->dec(trim($nombreCompleto)), 1, 0, 'L', true);
             $currentX += $nameWidth;
 
+            $normalCalc = 0;
+            $extraCalc  = 0;
+
             foreach ($activities as $activity) {
                 $score       = $activity->scores->firstWhere('student_id', $student->id);
                 $rawScore    = $score ? (float) $score->score : 0;
                 $improvement = $score ? $score->improvement_score : null;
                 $isExtra     = $activity->activityType->is_extra;
+
+                $eff = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
+                if ($isExtra) {
+                    $extraCalc += $eff;
+                } else {
+                    $normalCalc += $eff;
+                }
 
                 $fillNote = $isExtra ? [255, 243, 205] : [255, 255, 255];
                 if ($num % 2 === 0) $fillNote = $isExtra ? [255, 235, 156] : [245, 245, 245];
@@ -248,9 +249,9 @@ class GradeBookPdfController extends Controller
                 $currentX += $colWidth;
             }
 
-            $normalPts = $total ? (int) ceil((float) $total->normal_points) : 0;
-            $extraPts  = $total ? (int) ceil((float) $total->extra_points)  : 0;
-            $totalPts  = $total ? (int) ceil((float) $total->total_points)  : 0;
+            $normalPts = (int) ceil($normalCalc);
+            $extraPts  = (int) ceil($extraCalc);
+            $totalPts  = (int) ceil($normalCalc + $extraCalc);
 
             $fillTotal = $num % 2 === 0 ? [200, 200, 200] : [230, 230, 230];
             $pdf->SetFillColor(...$fillTotal);
@@ -275,6 +276,39 @@ class GradeBookPdfController extends Controller
             $pdf->Ln($rowH);
             $num++;
         }
+
+        // LEYENDA DE ACTIVIDADES
+        $pdf->SetAutoPageBreak(false);
+        $pdf->Ln(1);
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->SetX($startX);
+        $pdf->CellUTF8($usableWidth, 4, $pdf->dec('Leyenda de actividades:'), 0, 1, 'L');
+        $pdf->SetFont('Arial', '', 7);
+
+        $actArray   = $activities->values();
+        $totalActs  = $actArray->count();
+        $legendCols = 3;
+        $legendColW = (int) ($usableWidth / $legendCols);
+        $legendIdx  = 0;
+
+        while ($legendIdx < $totalActs) {
+            $pdf->SetX($startX);
+            for ($lc = 0; $lc < $legendCols; $lc++) {
+                if ($legendIdx < $totalActs) {
+                    $act     = $actArray[$legendIdx];
+                    $isExtra = $act->activityType->is_extra;
+                    $maxPts  = number_format((float) $act->max_points, 0);
+                    $marker  = $isExtra ? ' [Extra]' : '';
+                    $text    = "{$act->ordering}. {$act->name}  ({$maxPts} pts){$marker}";
+                    $pdf->CellUTF8($legendColW, 4, $pdf->dec($text), 0, 0, 'L');
+                    $legendIdx++;
+                } else {
+                    $pdf->CellUTF8($legendColW, 4, '', 0, 0, 'L');
+                }
+            }
+            $pdf->Ln(4);
+        }
+        $pdf->SetAutoPageBreak(true, 14);
 
         return $pdf->Output('S');
     }
@@ -391,6 +425,7 @@ class GradeBookPdfController extends Controller
     protected function generateAllInOne($gradeBooks, $students): string
     {
         $pdf = new PDF('L', 'mm', [215, 330]);
+        $pdf->hideFooter = true;
         $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(true, 14);
         $pdf->AliasNbPages();
@@ -455,19 +490,9 @@ class GradeBookPdfController extends Controller
             $pdf->CellUTF8(104, 4, $pdf->dec('PROFESOR(A): ' . $profesor), 0, 1, 'R');
             $pdf->Ln(2);
 
-            $tipoMejora = match ($config->improvement_type) {
-                'full'       => 'Proceso de mejora: 100% del valor de la actividad',
-                'percentage' => 'Proceso de mejora: ' . $config->improvement_percentage . '% del valor de la actividad',
-                'additive'   => 'Proceso de mejora: Suma sin sobrepasar el valor de la actividad',
-                default      => '',
-            };
-            $pdf->SetFont('Arial', 'I', 7);
-            $pdf->CellUTF8(310, 4, $pdf->dec($tipoMejora), 0, 1, 'L');
-            $pdf->Ln(1);
-
             // ENCABEZADO TABLA
             $headerY  = $pdf->GetY();
-            $headerH  = 22;
+            $headerH  = 12;
             $startX   = $pdf->GetX();
             $currentX = $startX;
 
@@ -485,10 +510,10 @@ class GradeBookPdfController extends Controller
             foreach ($activities as $activity) {
                 $isExtra = $activity->activityType->is_extra;
                 $pdf->SetFillColor($isExtra ? 255 : 217, $isExtra ? 243 : 217, $isExtra ? 205 : 217);
-                $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, $pdf->dec($activity->name . ' (' . $activity->max_points . ')'));
+                $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, (string) $activity->ordering);
                 $currentX += $colWidth;
                 $pdf->SetFillColor(198, 239, 206);
-                $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, $pdf->dec('Mejora'));
+                $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, 'Mejora');
                 $currentX += $colWidth;
             }
 
@@ -528,11 +553,21 @@ class GradeBookPdfController extends Controller
                 $pdf->CellUTF8($nameWidth, $rowH, $pdf->dec(trim($nombreCompleto)), 1, 0, 'L', true);
                 $currentX += $nameWidth;
 
+                $normalCalc = 0;
+                $extraCalc  = 0;
+
                 foreach ($activities as $activity) {
                     $score       = $activity->scores->firstWhere('student_id', $student->id);
                     $rawScore    = $score ? (float) $score->score : 0;
                     $improvement = $score ? $score->improvement_score : null;
                     $isExtra     = $activity->activityType->is_extra;
+
+                    $eff = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
+                    if ($isExtra) {
+                        $extraCalc += $eff;
+                    } else {
+                        $normalCalc += $eff;
+                    }
 
                     $fillNote = $isExtra ? [255, 243, 205] : [255, 255, 255];
                     if ($num % 2 === 0) $fillNote = $isExtra ? [255, 235, 156] : [245, 245, 245];
@@ -549,9 +584,9 @@ class GradeBookPdfController extends Controller
                     $currentX += $colWidth;
                 }
 
-                $normalPts = $total ? (int) ceil((float) $total->normal_points) : 0;
-                $extraPts  = $total ? (int) ceil((float) $total->extra_points)  : 0;
-                $totalPts  = $total ? (int) ceil((float) $total->total_points)  : 0;
+                $normalPts = (int) ceil($normalCalc);
+                $extraPts  = (int) ceil($extraCalc);
+                $totalPts  = (int) ceil($normalCalc + $extraCalc);
 
                 $fillTotal = $num % 2 === 0 ? [200, 200, 200] : [230, 230, 230];
                 $pdf->SetFillColor(...$fillTotal);
@@ -576,6 +611,39 @@ class GradeBookPdfController extends Controller
                 $pdf->Ln($rowH);
                 $num++;
             }
+
+            // LEYENDA DE ACTIVIDADES
+            $pdf->SetAutoPageBreak(false);
+            $pdf->Ln(1);
+            $pdf->SetFont('Arial', 'B', 7);
+            $pdf->SetX($startX);
+            $pdf->CellUTF8($usableWidth, 4, $pdf->dec('Leyenda de actividades:'), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 7);
+
+            $actArray   = $activities->values();
+            $totalActs  = $actArray->count();
+            $legendCols = 4;
+            $legendColW = (int) ($usableWidth / $legendCols);
+            $legendIdx  = 0;
+
+            while ($legendIdx < $totalActs) {
+                $pdf->SetX($startX);
+                for ($lc = 0; $lc < $legendCols; $lc++) {
+                    if ($legendIdx < $totalActs) {
+                        $act     = $actArray[$legendIdx];
+                        $isExtra = $act->activityType->is_extra;
+                        $maxPts  = number_format((float) $act->max_points, 0);
+                        $marker  = $isExtra ? ' [Extra]' : '';
+                        $text    = "{$act->ordering}. {$act->name} ({$maxPts} pts){$marker}";
+                        $pdf->CellUTF8($legendColW, 4, $pdf->dec($text), 0, 0, 'L');
+                        $legendIdx++;
+                    } else {
+                        $pdf->CellUTF8($legendColW, 4, '', 0, 0, 'L');
+                    }
+                }
+                $pdf->Ln(4);
+            }
+            $pdf->SetAutoPageBreak(true, 14);
         }
 
         return $pdf->Output('S');

@@ -72,7 +72,6 @@ class GradeBooks extends Component
             'pensumCourse.course',
         ])->findOrFail($assignmentId);
 
-        // Buscar configuración académica del año del classroom
         $academicConfig = AcademicConfiguration::where('year', $this->assignment->classroom->year)->first();
 
         if (!$academicConfig) {
@@ -84,7 +83,6 @@ class GradeBooks extends Component
             return;
         }
 
-        // Buscar o crear el cuadro
         $this->gradeBook = GradeBook::with([
             'activities.activityType',
             'activities.scores',
@@ -98,11 +96,11 @@ class GradeBooks extends Component
 
         $this->configMode = $academicConfig->mode;
 
-        // Inicializar totales para estudiantes inscritos si no existen
         $this->initializeTotals();
+        $this->recalculateAllTotals(); // <-- agrega esta línea
 
         $this->resetActivityForm();
-        $this->showScoresForm  = false;
+        $this->showScoresForm    = false;
         $this->scoringActivityId = null;
     }
 

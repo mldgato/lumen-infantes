@@ -13,10 +13,10 @@
         <div class="text-sm font-weight-bold">
             Proyecto de Tesis
         </div>
-        <div style="font-size:0.75rem; color:#aaa;">
+        <div style="font-size:0.75rem; color:#686868;">
             Licenciatura en Enseñanza de la Computación e Informática
         </div>
-        <div style="font-size:0.75rem; color:#aaa;">
+        <div style="font-size:0.75rem; color:#686868;">
             EFPEM — Universidad de San Carlos de Guatemala
         </div>
     </div>
@@ -30,9 +30,9 @@
                 </a>
             </strong>
         </div>
-        <div style="font-size:0.75rem; color:#aaa;">
+        <div style="font-size:0.75rem; color:#686868;">
             Todos los derechos reservados &nbsp;|&nbsp;
-            <span class="badge badge-secondary">v1.4.0</span>
+            <span class="badge badge-secondary">v1.4.1</span>
         </div>
     </div>
 
