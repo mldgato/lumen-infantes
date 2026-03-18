@@ -313,142 +313,176 @@ return [
         ],
         ['header' => 'account_settings'],
         [
-            'text'  => 'profile',
+            'text'  => 'Perfil',
             'route' => 'profile',
             'icon'  => 'fas fa-fw fa-user',
         ],
-        'ADMINISTRACIÓN',
+
+        // ==========================================
+        // ADMINISTRACIÓN
+        // ==========================================
         [
-            'text'    => 'Roles y permisos',
-            'icon'    => 'fas fa-fw fa-user-shield',
-            'can'     => 'admin.roles.index',
+            'header' => 'ADMINISTRACIÓN',
+            'can'   => 'admin.menu.encabezado',
+        ],
+
+        // Gestión de Personal
+        [
+            'text'    => 'Gestión de Personal',
+            'icon'    => 'fas fa-fw fa-users-cog',
+            'can'     => 'admin.menu.personal',
             'submenu' => [
                 [
-                    'text'  => 'Roles',
-                    'route' => 'admin.roles.index',
-                    'icon'  => 'fas fa-user-tag',
-                    'can'   => 'admin.roles.index',
+                    'text'    => 'Roles y Permisos',
+                    'icon'    => 'fas fa-fw fa-user-shield',
+                    'can'     => 'admin.roles.index',
+                    'submenu' => [
+                        [
+                            'text'  => 'Roles',
+                            'route' => 'admin.roles.index',
+                            'icon'  => 'fas fa-user-tag',
+                            'can'   => 'admin.roles.index',
+                        ],
+                        [
+                            'text'  => 'Permisos',
+                            'route' => 'admin.permissions.index',
+                            'icon'  => 'fas fa-key',
+                            'can'   => 'admin.permissions.index',
+                        ],
+                    ],
                 ],
                 [
-                    'text'  => 'Permisos',
-                    'route' => 'admin.permissions.index',
-                    'icon'  => 'fas fa-key',
-                    'can'   => 'admin.permissions.index',
+                    'text'  => 'Personal Administrativo',
+                    'route' => 'admin.users.index',
+                    'icon'  => 'fas fa-fw fa-id-badge',
+                    'can'   => 'admin.users.index',
                 ],
             ],
         ],
+
+        // Gestión Estudiantil
         [
-            'text'  => 'Inscripciones',
-            'route' => 'admin.students.enrollments.index',
-            'icon'  => 'fas fa-child',
-            'can'   => 'admin.students.enrollments.index',
+            'text'    => 'Gestión Estudiantil',
+            'icon'    => 'fas fa-fw fa-user-graduate',
+            'can'     => 'admin.menu.estudiantil',
+            'submenu' => [
+                [
+                    'text'  => 'Inscripciones',
+                    'route' => 'admin.students.enrollments.index',
+                    'icon'  => 'fas fa-fw fa-child',
+                    'can'   => 'admin.students.enrollments.index',
+                ],
+                [
+                    'text'  => 'Estudiantes',
+                    'route' => 'admin.students.index',
+                    'icon'  => 'fas fa-fw fa-users',
+                    'can'   => 'admin.students.index',
+                ],
+            ],
         ],
+
+        // Gestión Académica
         [
-            'text'  => 'Estudiantes',
-            'route' => 'admin.students.index',
-            'icon'  => 'fas fa-fw fa-user-graduate',
-            'can'   => 'admin.students.index',
-        ],
-        [
-            'text'  => 'Personal Administrativo',
-            'route' => 'admin.users.index',
-            'icon'  => 'fas fa-fw fa-users',
-            'can'   => 'admin.users.index',
-        ],
-        [
-            'text'    => 'Grados y Secciones',
+            'text'    => 'Gestión Académica',
             'icon'    => 'fas fa-fw fa-school',
-            'can'     => 'admin.levels.index',
+            'can'     => 'admin.menu.academica',
             'submenu' => [
                 [
-                    'text'  => 'Niveles',
-                    'route' => 'admin.levels.index',
-                    'icon'  => 'fas fa-fw fa-layer-group',
-                    'can'   => 'admin.levels.index',
+                    'text'    => 'Grados y Secciones',
+                    'icon'    => 'fas fa-fw fa-th-list',
+                    'can'     => 'admin.levels.index',
+                    'submenu' => [
+                        [
+                            'text'  => 'Niveles',
+                            'route' => 'admin.levels.index',
+                            'icon'  => 'fas fa-fw fa-layer-group',
+                            'can'   => 'admin.levels.index',
+                        ],
+                        [
+                            'text'  => 'Grados',
+                            'route' => 'admin.grades.index',
+                            'icon'  => 'fas fa-fw fa-graduation-cap',
+                            'can'   => 'admin.grades.index',
+                        ],
+                        [
+                            'text'  => 'Secciones',
+                            'route' => 'admin.sections.index',
+                            'icon'  => 'fas fa-fw fa-tags',
+                            'can'   => 'admin.sections.index',
+                        ],
+                        [
+                            'text'  => 'Aulas',
+                            'route' => 'admin.classrooms.index',
+                            'icon'  => 'fas fa-fw fa-chalkboard',
+                            'can'   => 'admin.classrooms.index',
+                        ],
+                    ],
                 ],
                 [
-                    'text'  => 'Grados',
-                    'route' => 'admin.grades.index',
-                    'icon'  => 'fas fa-fw fa-graduation-cap',
-                    'can'   => 'admin.grades.index',
+                    'text'    => 'Cursos y Pénsum',
+                    'icon'    => 'fas fa-fw fa-book',
+                    'can'     => 'admin.courses.index',
+                    'submenu' => [
+                        [
+                            'text'  => 'Cursos',
+                            'route' => 'admin.courses.index',
+                            'icon'  => 'fas fa-fw fa-file-alt',
+                            'can'   => 'admin.courses.index',
+                        ],
+                        [
+                            'text'  => 'Pénsum',
+                            'route' => 'admin.pensums.index',
+                            'icon'  => 'fas fa-fw fa-list-alt',
+                            'can'   => 'admin.pensums.index',
+                        ],
+                    ],
                 ],
                 [
-                    'text'  => 'Secciones',
-                    'route' => 'admin.sections.index',
-                    'icon'  => 'fas fa-fw fa-tags',
-                    'can'   => 'admin.sections.index',
+                    'text'  => 'Asignación de Profesores',
+                    'route' => 'admin.classroom-course-assignments.index',
+                    'icon'  => 'fas fa-fw fa-chalkboard-teacher',
+                    'can'   => 'admin.classroom-course-assignments.index',
                 ],
                 [
-                    'text'  => 'Aulas',
-                    'route' => 'admin.classrooms.index',
-                    'icon'  => 'fas fa-fw fa-chalkboard',
-                    'can'   => 'admin.classrooms.index',
+                    'text'  => 'Conf. Académica',
+                    'route' => 'admin.academic-configurations.index',
+                    'icon'  => 'fas fa-fw fa-cogs',
+                    'can'   => 'admin.academic-configurations.index',
                 ],
             ],
         ],
+
+        // Cuadros y Calificaciones
         [
-            'text'    => 'Cursos y Pénsum',
-            'icon'    => 'fas fa-fw fa-book',
-            'can'     => 'admin.courses.index',
+            'text'    => 'Cuadros y Calificaciones',
+            'icon'    => 'fas fa-fw fa-book-open',
+            'can'     => 'admin.menu.cuadros',
             'submenu' => [
                 [
-                    'text'  => 'Cursos',
-                    'route' => 'admin.courses.index',
-                    'icon'  => 'fas fa-fw fa-file',
-                    'can'   => 'admin.courses.index',
+                    'text'  => 'Validación de Cuadros',
+                    'route' => 'admin.grade-books.index',
+                    'icon'  => 'fas fa-fw fa-check-square',
+                    'can'   => 'admin.grade-books.index',
                 ],
                 [
-                    'text'  => 'Pénsum',
-                    'route' => 'admin.pensums.index',
-                    'icon'  => 'fas fa-fw fa-list-alt',
-                    'can'   => 'admin.pensums.index',
+                    'text'  => 'Cambios de Notas',
+                    'route' => 'admin.grade-change-requests.index',
+                    'icon'  => 'fas fa-fw fa-clipboard-check',
+                    'can'   => 'admin.grade-change-requests.index',
                 ],
             ],
         ],
-        [
-            'text'  => 'Asignación de Profesores',
-            'icon'  => 'fas fa-fw fa-chalkboard-teacher',
-            'route' => 'admin.classroom-course-assignments.index',
-            'can'   => 'admin.classroom-course-assignments.index',
-        ],
-        [
-            'text'  => 'Conf. Académica',
-            'icon'  => 'fas fa-fw fa-cogs',
-            'route' => 'admin.academic-configurations.index',
-            'can'   => 'admin.academic-configurations.index',
-        ],
-        [
-            'text'  => 'Validación de cuadros',
-            'icon'  => 'fas fa-fw fa-book-open',
-            'route' => 'admin.grade-books.index',
-            'can'   => 'admin.grade-books.index',
-        ],
-        [
-            'text'  => 'Cambios de Notas',
-            'icon'  => 'fas fa-fw fa-clipboard-check',
-            'route' => 'admin.grade-change-requests.index',
-            'can'   => 'admin.grade-change-requests.index',
-        ],
-        [
-            'text'  => 'Mis Cuadros',
-            'icon'  => 'fas fa-fw fa-book-open',
-            'route' => 'profesor.grade-books.index',
-            'can'   => 'profesor.grade-books.index',
-        ],
-        [
-            'text'  => 'Solicitar Cambio de Notas',
-            'icon'  => 'fas fa-fw fa-edit',
-            'route' => 'profesor.grade-change-requests.index',
-            'can'   => 'profesor.grade-change-requests.create',
-        ],
+
+        // Reportes Admin
         [
             'text'    => 'Reportes',
-            'icon'    => 'fas fa-chart-bar',
-            'can'     => 'admin.reports.sabana-unidad',
+            'icon'    => 'fas fa-fw fa-chart-bar',
+            'can'     => 'admin.menu.reportes',
             'submenu' => [
                 [
                     'text'    => 'Sábanas',
-                    'icon'    => 'fas fa-table',
+                    'icon'    => 'fas fa-fw fa-table',
+                    'can'     => 'admin.reports.sabana-unidad',
                     'submenu' => [
                         [
                             'text'  => 'Sábana por Unidad',
@@ -473,21 +507,22 @@ return [
                 [
                     'text'  => 'Cuadros por Aula',
                     'route' => 'admin.reports.cuadros-classroom.index',
-                    'icon'  => 'fas fa-file-pdf',
+                    'icon'  => 'fas fa-fw fa-file-pdf',
                     'can'   => 'admin.reports.cuadros-classroom',
                 ],
                 [
                     'text'    => 'Listados',
-                    'icon'    => 'fas fa-list',
+                    'icon'    => 'fas fa-fw fa-list',
+                    'can'     => 'admin.reports.student-list',
                     'submenu' => [
                         [
-                            'text'  => 'Listado de Estudiantes PDF',
+                            'text'  => 'Listado PDF',
                             'route' => 'admin.reports.student-list.index',
                             'icon'  => 'fas fa-file-pdf',
                             'can'   => 'admin.reports.student-list',
                         ],
                         [
-                            'text'  => 'Listado de Estudiantes Excel',
+                            'text'  => 'Listado Excel',
                             'route' => 'admin.reports.student-list-excel.index',
                             'icon'  => 'fas fa-file-excel',
                             'can'   => 'admin.reports.student-list-excel',
@@ -495,65 +530,105 @@ return [
                     ],
                 ],
                 [
-                    'text'  => 'Actividades No Entregadas',
-                    'route' => 'admin.reports.missing-activities.index',
-                    'icon'  => 'fas fa-tasks',
-                    'can'   => 'admin.reports.missing-activities',
-                ],
-                [
                     'text'  => 'Boletas de Calificaciones',
                     'route' => 'admin.reports.report-cards.index',
-                    'icon'  => 'fas fa-file-pdf',
+                    'icon'  => 'fas fa-fw fa-file-pdf',
                     'can'   => 'admin.reports.report-cards',
+                ],
+                [
+                    'text'  => 'Actividades No Entregadas',
+                    'route' => 'admin.reports.missing-activities.index',
+                    'icon'  => 'fas fa-fw fa-tasks',
+                    'can'   => 'admin.reports.missing-activities',
                 ],
             ],
         ],
+
+        // Sistema
         [
-            'text'    => 'Reportes y documentos',
-            'icon'    => 'fas fa-chart-bar',
-            'can'     => 'profesor.reports.sabana-promedio',
+            'text'    => 'Sistema',
+            'icon'    => 'fas fa-fw fa-server',
+            'can'     => 'admin.menu.sistema',
+            'submenu' => [
+                [
+                    'text'  => 'Auditoría',
+                    'route' => 'admin.audit.index',
+                    'icon'  => 'fas fa-fw fa-history',
+                    'can'   => 'admin.audit.index',
+                ],
+            ],
+        ],
+
+        // ==========================================
+        // PROFESOR
+        // ==========================================
+        [
+            'header' => 'DOCENTE',
+            'can'   => 'profesor.menu.cuadros',
+        ],
+
+        // Mis Cuadros
+        [
+            'text'    => 'Mis Cuadros',
+            'icon'    => 'fas fa-fw fa-book-open',
+            'can'     => 'profesor.menu.cuadros',
+            'submenu' => [
+                [
+                    'text'  => 'Mis Cuadros',
+                    'route' => 'profesor.grade-books.index',
+                    'icon'  => 'fas fa-fw fa-book',
+                    'can'   => 'profesor.grade-books.index',
+                ],
+                [
+                    'text'  => 'Solicitar Cambio de Notas',
+                    'route' => 'profesor.grade-change-requests.index',
+                    'icon'  => 'fas fa-fw fa-edit',
+                    'can'   => 'profesor.grade-change-requests.create',
+                ],
+            ],
+        ],
+
+        // Reportes Profesor
+        [
+            'text'    => 'Reportes y Documentos',
+            'icon'    => 'fas fa-fw fa-chart-bar',
+            'can'     => 'profesor.menu.reportes',
             'submenu' => [
                 [
                     'text'  => 'Acumulado',
-                    'icon'  => 'fas fa-fw fa-file-pdf',
                     'route' => 'profesor.reports.sabana-promedio.index',
+                    'icon'  => 'fas fa-fw fa-file-pdf',
                     'can'   => 'profesor.reports.sabana-promedio',
                 ],
                 [
                     'text'  => 'Mis Cuadros por Unidad',
-                    'icon'  => 'fas fa-fw fa-file-pdf',
                     'route' => 'profesor.reports.cuadros-unidad.index',
+                    'icon'  => 'fas fa-fw fa-file-pdf',
                     'can'   => 'profesor.reports.cuadros-unidad',
                 ],
                 [
                     'text'  => 'Cuadro Vacío',
-                    'icon'  => 'fas fa-fw fa-print',
                     'route' => 'profesor.reports.cuadro-vacio.index',
+                    'icon'  => 'fas fa-fw fa-print',
                     'can'   => 'profesor.reports.cuadro-vacio',
                 ],
                 [
-                    'text'  => 'Listado de Estudiantes',
-                    'icon'  => 'fas fa-fw fa-list',
+                    'text'  => 'Listado de Estudiantes PDF',
                     'route' => 'profesor.reports.student-list.index',
+                    'icon'  => 'fas fa-fw fa-file-pdf',
                     'can'   => 'profesor.reports.student-list',
                 ],
                 [
                     'text'  => 'Listado de Estudiantes Excel',
-                    'icon'  => 'fas fa-fw fa-file-excel',
                     'route' => 'profesor.reports.student-list-excel.index',
+                    'icon'  => 'fas fa-fw fa-file-excel',
                     'can'   => 'profesor.reports.student-list-excel',
                 ],
                 [
                     'text'  => 'Actividades No Entregadas',
                     'route' => 'profesor.reports.missing-activities.index',
-                    'icon'  => 'fas fa-tasks',
+                    'icon'  => 'fas fa-fw fa-tasks',
                     'can'   => 'profesor.reports.missing-activities',
-                ],
-                [
-                    'text'  => 'Auditoría',
-                    'route' => 'admin.audit.index',
-                    'icon'  => 'fas fa-history',
-                    'can'   => 'admin.audit.index',
                 ],
             ],
         ],

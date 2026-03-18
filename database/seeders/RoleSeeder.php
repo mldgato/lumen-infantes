@@ -269,5 +269,18 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'admin.students.enrollments.index', 'description' => 'Gestión de inscripciones de estudiantes'])->syncRoles([$role1, $role2]);
 
         Permission::create(['name' => 'admin.audit.index', 'description' => 'Ver registro de auditoría'])->syncRoles([$role1, $role2]);
+
+        // Permisos de menú admin
+        Permission::create(['name' => 'admin.menu.personal',    'description' => 'Menú Gestión de Personal'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.estudiantil', 'description' => 'Menú Gestión Estudiantil'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.academica',   'description' => 'Menú Gestión Académica'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.cuadros',     'description' => 'Menú Cuadros y Calificaciones'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.reportes',    'description' => 'Menú Reportes Admin'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.sistema',     'description' => 'Menú Sistema'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.encabezado',     'description' => 'Encabezado de Administración'])->syncRoles([$role1, $role2]);
+
+        // Permisos de menú profesor
+        Permission::create(['name' => 'profesor.menu.cuadros',  'description' => 'Menú Mis Cuadros Profesor'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.menu.reportes', 'description' => 'Menú Reportes Profesor'])->assignRole($role4);
     }
 }
