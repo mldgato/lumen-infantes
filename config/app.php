@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'institution_name' => env('APP_INSTITUTION_NAME', 'Lumen'),
+
 ];
