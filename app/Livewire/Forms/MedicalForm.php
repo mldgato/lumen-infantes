@@ -65,17 +65,17 @@ class MedicalForm extends Form
         MedicalRecord::updateOrCreate(
             ['user_id' => $userId],
             [
-                'takes_medication' => $this->takes_medication,
+                'takes_medication'       => $this->takes_medication,
                 'medication_description' => $this->takes_medication ? $this->medication_description : null,
-                'has_disease' => $this->has_disease,
-                'disease_description' => $this->has_disease ? $this->disease_description : null,
-                'has_allergies' => $this->has_allergies,
-                'allergies_description' => $this->has_allergies ? $this->allergies_description : null,
-                'had_surgery' => $this->had_surgery,
-                'surgery_description' => $this->had_surgery ? $this->surgery_description : null,
-                'blood_type' => $this->blood_type,
-                'weight' => $this->weight,
-                'height' => $this->height,
+                'has_disease'            => $this->has_disease,
+                'disease_description'    => $this->has_disease    ? $this->disease_description    : null,
+                'has_allergies'          => $this->has_allergies,
+                'allergies_description'  => $this->has_allergies  ? $this->allergies_description  : null,
+                'had_surgery'            => $this->had_surgery,
+                'surgery_description'    => $this->had_surgery    ? $this->surgery_description    : null,
+                'blood_type'             => $this->blood_type     ?: null,
+                'weight'                 => $this->weight         ?: null,
+                'height'                 => $this->height         ?: null,
             ]
         );
     }
