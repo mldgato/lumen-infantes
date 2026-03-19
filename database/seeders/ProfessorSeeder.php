@@ -21,7 +21,7 @@ class ProfessorSeeder extends Seeder
             ['first' => 'Eduviges', 'middle' => 'Gloria', 'surname' => 'Gómez', 'second' => 'Morales', 'married' => null, 'email' => 'gloriagomez.tareascmrn@gmail.com', 'cui' => '1617829730101', 'cellphone' => '59131879'],
             ['first' => 'Mario', 'middle' => 'Luis', 'surname' => 'Rosales', 'second' => 'Argueta', 'married' => null, 'email' => 'mariolra2006@gmail.com', 'cui' => '2357465331401', 'cellphone' => '59663161'],
             ['first' => 'Tomás', 'middle' => 'Francisco', 'surname' => 'Xon', 'second' => 'Xirum', 'married' => null, 'email' => 'teacherxon@gmail.com', 'cui' => '2461491081406', 'cellphone' => '54782164'],
-            ['first' => 'Doroteo', 'middle' => null, 'surname' => 'Ajin', 'second' => 'Monroy', 'married' => null, 'email' => 'doroteo.ajin@lumen.net', 'cui' => '0000000000001', 'cellphone' => '00000000'],
+            ['first' => 'Doroteo', 'middle' => null, 'surname' => 'Ajin', 'second' => 'Monroy', 'married' => null, 'email' => 'doro.ajin@gmail.com', 'cui' => '0000000000001', 'cellphone' => '00000000'],
             ['first' => 'Vicente', 'middle' => null, 'surname' => 'Culajay', 'second' => 'Marroquín', 'married' => null, 'email' => 'vicenteculajaymarroquin@gmail.com', 'cui' => '1682828360108', 'cellphone' => '59194796'],
             ['first' => 'José', 'middle' => null, 'surname' => 'Gutiérrez', 'second' => 'Coyoy', 'married' => null, 'email' => 'mjoseclemente54@gmail.com', 'cui' => '2448176930901', 'cellphone' => '56976561'],
             ['first' => 'Julio', 'middle' => 'César', 'surname' => 'Vivar', 'second' => null, 'married' => null, 'email' => 'vivarjulio1966@gmail.com', 'cui' => '1922224570108', 'cellphone' => '42712972'],
