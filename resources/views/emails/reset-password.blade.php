@@ -40,7 +40,7 @@
                                     <td align="center" style="padding-bottom:28px;">
                                         <a href="{{ $url }}"
                                             style="display:inline-block;background-color:#3498db;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:15px;font-weight:bold;">
-                                            Restablecer Contrase&#241;a
+                                            Restablecer Contraseña
                                         </a>
                                     </td>
                                 </tr>

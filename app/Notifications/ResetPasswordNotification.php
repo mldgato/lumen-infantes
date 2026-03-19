@@ -14,16 +14,18 @@ class ResetPasswordNotification extends ResetPassword
             'email' => $notifiable->getEmailForPasswordReset(),
         ], false));
 
-        $institutionName = htmlspecialchars(
-            env('APP_INSTITUTION_NAME', 'Lumen'),
-            ENT_QUOTES | ENT_HTML5,
-            'UTF-8'
-        );
-        $expireMinutes   = config('auth.passwords.users.expire', 60);
-        $firstName       = $notifiable->first_name ?? $notifiable->name;
+        $rawName = env('APP_INSTITUTION_NAME', 'Lumen');
+
+        // Convierte caracteres no-ASCII a entidades HTML para usar en la vista HTML
+        $institutionName = preg_replace_callback('/[\x{0080}-\x{FFFF}]/u', function ($match) {
+            return '&#' . mb_ord($match[0]) . ';';
+        }, $rawName);
+
+        $expireMinutes = config('auth.passwords.users.expire', 60);
+        $firstName     = $notifiable->first_name ?? $notifiable->name;
 
         return (new MailMessage)
-            ->subject('Restablecer Contrase&#241;a — ' . env('APP_INSTITUTION_NAME', 'Lumen'))
+            ->subject('Restablecer Contrasena — ' . $rawName)
             ->view('emails.reset-password', [
                 'url'             => $url,
                 'institutionName' => $institutionName,
