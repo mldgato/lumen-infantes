@@ -39,6 +39,7 @@ class User extends Authenticatable
         'personal_email',
         'address',
         'is_active',
+        'must_change_password',
     ];
 
     /**
@@ -65,6 +66,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'birthdate' => 'date',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 

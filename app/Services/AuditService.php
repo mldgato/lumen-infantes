@@ -190,4 +190,19 @@ class AuditService
             newValues: $new ?: null,
         );
     }
+
+    public static function passwordChanged(User $user, bool $forced = false): void
+    {
+        $description = $forced
+            ? "El usuario \"{$user->name}\" cambió su contraseña (Cambio obligatorio)."
+            : "El usuario \"{$user->name}\" cambió su contraseña.";
+
+        self::log(
+            event: 'password_changed',
+            module: 'Seguridad',
+            description: $description,
+            auditable: $user,
+            // Omitimos old_values y new_values por seguridad, no debemos registrar hashes de contraseñas.
+        );
+    }
 }
