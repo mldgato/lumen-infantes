@@ -14,12 +14,16 @@ class ResetPasswordNotification extends ResetPassword
             'email' => $notifiable->getEmailForPasswordReset(),
         ], false));
 
-        $institutionName = env('APP_INSTITUTION_NAME', 'EduCheck');
+        $institutionName = htmlspecialchars(
+            env('APP_INSTITUTION_NAME', 'Lumen'),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
         $expireMinutes   = config('auth.passwords.users.expire', 60);
         $firstName       = $notifiable->first_name ?? $notifiable->name;
 
         return (new MailMessage)
-            ->subject('Restablecer Contrasena — ' . $institutionName)
+            ->subject('Restablecer Contrase&#241;a — ' . env('APP_INSTITUTION_NAME', 'Lumen'))
             ->view('emails.reset-password', [
                 'url'             => $url,
                 'institutionName' => $institutionName,

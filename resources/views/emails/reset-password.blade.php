@@ -17,7 +17,7 @@
                     {{-- Header --}}
                     <tr>
                         <td style="background-color:#2c3e50;padding:30px;text-align:center;">
-                            <h1 style="margin:0;color:#ffffff;font-size:22px;">{{ $institutionName }}</h1>
+                            <h1 style="margin:0;color:#ffffff;font-size:22px;">{!! $institutionName !!}</h1>
                             <p style="margin:6px 0 0;color:#bdc3c7;font-size:13px;">Sistema de Gestión Escolar</p>
                         </td>
                     </tr>
@@ -28,7 +28,7 @@
                             <h2 style="margin:0 0 16px;color:#2c3e50;font-size:20px;">Hola {{ $firstName }},</h2>
                             <p style="margin:0 0 16px;color:#555;font-size:15px;line-height:1.6;">
                                 Recibiste este correo porque se solicitó un restablecimiento de contraseña para tu
-                                cuenta en <strong>{{ $institutionName }}</strong>.
+                                cuenta en <strong>{!! $institutionName !!}</strong>.
                             </p>
                             <p style="margin:0 0 28px;color:#555;font-size:15px;line-height:1.6;">
                                 Haz clic en el botón de abajo para crear una nueva contraseña:
@@ -76,7 +76,7 @@
                         <td
                             style="background-color:#f8f9fa;padding:20px 40px;border-top:1px solid #eee;text-align:center;">
                             <p style="margin:0;color:#999;font-size:12px;">
-                                Atentamente, <strong>{{ $institutionName }}</strong>
+                                Atentamente, <strong>{!! $institutionName !!}</strong>
                             </p>
                         </td>
                     </tr>
