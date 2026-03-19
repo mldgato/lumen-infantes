@@ -32,7 +32,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary btn-block mb-3">
-            <i class="fas fa-save mr-2"></i> {{ __('Change Password') }}
+            <i class="fas fa-save mr-2"></i> {{ __('Cambiar contraseña') }}
         </button>
     </form>
 
