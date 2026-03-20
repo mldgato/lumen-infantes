@@ -19,7 +19,16 @@ class GradeBookPdfController extends Controller
 
         // Solo el profesor dueño del cuadro
         $professor = Auth::user()->professor;
+        /* if ($gradeBook->assignment->professor_id !== $professor->id) {
+            abort(403, 'No tienes permiso para ver este cuadro.');
+        } */
+
+        // Depuración temporal:
         if ($gradeBook->assignment->professor_id !== $professor->id) {
+            dd([
+                'profesor_del_cuadro' => $gradeBook->assignment->professor_id,
+                'mi_id_de_profesor' => $professor->id
+            ]);
             abort(403, 'No tienes permiso para ver este cuadro.');
         }
 
