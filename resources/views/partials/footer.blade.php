@@ -1,4 +1,4 @@
-<div class="d-flex flex-column flex-md-row align-items-center justify-content-between w-100">
+<div class="d-flex flex-column flex-md-row align-items-center justify-content-between w-100 mt-3">
 
     {{-- Logos --}}
     <div class="d-flex align-items-center mb-2 mb-md-0">
