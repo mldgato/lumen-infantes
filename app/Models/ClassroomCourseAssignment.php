@@ -13,6 +13,14 @@ class ClassroomCourseAssignment extends Model
 
     protected $fillable = ['classroom_id', 'professor_id', 'pensum_course_id', 'unit'];
 
+    // Agrega este bloque para forzar que los IDs sean enteros
+    protected $casts = [
+        'classroom_id' => 'integer',
+        'professor_id' => 'integer',
+        'pensum_course_id' => 'integer',
+        'unit' => 'integer',
+    ];
+
     public function classroom(): BelongsTo
     {
         return $this->belongsTo(Classroom::class);
