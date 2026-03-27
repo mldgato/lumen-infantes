@@ -282,5 +282,7 @@ class RoleSeeder extends Seeder
         // Permisos de menú profesor
         Permission::create(['name' => 'profesor.menu.cuadros',  'description' => 'Menú Mis Cuadros Profesor'])->assignRole($role4);
         Permission::create(['name' => 'profesor.menu.reportes', 'description' => 'Menú Reportes Profesor'])->assignRole($role4);
+
+        Permission::create(['name' => 'admin.user.loginUser', 'description' => 'Adminsitración - Inpersonación'])->assignRole($role1);
     }
 }
