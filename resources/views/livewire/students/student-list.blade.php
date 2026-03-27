@@ -532,9 +532,12 @@
                                                 <button wire:click="editGuardian({{ $guardian->id }})"
                                                     class="btn btn-xs btn-warning px-3"><i class="fas fa-edit"></i>
                                                     Editar Datos</button>
-                                                <button wire:click="detachGuardian({{ $guardian->id }})"
-                                                    class="btn btn-xs btn-danger px-3 ml-1"><i
-                                                        class="fas fa-unlink"></i> Retirar</button>
+
+                                                @if ($guardian->pivot->relationship_type !== 'Encargado')
+                                                    <button wire:click="detachGuardian({{ $guardian->id }})"
+                                                        class="btn btn-xs btn-danger px-3 ml-1"><i
+                                                            class="fas fa-unlink"></i> Retirar</button>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -567,12 +570,9 @@
                                                         class="fas fa-project-diagram"></i></span></div>
                                             <select wire:model="relationship_type" class="form-control">
                                                 <option value="">Seleccione parentesco...</option>
-                                                <option value="Padre">Padre</option>
-                                                <option value="Madre">Madre</option>
-                                                <option value="Abuelo/a">Abuelo / Abuela</option>
-                                                <option value="Tío/a">Tío / Tía</option>
-                                                <option value="Hermano/a Mayor">Hermano / Hermana Mayor</option>
-                                                <option value="Otro">Otro Responsable</option>
+                                                @foreach ($this->getAvailableRelationships() as $rel)
+                                                    <option value="{{ $rel }}">{{ $rel }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                         @error('relationship_type')
@@ -714,7 +714,7 @@
                                         <label class="text-sm mb-1">Teléfono Trabajo</label>
                                         <div class="input-group input-group-sm">
                                             <div class="input-group-prepend"><span class="input-group-text"><i
-                                                        class="fas fa-phone-office"></i></span></div>
+                                                        class="fas fa-phone-square-alt"></i></span></div>
                                             <input type="text" class="form-control"
                                                 wire:model="guardianForm.company_phone">
                                         </div>
@@ -905,6 +905,27 @@
                         title: payload.message
                     });
                 });
+
+                // NUEVO LISTENER PARA CONFIRMAR CAMBIO DE AULA
+                Livewire.on('confirmClassroomChange', (event) => {
+                    let payload = event[0] || event;
+                    Swal.fire({
+                        title: payload.title,
+                        text: payload.text,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '<i class="fas fa-trash-alt"></i> Sí, cambiar y borrar notas',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Si el usuario acepta, dispara el evento hacia el backend
+                            Livewire.dispatch('triggerConfirmSaveEnrollment');
+                        }
+                    });
+                });
+
             });
         </script>
     @endpush

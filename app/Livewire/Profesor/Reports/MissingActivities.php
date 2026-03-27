@@ -95,16 +95,17 @@ class MissingActivities extends Component
             ->groupBy('student_id')
             ->map(fn($group) => $group->keyBy('grade_book_activity_id'));
 
+        // CONSULTA DE ESTUDIANTES ACTUALIZADA
         $students = Student::whereHas(
             'enrollments',
-            fn($q) =>
-            $q->where('classroom_id', $this->filterClassroom)->where('status', 'Activo')
+            fn($q) => $q->where('classroom_id', $this->filterClassroom)->where('status', 'Activo')
         )
             ->join('users', 'students.user_id', '=', 'users.id')
+            ->select('students.*')
             ->orderBy('users.surname')
             ->orderBy('users.second_surname')
             ->orderBy('users.first_name')
-            ->select('students.*')
+            ->orderBy('users.middle_name')
             ->with('user')
             ->get();
 
@@ -121,9 +122,9 @@ class MissingActivities extends Component
             }
 
             return [
-                'clave'        => $idx + 1,
-                'name'         => trim($student->user->surname . ' ' . $student->user->second_surname . ', ' . $student->user->first_name . ' ' . $student->user->middle_name),
-                'results'      => $results,
+                'clave'         => $idx + 1,
+                'name'          => $student->user->full_full_name, // USO DEL ACCESSOR
+                'results'       => $results,
                 'missing_count' => $missingCount,
             ];
         })->toArray();

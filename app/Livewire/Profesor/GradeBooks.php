@@ -14,10 +14,15 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Services\AuditService;
+use App\Exports\ActivityTemplateExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\DB;
+use App\Imports\ActivityScoresImport;
 
 class GradeBooks extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -43,6 +48,15 @@ class GradeBooks extends Component
     public array $improvement_scores = [];
 
     public string $configMode = 'free';
+
+    // ==========================================
+    // EXCEL TEMPLATES (Nuevas Propiedades)
+    // ==========================================
+    public bool $showExcelModal = false;
+    public ?int $excelActivityId = null;
+    public ?string $excelActivityName = '';
+
+    public $excelFile;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -127,14 +141,15 @@ class GradeBooks extends Component
     {
         return Student::whereHas('enrollments', function ($q) {
             $q->where('classroom_id', $this->assignment->classroom_id)
-                ->where('status', 'Activo');
+                ->where('status', 'Activo'); // <-- Garantizamos solo activos
         })
             ->join('users', 'students.user_id', '=', 'users.id')
+            ->select('students.*')
             ->orderBy('users.surname')
             ->orderBy('users.second_surname')
             ->orderBy('users.first_name')
             ->orderBy('users.middle_name')
-            ->select('students.*')
+            ->with('user')
             ->get();
     }
 
@@ -481,6 +496,139 @@ class GradeBooks extends Component
                 $this->max_points = $configActivity->points_each;
             }
         }
+    }
+
+    // ==========================================
+    // MÉTODOS PARA EXCEL (Nuevos Métodos Completos)
+    // ==========================================
+    public function openExcelModal(int $activityId): void
+    {
+        $activity = GradeBookActivity::findOrFail($activityId);
+
+        $this->excelActivityId = $activity->id;
+        $this->excelActivityName = $activity->name;
+        $this->showExcelModal = true;
+    }
+
+    public function closeExcelModal(): void
+    {
+        $this->showExcelModal = false;
+        $this->excelActivityId = null;
+        $this->excelActivityName = '';
+        $this->excelFile = null;
+        $this->resetValidation('excelFile');
+    }
+
+    public function importExcel(): void
+    {
+        // 1. Validar que sea un archivo válido
+        $this->validate([
+            'excelFile' => 'required|mimes:xlsx,xls|max:5120', // Máximo 5MB
+        ], [
+            'excelFile.required' => 'Debes seleccionar un archivo Excel.',
+            'excelFile.mimes'    => 'El archivo debe ser de tipo xlsx o xls.',
+            'excelFile.max'      => 'El archivo es demasiado grande (máximo 5MB).',
+        ]);
+
+        $activity = GradeBookActivity::findOrFail($this->excelActivityId);
+        $maxPoints = (float) $activity->max_points;
+
+        // Obtenemos los estudiantes de la sección y los indexamos por su ID para validación rápida
+        $students = $this->getStudents()->keyBy('id');
+
+        try {
+            // 2. Convertir Excel a Array
+            $data = Excel::toArray(new ActivityScoresImport, $this->excelFile->getRealPath())[0];
+
+            // ==========================================
+            // VALIDADOR DE SEGURIDAD DE LA ACTIVIDAD
+            // ==========================================
+            $headerRow = $data[0][0] ?? ''; // Leemos la celda A1
+            $expectedTag = '[ACT_ID:' . $activity->id . ']';
+
+            if (!str_contains($headerRow, $expectedTag)) {
+                throw new \Exception("El archivo que intentas subir no pertenece a esta actividad. Por favor, verifica que sea la plantilla correcta.");
+            }
+
+            // 3. Iniciar Transacción
+            DB::beginTransaction();
+
+            // Empezamos desde el índice 3 (que corresponde a la Fila 4 en el Excel real)
+            for ($i = 3; $i < count($data); $i++) {
+                $row = $data[$i];
+                $studentId = $row[0]; // Columna A: ID Sistema
+
+                // Si la fila está vacía o el ID no es numérico, ignoramos la fila
+                if (empty($studentId) || !is_numeric($studentId)) {
+                    continue;
+                }
+
+                // Seguridad: Validar que el estudiante realmente pertenece a esta asignación
+                if (!$students->has($studentId)) {
+                    continue;
+                }
+
+                $scoreValue = $row[3]; // Columna D: Nota
+
+                // Lógica requerida: celda en blanco = 0
+                $score = (is_null($scoreValue) || trim($scoreValue) === '') ? 0 : (float) $scoreValue;
+
+                // Validación estricta de límites
+                if ($score < 0 || $score > $maxPoints) {
+                    throw new \Exception("La nota {$score} del estudiante {$row[2]} es inválida. Debe estar entre 0 y {$maxPoints} puntos.");
+                }
+
+                // 4. Guardar o actualizar la nota
+                GradeBookScore::updateOrCreate(
+                    [
+                        'grade_book_activity_id' => $activity->id,
+                        'student_id'             => $studentId,
+                    ],
+                    [
+                        'score' => $score,
+                        // No tocamos improvement_score para no borrar recuperaciones previas
+                    ]
+                );
+            }
+
+            // 5. Recalcular los cuadros tras la carga masiva y guardar en DB
+            $this->recalculateAllTotals();
+            DB::commit();
+
+            $this->closeExcelModal();
+            $this->dispatch('toastMessage', [
+                'type'    => 'success',
+                'message' => 'Calificaciones importadas y actualizadas correctamente.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack(); // Si algo falla, revertimos toda la base de datos
+            $this->addError('excelFile', 'Error en el archivo: ' . $e->getMessage());
+        }
+    }
+
+    public function downloadExcelTemplate()
+    {
+        if (!$this->excelActivityId) {
+            return;
+        }
+
+        $activity = GradeBookActivity::findOrFail($this->excelActivityId);
+        $students = $this->getStudents(); // Reutilizamos tu método exacto para mantener el orden
+
+        $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $activity->name);
+        $fileName = "Plantilla_{$safeName}_" . date('dmY_His') . '.xlsx';
+
+        $this->closeExcelModal();
+
+        $this->dispatch('toastMessage', [
+            'type'    => 'success',
+            'message' => 'Generando archivo Excel...',
+        ]);
+
+        return Excel::download(
+            new ActivityTemplateExport($activity, $students),
+            $fileName
+        );
     }
 
     public function render()

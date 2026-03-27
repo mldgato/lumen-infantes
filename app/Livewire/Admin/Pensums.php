@@ -114,6 +114,21 @@ class Pensums extends Component
     public function delete(int $id): void
     {
         $this->authorize('admin.pensums.delete');
+
+        // Optimización: Verificamos directamente desde PensumCourse si hay algún GradeBook asociado
+        $hasGradeBooks = PensumCourse::where('pensum_id', $id)
+            ->whereHas('assignments.gradeBook')
+            ->exists();
+
+        if ($hasGradeBooks) {
+            $this->dispatch('showAlert', [
+                'title'   => '¡Acción denegada!',
+                'message' => 'No puedes eliminar este pénsum porque ya tiene cuadros de calificaciones (GradeBooks) asociados.',
+                'type'    => 'error',
+            ]);
+            return;
+        }
+
         Pensum::findOrFail($id)->delete();
 
         $this->dispatch('showAlert', [
@@ -375,8 +390,15 @@ class Pensums extends Component
     {
         $pensums = $this->readyToLoad
             ? Pensum::with('grade')
-            ->whereHas('grade', fn($q) => $q->where('grade_name', 'like', '%' . $this->search . '%'))
-            ->orWhere('year', 'like', '%' . $this->search . '%')
+            // Agregamos un atributo virtual 'has_gradebooks' a cada pénsum en la colección
+            ->withExists(['pensumCourses as has_gradebooks' => function ($query) {
+                $query->whereHas('assignments.gradeBook');
+            }])
+            // Optimización adicional: Agrupamos los condicionales de búsqueda para evitar que el orWhere rompa otras condiciones
+            ->where(function ($query) {
+                $query->whereHas('grade', fn($q) => $q->where('grade_name', 'like', '%' . $this->search . '%'))
+                    ->orWhere('year', 'like', '%' . $this->search . '%');
+            })
             ->orderBy($this->sort, $this->direction)
             ->paginate($this->cant)
             : [];

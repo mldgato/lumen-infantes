@@ -38,10 +38,10 @@ class StudentListExport implements FromArray, ShouldAutoSize, WithEvents, WithTi
 
                 $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($this->classroomId);
 
+                // Consulta con ordenamiento correcto y Eager Loading
                 $students = Student::whereHas(
                     'enrollments',
-                    fn($q) =>
-                    $q->where('classroom_id', $this->classroomId)->where('status', 'Activo')
+                    fn($q) => $q->where('classroom_id', $this->classroomId)->where('status', 'Activo')
                 )
                     ->join('users', 'students.user_id', '=', 'users.id')
                     ->orderBy('users.surname')
@@ -60,11 +60,12 @@ class StudentListExport implements FromArray, ShouldAutoSize, WithEvents, WithTi
                 // FILA 1: TÍTULO
                 // ==========================================
                 $sheet->mergeCells('A1:C1');
-                $title = 'Nivel: ' . $classroom->level->level_name
+                $titleText = 'Nivel: ' . $classroom->level->level_name
                     . '   |   Grado: ' . $classroom->grade->grade_name
                     . ' ' . $classroom->section->section_name
                     . '   |   Año: ' . $classroom->year;
-                $sheet->setCellValue('A1', $title);
+
+                $sheet->setCellValue('A1', $titleText);
                 $sheet->getStyle('A1')->applyFromArray([
                     'font'      => ['bold' => true, 'size' => 12, 'color' => ['rgb' => 'FFFFFF']],
                     'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F3864']],
@@ -76,7 +77,7 @@ class StudentListExport implements FromArray, ShouldAutoSize, WithEvents, WithTi
                 // FILA 2: ENCABEZADOS
                 // ==========================================
                 $sheet->setCellValue('A2', 'No.');
-                $sheet->setCellValue('B2', 'Estudiante');
+                $sheet->setCellValue('B2', 'Estudiante (Apellidos, Nombres)');
                 $sheet->setCellValue('C2', 'Observación');
 
                 $sheet->getStyle('A2:C2')->applyFromArray([
@@ -93,15 +94,11 @@ class StudentListExport implements FromArray, ShouldAutoSize, WithEvents, WithTi
                     $row  = $dataStartRow + $idx;
                     $fill = $idx % 2 === 0 ? 'FFFFFF' : 'DEEAF1';
 
-                    $fullName = trim(
-                        $student->user->surname . ' ' .
-                            $student->user->second_surname . ', ' .
-                            $student->user->first_name . ' ' .
-                            $student->user->middle_name
-                    );
-
                     $sheet->setCellValue("A{$row}", $idx + 1);
-                    $sheet->setCellValue("B{$row}", $fullName);
+
+                    // USANDO EL ACCESSOR PARA EL NOMBRE LIMPIO
+                    $sheet->setCellValue("B{$row}", $student->user->full_full_name);
+
                     $sheet->setCellValue("C{$row}", '');
 
                     $sheet->getStyle("A{$row}:C{$row}")->applyFromArray([
@@ -130,7 +127,7 @@ class StudentListExport implements FromArray, ShouldAutoSize, WithEvents, WithTi
                 // ANCHOS
                 // ==========================================
                 $sheet->getColumnDimension('A')->setWidth(8);
-                $sheet->getColumnDimension('B')->setWidth(45);
+                $sheet->getColumnDimension('B')->setAutoSize(true); // Autoajuste para nombres largos
                 $sheet->getColumnDimension('C')->setWidth(50);
             },
         ];

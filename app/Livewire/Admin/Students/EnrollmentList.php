@@ -80,6 +80,8 @@ class EnrollmentList extends Component
     // ==========================================
     // GUARDIANES (padre, madre, encargado)
     // ==========================================
+    public string $encargado_role = 'otro';
+
     public array $guardians = [
         'padre'     => ['enabled' => false, 'data' => []],
         'madre'     => ['enabled' => false, 'data' => []],
@@ -214,6 +216,7 @@ class EnrollmentList extends Component
         $this->password = $this->cellphone = $this->address = '';
         $this->carne = $this->personal_code = '';
         $this->is_own_guardian = false;
+        $this->encargado_role  = 'otro';
 
         // Médica
         $this->blood_type = $this->weight = $this->height = '';
@@ -274,7 +277,8 @@ class EnrollmentList extends Component
 
     public function enrollNew(): void
     {
-        $this->validate([
+        // 1. Reglas base del estudiante
+        $rules = [
             'cui'           => 'required|string|max:20|unique:users,cui',
             'first_name'    => 'required|string|max:100',
             'surname'       => 'required|string|max:100',
@@ -283,7 +287,9 @@ class EnrollmentList extends Component
             'email'         => 'required|email|unique:users,email',
             'password'      => 'required|string|min:6',
             'filterSection' => 'required',
-        ], [
+        ];
+
+        $messages = [
             'cui.required'           => 'El CUI es obligatorio.',
             'cui.unique'             => 'Ya existe un usuario con ese CUI.',
             'first_name.required'    => 'El primer nombre es obligatorio.',
@@ -294,7 +300,35 @@ class EnrollmentList extends Component
             'email.unique'           => 'El correo ya está en uso.',
             'password.required'      => 'La contraseña es obligatoria.',
             'filterSection.required' => 'Seleccione un aula primero.',
-        ]);
+        ];
+
+        // 2. Validación dinámica para Guardianes basada estrictamente en la base de datos
+        foreach (['padre', 'madre', 'encargado'] as $key) {
+            if ($this->guardians[$key]['enabled']) {
+                $rules["guardians.$key.data.first_name"]        = 'required|string';
+                $rules["guardians.$key.data.last_name"]         = 'required|string';
+                $rules["guardians.$key.data.birthdate"]         = 'required|date';
+                $rules["guardians.$key.data.nationality"]       = 'required|string';
+                $rules["guardians.$key.data.cui"]               = 'required|string';
+                $rules["guardians.$key.data.cui_extended_in"]   = 'required|string';
+                $rules["guardians.$key.data.profession"]        = 'required|string';
+                $rules["guardians.$key.data.residence_address"] = 'required|string';
+                $rules["guardians.$key.data.phone"]             = 'required|string';
+
+                $label = ucfirst($key);
+                $messages["guardians.$key.data.first_name.required"]        = "El nombre del $label es obligatorio.";
+                $messages["guardians.$key.data.last_name.required"]         = "El apellido del $label es obligatorio.";
+                $messages["guardians.$key.data.birthdate.required"]         = "La fecha de nacimiento del $label es obligatoria.";
+                $messages["guardians.$key.data.nationality.required"]       = "La nacionalidad del $label es obligatoria.";
+                $messages["guardians.$key.data.cui.required"]               = "El CUI del $label es obligatorio.";
+                $messages["guardians.$key.data.cui_extended_in.required"]   = "El lugar de extensión del CUI del $label es obligatorio.";
+                $messages["guardians.$key.data.profession.required"]        = "La profesión del $label es obligatoria.";
+                $messages["guardians.$key.data.residence_address.required"] = "La dirección del $label es obligatoria.";
+                $messages["guardians.$key.data.phone.required"]             = "El teléfono del $label es obligatorio.";
+            }
+        }
+
+        $this->validate($rules, $messages);
 
         $classroom = $this->getSelectedClassroom();
         if (! $classroom) return;
@@ -345,32 +379,40 @@ class EnrollmentList extends Component
 
             // Guardianes
             $relationshipMap = [
-                'padre'     => 'Padre',
-                'madre'     => 'Madre',
+                'padre'     => 'Papá',
+                'madre'     => 'Mamá',
                 'encargado' => 'Encargado',
             ];
 
             foreach ($this->guardians as $key => $guardian) {
                 if (! $guardian['enabled']) continue;
                 $d = $guardian['data'];
-                if (empty($d['first_name']) || empty($d['last_name'])) continue;
+                // Ya no necesitamos el if (empty()) aquí porque la validación de arriba nos garantiza que vienen llenos
 
-                $guardianModel = Guardian::create([
-                    'first_name'        => $d['first_name'],
-                    'last_name'         => $d['last_name'],
-                    'birthplace'        => $d['birthplace']        ?: null,
-                    'birthdate'         => $d['birthdate']         ?: null,
-                    'nationality'       => $d['nationality']       ?: null,
-                    'cui'               => $d['cui']               ?: null,
-                    'cui_extended_in'   => $d['cui_extended_in']   ?: null,
-                    'profession'        => $d['profession']        ?: null,
-                    'residence_address' => $d['residence_address'] ?: null,
-                    'phone'             => $d['phone']             ?: null,
-                    'email'             => $d['email']             ?: null,
-                    'company_name'      => $d['company_name']      ?: null,
-                    'company_address'   => $d['company_address']   ?: null,
-                    'company_phone'     => $d['company_phone']     ?: null,
-                ]);
+                $guardianModel = null;
+
+                if (!empty($d['cui'])) {
+                    $guardianModel = Guardian::where('cui', $d['cui'])->first();
+                }
+
+                if (! $guardianModel) {
+                    $guardianModel = Guardian::create([
+                        'first_name'        => $d['first_name'],
+                        'last_name'         => $d['last_name'],
+                        'birthplace'        => $d['birthplace']        ?: null,
+                        'birthdate'         => $d['birthdate'], // Requerido
+                        'nationality'       => $d['nationality'], // Requerido
+                        'cui'               => $d['cui'], // Requerido
+                        'cui_extended_in'   => $d['cui_extended_in'], // Requerido
+                        'profession'        => $d['profession'], // Requerido
+                        'residence_address' => $d['residence_address'], // Requerido
+                        'phone'             => $d['phone'], // Requerido
+                        'email'             => $d['email']             ?: null,
+                        'company_name'      => $d['company_name']      ?: null,
+                        'company_address'   => $d['company_address']   ?: null,
+                        'company_phone'     => $d['company_phone']     ?: null,
+                    ]);
+                }
 
                 $student->guardians()->attach($guardianModel->id, [
                     'relationship_type' => $relationshipMap[$key],
@@ -426,7 +468,7 @@ class EnrollmentList extends Component
             foreach ($gradeBook->activities as $activity) {
                 GradeBookScore::firstOrCreate(
                     ['grade_book_activity_id' => $activity->id, 'student_id' => $studentId],
-                    ['score' => null, 'improvement_score' => null]
+                    ['score' => 0, 'improvement_score' => 0]
                 );
             }
             GradeBookTotal::firstOrCreate(
@@ -446,6 +488,59 @@ class EnrollmentList extends Component
             ->first();
     }
 
+    public function updatedIsOwnGuardian($value): void
+    {
+        if ($value) {
+            $this->encargado_role = 'estudiante';
+            $this->fillEncargadoWith('estudiante');
+        } else {
+            if ($this->encargado_role === 'estudiante') {
+                $this->encargado_role = 'otro';
+                $this->resetEncargado();
+            }
+        }
+    }
+
+    public function updatedEncargadoRole($value): void
+    {
+        if ($value === 'estudiante') {
+            $this->is_own_guardian = true;
+            $this->fillEncargadoWith('estudiante');
+        } else {
+            $this->is_own_guardian = false;
+
+            if ($value === 'padre' || $value === 'madre') {
+                $this->fillEncargadoWith($value);
+            } else {
+                $this->resetEncargado();
+            }
+        }
+    }
+
+    private function fillEncargadoWith(string $source): void
+    {
+        $this->guardians['encargado']['enabled'] = true;
+
+        if ($source === 'estudiante') {
+            $this->guardians['encargado']['data'] = array_merge($this->emptyGuardian(), [
+                'first_name'        => trim($this->first_name . ' ' . $this->middle_name),
+                'last_name'         => trim($this->surname . ' ' . $this->second_surname),
+                'cui'               => $this->cui,
+                'birthdate'         => $this->birthdate,
+                'phone'             => $this->cellphone,
+                'email'             => $this->personal_email,
+                'residence_address' => $this->address,
+            ]);
+        } elseif ($source === 'padre' || $source === 'madre') {
+            $this->guardians['encargado']['data'] = $this->guardians[$source]['data'];
+        }
+    }
+
+    private function resetEncargado(): void
+    {
+        $this->guardians['encargado']['data'] = $this->emptyGuardian();
+    }
+
     public function render()
     {
         $years    = Classroom::select('year')->distinct()->orderByDesc('year')->pluck('year');
@@ -459,7 +554,7 @@ class EnrollmentList extends Component
 
         $classroom = $this->getSelectedClassroom();
         $enrollments = collect();
-        $totalActive = $totalInactive = $totalRetired = 0;
+        $totalActive = $totalRetired = 0; // Se eliminó $totalInactive
 
         if ($classroom && $this->readyToLoad) {
             $q = StudentEnrollment::with(['student.user'])
@@ -470,7 +565,6 @@ class EnrollmentList extends Component
                 ->select('student_enrollments.*');
 
             $totalActive   = (clone $q)->where('status', 'Activo')->count();
-            $totalInactive = (clone $q)->where('status', 'Inactivo')->count();
             $totalRetired  = (clone $q)->where('status', 'Retirado')->count();
             $enrollments   = $q->paginate(25);
         }
@@ -483,7 +577,6 @@ class EnrollmentList extends Component
             'classroom',
             'enrollments',
             'totalActive',
-            'totalInactive',
             'totalRetired'
         ));
     }

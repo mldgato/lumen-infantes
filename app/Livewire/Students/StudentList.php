@@ -12,6 +12,13 @@ use App\Livewire\Forms\MedicalForm;
 use App\Livewire\Forms\GuardianForm;
 use App\Models\Classroom;
 use App\Models\StudentEnrollment;
+use App\Models\GradeBook;
+use App\Models\GradeBookScore;
+use App\Models\GradeBookTotal;
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
+use App\Models\AuditLog;
+use Illuminate\Support\Facades\Auth;
 
 class StudentList extends Component
 {
@@ -134,6 +141,43 @@ class StudentList extends Component
     // PANEL FAMILIAR (ENCARGADOS)
     // ==========================================
 
+    private function refreshManagingStudent($id)
+    {
+        $user = User::with('student.guardians')->findOrFail($id);
+
+        // Ordenamos la colección en memoria: 1. Papá, 2. Mamá, 3. Encargado
+        if ($user->student && $user->student->guardians) {
+            $sortedGuardians = $user->student->guardians->sortBy(function ($guardian) {
+                $order = ['Papá' => 1, 'Mamá' => 2, 'Encargado' => 3];
+                return $order[$guardian->pivot->relationship_type] ?? 4;
+            })->values();
+
+            $user->student->setRelation('guardians', $sortedGuardians);
+        }
+
+        $this->managingStudent = $user;
+    }
+
+    public function getAvailableRelationships()
+    {
+        $all = ['Papá', 'Mamá', 'Encargado'];
+
+        if (!$this->managingStudent || !$this->managingStudent->student) {
+            return $all;
+        }
+
+        // Obtenemos los parentescos que ya están asignados a este estudiante
+        $existing = $this->managingStudent->student->guardians->pluck('pivot.relationship_type')->toArray();
+
+        // Si estamos editando a un familiar, volvemos a habilitar su propio parentesco en el select
+        if ($this->showGuardianForm && $this->guardianForm->guardian && $this->relationship_type) {
+            $existing = array_diff($existing, [$this->relationship_type]);
+        }
+
+        // Retornamos solo las opciones que NO están en uso
+        return array_values(array_diff($all, $existing));
+    }
+
     public function manageGuardians($id)
     {
         $this->guardianForm->resetForm();
@@ -141,7 +185,7 @@ class StudentList extends Component
         $this->showGuardianForm = false;
         $this->resetValidation();
 
-        $this->managingStudent = User::with('student.guardians')->findOrFail($id);
+        $this->refreshManagingStudent($id);
     }
 
     public function createGuardian()
@@ -180,7 +224,7 @@ class StudentList extends Component
         $this->validate([
             'relationship_type' => 'required|string|max:255',
         ], [
-            'relationship_type.required' => 'Debe especificar el parentesco (Padre, Madre, etc.).'
+            'relationship_type.required' => 'Debe especificar el parentesco (Papá, Mamá, Encargado).'
         ]);
 
         if ($this->guardianForm->guardian) {
@@ -191,7 +235,7 @@ class StudentList extends Component
             $this->managingStudent->student->guardians()->updateExistingPivot($guardian->id, [
                 'relationship_type' => $this->relationship_type
             ]);
-            $mensaje = 'Datos del encargado actualizados correctamente.';
+            $mensaje = 'Datos del familiar actualizados correctamente.';
         } else {
             // Crear nuevo encargado
             $guardian = $this->guardianForm->store();
@@ -200,11 +244,11 @@ class StudentList extends Component
             $this->managingStudent->student->guardians()->attach($guardian->id, [
                 'relationship_type' => $this->relationship_type
             ]);
-            $mensaje = 'Nuevo encargado registrado y asignado.';
+            $mensaje = 'Nuevo familiar registrado y asignado.';
         }
 
         // Recargamos el listado familiar y volvemos a la vista de tabla
-        $this->managingStudent = User::with('student.guardians')->find($this->managingStudent->id);
+        $this->refreshManagingStudent($this->managingStudent->id);
         $this->showGuardianForm = false;
 
         $this->dispatch('toastMessage', [
@@ -215,12 +259,23 @@ class StudentList extends Component
 
     public function detachGuardian($guardianId)
     {
+        // Validamos por seguridad en el backend que no eliminen al Encargado
+        $guardian = $this->managingStudent->student->guardians->where('id', $guardianId)->first();
+
+        if ($guardian && $guardian->pivot->relationship_type === 'Encargado') {
+            $this->dispatch('toastMessage', [
+                'type' => 'error',
+                'message' => 'El Encargado principal no puede ser retirado, solo modificado.'
+            ]);
+            return;
+        }
+
         $this->managingStudent->student->guardians()->detach($guardianId);
-        $this->managingStudent = User::with('student.guardians')->find($this->managingStudent->id);
+        $this->refreshManagingStudent($this->managingStudent->id);
 
         $this->dispatch('toastMessage', [
             'type' => 'info',
-            'message' => 'Encargado retirado del perfil del estudiante.'
+            'message' => 'Familiar retirado del perfil del estudiante.'
         ]);
     }
 
@@ -237,7 +292,6 @@ class StudentList extends Component
 
         $student = $this->userForm->user->student;
         $currentYear = date('Y');
-
         $classroom = Classroom::findOrFail($this->enrollment_classroom_id);
 
         if ($classroom->year != $currentYear) {
@@ -245,17 +299,110 @@ class StudentList extends Component
             return;
         }
 
-        StudentEnrollment::updateOrCreate(
-            [
-                'student_id'   => $student->id,
-                'classroom_id' => $this->enrollment_classroom_id,
-            ],
-            [
-                'status' => $this->enrollment_status,
-            ]
-        );
+        // Verificar si es un cambio de aula (ignora si solo está cambiando el estado Activo/Retirado)
+        if ($this->currentEnrollment && $this->currentEnrollment->classroom_id != $this->enrollment_classroom_id) {
 
-        // Recargar
+            // Buscar si el estudiante tiene registros de notas (totales) en el aula anterior
+            $hasGrades = GradeBookTotal::where('student_id', $student->id)
+                ->whereHas('gradeBook.assignment', function ($q) {
+                    $q->where('classroom_id', $this->currentEnrollment->classroom_id);
+                })->exists();
+
+            if ($hasGrades) {
+                // Lanzamos la alerta a la vista para pedir confirmación
+                $this->dispatch('confirmClassroomChange', [
+                    'title' => '¡Atención! Cambio de Aula',
+                    'text'  => 'El estudiante ya está asignado a cuadros de notas en su aula actual. Si lo cambia de aula, se eliminarán permanentemente todas sus notas registradas en el aula anterior y se reiniciarán en 0 para el nuevo aula. ¿Desea proceder?',
+                ]);
+                return; // Detenemos la ejecución hasta que el usuario confirme en el modal
+            }
+        }
+
+        // Si no hay cambio de aula o no hay cuadros de notas en riesgo, guardamos directamente
+        $this->confirmSaveEnrollment();
+    }
+
+    #[On('triggerConfirmSaveEnrollment')]
+    public function confirmSaveEnrollment()
+    {
+        $student = $this->userForm->user->student;
+        $currentYear = date('Y');
+
+        $oldClassroomId = $this->currentEnrollment ? $this->currentEnrollment->classroom_id : null;
+        $newClassroom = Classroom::with(['level', 'grade', 'section'])->find($this->enrollment_classroom_id);
+
+        $notasBorradas = false;
+        $oldClassroomName = '';
+
+        DB::transaction(function () use ($student, $oldClassroomId, &$notasBorradas, &$oldClassroomName) {
+            // 1. Limpieza e inicialización si hubo cambio de aula
+            if ($oldClassroomId && $oldClassroomId != $this->enrollment_classroom_id) {
+
+                $oldClassroomModel = Classroom::with(['level', 'grade', 'section'])->find($oldClassroomId);
+                if ($oldClassroomModel) {
+                    $oldClassroomName = $oldClassroomModel->grade->grade_name . ' ' . $oldClassroomModel->section->section_name . ' ' . $oldClassroomModel->year;
+                }
+
+                // Verificar si realmente había notas antes de borrar (para el log)
+                $notasBorradas = GradeBookScore::where('student_id', $student->id)
+                    ->whereHas('activity.gradeBook.assignment', function ($q) use ($oldClassroomId) {
+                        $q->where('classroom_id', $oldClassroomId);
+                    })->exists();
+
+                // Eliminar totales (GradeBookTotal) del aula anterior
+                GradeBookTotal::where('student_id', $student->id)
+                    ->whereHas('gradeBook.assignment', function ($q) use ($oldClassroomId) {
+                        $q->where('classroom_id', $oldClassroomId);
+                    })->delete();
+
+                // Eliminar detalles de notas (GradeBookScore) del aula anterior
+                GradeBookScore::where('student_id', $student->id)
+                    ->whereHas('activity.gradeBook.assignment', function ($q) use ($oldClassroomId) {
+                        $q->where('classroom_id', $oldClassroomId);
+                    })->delete();
+
+                // Inicializar en 0 los cuadros para el nuevo aula
+                $this->createEmptyScoresAndTotals($student->id, $this->enrollment_classroom_id);
+            }
+
+            // 2. Actualizar o crear inscripción
+            if ($this->currentEnrollment) {
+                $this->currentEnrollment->update([
+                    'classroom_id' => $this->enrollment_classroom_id,
+                    'status'       => $this->enrollment_status,
+                ]);
+            } else {
+                StudentEnrollment::create([
+                    'student_id'   => $student->id,
+                    'classroom_id' => $this->enrollment_classroom_id,
+                    'status'       => $this->enrollment_status,
+                ]);
+            }
+        });
+
+        // 3. Registro en Auditoría
+        $newClassroomName = $newClassroom->grade->grade_name . ' ' . $newClassroom->section->section_name . ' ' . $newClassroom->year;
+
+        $logDescription = $oldClassroomId && $oldClassroomId != $this->enrollment_classroom_id
+            ? "El estudiante {$this->userForm->user->name} fue trasladado del aula: {$oldClassroomName} a {$newClassroomName}. " . ($notasBorradas ? "Se eliminaron sus notas del aula anterior." : "No tenía notas registradas en el aula anterior.")
+            : "Inscripción actualizada para {$this->userForm->user->name} en {$newClassroomName}. Estado: {$this->enrollment_status}.";
+
+        AuditLog::create([
+            'user_id'        => Auth::id() ?? 1, // El ID del administrador que hizo el cambio
+            'event'          => 'enrolled',
+            'module'         => 'Inscripciones',
+            'description'    => $logDescription,
+            'auditable_type' => StudentEnrollment::class,
+            'auditable_id'   => $this->currentEnrollment ? $this->currentEnrollment->id : null,
+            'old_values'     => $oldClassroomId && $oldClassroomId != $this->enrollment_classroom_id ? ['classroom' => $oldClassroomName] : null,
+            'new_values'     => [
+                'status'    => $this->enrollment_status,
+                'classroom' => $newClassroomName
+            ],
+            'ip_address'     => request()->ip(),
+        ]);
+
+        // Recargar datos para la vista
         $user = User::with(['student.enrollments.classroom.level', 'student.enrollments.classroom.grade', 'student.enrollments.classroom.section'])->find($this->userForm->user->id);
 
         $this->currentEnrollment = $user->student->enrollments
@@ -272,8 +419,29 @@ class StudentList extends Component
 
         $this->dispatch('toastMessage', [
             'type'    => 'success',
-            'message' => 'Inscripción guardada correctamente.',
+            'message' => 'Inscripción guardada y actualizada correctamente.',
         ]);
+    }
+
+    protected function createEmptyScoresAndTotals(int $studentId, int $classroomId): void
+    {
+        $gradeBooks = GradeBook::whereHas(
+            'assignment',
+            fn($q) => $q->where('classroom_id', $classroomId)
+        )->with('activities')->get();
+
+        foreach ($gradeBooks as $gradeBook) {
+            foreach ($gradeBook->activities as $activity) {
+                GradeBookScore::firstOrCreate(
+                    ['grade_book_activity_id' => $activity->id, 'student_id' => $studentId],
+                    ['score' => 0, 'improvement_score' => 0]
+                );
+            }
+            GradeBookTotal::firstOrCreate(
+                ['grade_book_id' => $gradeBook->id, 'student_id' => $studentId],
+                ['normal_points' => 0, 'extra_points' => 0, 'total_points' => 0]
+            );
+        }
     }
 
     public function render()

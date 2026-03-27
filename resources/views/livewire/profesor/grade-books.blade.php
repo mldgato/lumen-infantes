@@ -374,7 +374,7 @@
                                         @endphp
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
-                                            <td>{{ $student->user->name }}</td>
+                                            <td>{{ $student->user->full_full_name }}</td>
                                             <td>
                                                 <input type="number" wire:model.live="scores.{{ $student->id }}"
                                                     class="score-input form-control form-control-sm @error('scores.' . $student->id) is-invalid @enderror"
@@ -482,6 +482,11 @@
                                                     pts</span></div>
                                             @if ($gradeBook->isOpen())
                                                 <div class="mt-1">
+                                                    <button wire:click="openExcelModal({{ $activity->id }})"
+                                                        class="btn btn-xs btn-info px-1 text-white"
+                                                        title="Descargar Plantilla Excel">
+                                                        <i class="fas fa-file-excel"></i>
+                                                    </button>
                                                     <button wire:click="openScores({{ $activity->id }})"
                                                         class="btn btn-xs btn-success px-1" title="Calificar">
                                                         <i class="fas fa-pen"></i>
@@ -518,7 +523,7 @@
                                         $total = $gradeBook->totals->firstWhere('student_id', $student->id);
                                     @endphp
                                     <tr>
-                                        <td>{{ $student->user->name }}</td>
+                                        <td>{{ $student->user->full_full_name }}</td>
                                         @foreach ($gradeBook->activities as $activity)
                                             @php
                                                 $score = $activity->scores->firstWhere('student_id', $student->id);
@@ -580,6 +585,96 @@
             </div>
         </div>
 
+    @endif
+
+    {{-- Modal para Excel (Descarga e Importación) --}}
+    @if ($showExcelModal)
+        <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" tabindex="-1"
+            role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-file-excel mr-2"></i>Gestionar Calificaciones por Excel
+                        </h5>
+                        <button type="button" class="close text-white" wire:click="closeExcelModal"
+                            aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <h6 class="text-center font-weight-bold text-primary mb-4">{{ $excelActivityName }}</h6>
+
+                        <div class="mb-4">
+                            <h6 class="font-weight-bold text-secondary border-bottom pb-2 mb-3">1. Descargar Plantilla
+                            </h6>
+                            <p class="text-sm text-muted mb-3">Descarga el archivo con la lista oficial. Úsalo para
+                                calificar fuera del sistema.</p>
+                            <button type="button" class="btn btn-outline-info btn-block shadow-sm"
+                                wire:click="downloadExcelTemplate" wire:loading.attr="disabled"
+                                wire:target="downloadExcelTemplate">
+                                <span wire:loading.remove wire:target="downloadExcelTemplate">
+                                    <i class="fas fa-download mr-1"></i> Descargar Archivo Excel
+                                </span>
+                                <span wire:loading wire:target="downloadExcelTemplate">
+                                    <i class="fas fa-spinner fa-spin mr-1"></i> Generando archivo...
+                                </span>
+                            </button>
+                        </div>
+
+                        <div>
+                            <h6 class="font-weight-bold text-secondary border-bottom pb-2 mb-3">2. Subir Calificaciones
+                            </h6>
+
+                            <div class="alert alert-warning text-sm py-2 px-3 mb-3 shadow-sm">
+                                <ul class="mb-0 pl-3" style="line-height: 1.6;">
+                                    <li>Las notas que subas <strong>sobrescribirán</strong> cualquier calificación que
+                                        el estudiante ya tenga.</li>
+                                    <li>Si dejas la celda de la nota <strong>en blanco</strong>, se asignará
+                                        <strong>cero (0)</strong>.</li>
+                                    <li>No alteres el ID del sistema en la columna A.</li>
+                                </ul>
+                            </div>
+
+                            <div class="form-group mb-0">
+                                <div class="custom-file">
+                                    <input type="file" wire:model.live="excelFile"
+                                        class="custom-file-input @error('excelFile') is-invalid @enderror"
+                                        id="customFile" accept=".xlsx, .xls">
+                                    <label class="custom-file-label text-truncate" for="customFile"
+                                        data-browse="Buscar">
+                                        {{ $excelFile ? $excelFile->getClientOriginalName() : 'Seleccionar archivo Excel...' }}
+                                    </label>
+                                </div>
+                                <div wire:loading wire:target="excelFile" class="text-sm text-info mt-2">
+                                    <i class="fas fa-spinner fa-spin mr-1"></i> Leyendo archivo temporal...
+                                </div>
+                                @error('excelFile')
+                                    <span class="text-danger text-sm d-block mt-2 font-weight-bold">
+                                        <i class="fas fa-times-circle mr-1"></i> {{ $message }}
+                                    </span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light justify-content-between">
+                        <button type="button" class="btn btn-secondary" wire:click="closeExcelModal">
+                            Cerrar
+                        </button>
+                        <button type="button" class="btn btn-success shadow-sm" wire:click="importExcel"
+                            wire:loading.attr="disabled" wire:target="importExcel, excelFile"
+                            {{ !$excelFile ? 'disabled' : '' }}>
+                            <span wire:loading.remove wire:target="importExcel">
+                                <i class="fas fa-upload mr-1"></i> Subir y Procesar Notas
+                            </span>
+                            <span wire:loading wire:target="importExcel">
+                                <i class="fas fa-spinner fa-spin mr-1"></i> Guardando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 
     @push('js')

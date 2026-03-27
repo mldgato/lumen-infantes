@@ -78,7 +78,7 @@
     {{-- RESUMEN --}}
     @if ($classroom)
         <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <div class="info-box shadow-sm mb-0">
                     <span class="info-box-icon bg-success"><i class="fas fa-user-check"></i></span>
                     <div class="info-box-content">
@@ -87,16 +87,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="info-box shadow-sm mb-0">
-                    <span class="info-box-icon bg-warning"><i class="fas fa-user-clock"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text">Inactivos</span>
-                        <span class="info-box-number">{{ $totalInactive }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <div class="info-box shadow-sm mb-0">
                     <span class="info-box-icon bg-danger"><i class="fas fa-user-minus"></i></span>
                     <div class="info-box-content">
@@ -113,7 +104,7 @@
                     <i class="fas fa-users mr-1 text-primary"></i>
                     {{ $classroom->grade->grade_name }} {{ $classroom->section->section_name }} —
                     {{ $classroom->year }}
-                    <span class="badge badge-secondary ml-1">{{ $totalActive + $totalInactive + $totalRetired }}</span>
+                    <span class="badge badge-secondary ml-1">{{ $totalActive + $totalRetired }}</span>
                 </h6>
             </div>
             <div class="card-body p-0">
@@ -150,8 +141,6 @@
                                     <td class="text-center">
                                         @if ($enrollment->status === 'Activo')
                                             <span class="badge badge-success">Activo</span>
-                                        @elseif ($enrollment->status === 'Inactivo')
-                                            <span class="badge badge-warning">Inactivo</span>
                                         @else
                                             <span class="badge badge-danger">Retirado</span>
                                         @endif
@@ -161,11 +150,6 @@
                                             <button wire:click="changeStatus({{ $enrollment->id }}, 'Activo')"
                                                 class="btn btn-xs btn-success shadow-sm mr-1" title="Activar"><i
                                                     class="fas fa-check"></i></button>
-                                        @endif
-                                        @if ($enrollment->status !== 'Inactivo')
-                                            <button wire:click="changeStatus({{ $enrollment->id }}, 'Inactivo')"
-                                                class="btn btn-xs btn-warning shadow-sm mr-1" title="Inactivar"><i
-                                                    class="fas fa-pause"></i></button>
                                         @endif
                                         @if ($enrollment->status !== 'Retirado')
                                             <button wire:click="changeStatus({{ $enrollment->id }}, 'Retirado')"
@@ -271,7 +255,7 @@
                             <li class="nav-item">
                                 <a class="nav-link {{ $activeTab === 'guardians' ? 'active font-weight-bold text-primary' : '' }}"
                                     wire:click.prevent="$set('activeTab','guardians')" href="#">
-                                    <i class="fas fa-users mr-1"></i> Guardianes
+                                    <i class="fas fa-users mr-1"></i> Padres/Encargado
                                 </a>
                             </li>
                         </ul>
@@ -459,7 +443,7 @@
                                             <input type="checkbox" wire:model.live="is_own_guardian"
                                                 class="custom-control-input" id="is_own_guardian_modal">
                                             <label class="custom-control-label text-sm" for="is_own_guardian_modal">
-                                                El estudiante es su propio tutor
+                                                El estudiante es su propio encargado
                                             </label>
                                         </div>
                                     </div>
@@ -561,9 +545,56 @@
                                         </div>
                                         @if ($guardians[$key]['enabled'])
                                             <div class="card-body">
+
+                                                {{-- INICIO DEL BLOQUE NUEVO DE RADIO BUTTONS --}}
+                                                @if ($key === 'encargado')
+                                                    <div class="row mb-3 pb-3 border-bottom">
+                                                        <div class="col-12">
+                                                            <label class="text-sm d-block mb-2 text-primary">
+                                                                <i class="fas fa-magic mr-1"></i> ¿Desea autocompletar
+                                                                la información del encargado?
+                                                            </label>
+                                                            <div
+                                                                class="custom-control custom-radio custom-control-inline">
+                                                                <input type="radio" id="encargado_estudiante"
+                                                                    wire:model.live="encargado_role"
+                                                                    value="estudiante" class="custom-control-input">
+                                                                <label class="custom-control-label text-sm"
+                                                                    for="encargado_estudiante">El mismo
+                                                                    estudiante</label>
+                                                            </div>
+                                                            <div
+                                                                class="custom-control custom-radio custom-control-inline">
+                                                                <input type="radio" id="encargado_padre"
+                                                                    wire:model.live="encargado_role" value="padre"
+                                                                    class="custom-control-input">
+                                                                <label class="custom-control-label text-sm"
+                                                                    for="encargado_padre">Papá</label>
+                                                            </div>
+                                                            <div
+                                                                class="custom-control custom-radio custom-control-inline">
+                                                                <input type="radio" id="encargado_madre"
+                                                                    wire:model.live="encargado_role" value="madre"
+                                                                    class="custom-control-input">
+                                                                <label class="custom-control-label text-sm"
+                                                                    for="encargado_madre">Mamá</label>
+                                                            </div>
+                                                            <div
+                                                                class="custom-control custom-radio custom-control-inline">
+                                                                <input type="radio" id="encargado_otro"
+                                                                    wire:model.live="encargado_role" value="otro"
+                                                                    class="custom-control-input">
+                                                                <label class="custom-control-label text-sm"
+                                                                    for="encargado_otro">Otra persona (Manual)</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                                {{-- FIN DEL BLOQUE NUEVO --}}
+
                                                 <div class="row">
                                                     <div class="col-md-4 form-group mb-2">
-                                                        <label class="text-sm mb-1">Primer Nombre <span
+                                                        <label class="text-sm mb-1">Nombres <span
                                                                 class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
@@ -571,9 +602,13 @@
                                                                         class="fas fa-user"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.first_name"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.first_name') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.first_name')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
                                                         <label class="text-sm mb-1">Apellido <span
                                                                 class="text-danger">*</span></label>
@@ -583,31 +618,45 @@
                                                                         class="fas fa-user"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.last_name"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.last_name') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.last_name')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
-                                                        <label class="text-sm mb-1">CUI</label>
+                                                        <label class="text-sm mb-1">CUI <span
+                                                                class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
                                                                         class="fas fa-id-card"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.cui"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.cui') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.cui')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
-                                                        <label class="text-sm mb-1">Fecha de Nacimiento</label>
+                                                        <label class="text-sm mb-1">Fecha de Nacimiento <span
+                                                                class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
                                                                         class="fas fa-calendar"></i></span></div>
                                                             <input type="date"
                                                                 wire:model="guardians.{{ $key }}.data.birthdate"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.birthdate') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.birthdate')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
                                                         <label class="text-sm mb-1">Lugar de Nacimiento</label>
                                                         <div class="input-group input-group-sm">
@@ -619,50 +668,71 @@
                                                                 class="form-control">
                                                         </div>
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
-                                                        <label class="text-sm mb-1">Extendido en</label>
+                                                        <label class="text-sm mb-1">Extendido en <span
+                                                                class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
                                                                         class="fas fa-map-marker-alt"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.cui_extended_in"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.cui_extended_in') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.cui_extended_in')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
-                                                        <label class="text-sm mb-1">Nacionalidad</label>
+                                                        <label class="text-sm mb-1">Nacionalidad <span
+                                                                class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
                                                                         class="fas fa-flag"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.nationality"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.nationality') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.nationality')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
-                                                        <label class="text-sm mb-1">Profesión</label>
+                                                        <label class="text-sm mb-1">Profesión <span
+                                                                class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
                                                                         class="fas fa-briefcase"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.profession"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.profession') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.profession')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
-                                                        <label class="text-sm mb-1">Teléfono</label>
+                                                        <label class="text-sm mb-1">Teléfono <span
+                                                                class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
                                                                         class="fas fa-phone"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.phone"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.phone') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.phone')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
                                                         <label class="text-sm mb-1">Correo</label>
                                                         <div class="input-group input-group-sm">
@@ -674,22 +744,29 @@
                                                                 class="form-control">
                                                         </div>
                                                     </div>
+
                                                     <div class="col-md-8 form-group mb-2">
-                                                        <label class="text-sm mb-1">Dirección de Residencia</label>
+                                                        <label class="text-sm mb-1">Dirección de Residencia <span
+                                                                class="text-danger">*</span></label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
                                                                         class="fas fa-home"></i></span></div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.residence_address"
-                                                                class="form-control">
+                                                                class="form-control @error('guardians.' . $key . '.data.residence_address') is-invalid @enderror">
                                                         </div>
+                                                        @error('guardians.' . $key . '.data.residence_address')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
                                                     </div>
+
                                                     <div class="col-12">
                                                         <hr class="my-2"><small
                                                             class="text-muted text-uppercase font-weight-bold">Datos
                                                             Laborales</small>
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
                                                         <label class="text-sm mb-1">Empresa</label>
                                                         <div class="input-group input-group-sm">
@@ -701,17 +778,20 @@
                                                                 class="form-control">
                                                         </div>
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
                                                         <label class="text-sm mb-1">Tel. Empresa</label>
                                                         <div class="input-group input-group-sm">
                                                             <div class="input-group-prepend"><span
                                                                     class="input-group-text"><i
-                                                                        class="fas fa-phone-office"></i></span></div>
+                                                                        class="fas fa-phone-square-alt"></i></span>
+                                                            </div>
                                                             <input type="text"
                                                                 wire:model="guardians.{{ $key }}.data.company_phone"
                                                                 class="form-control">
                                                         </div>
                                                     </div>
+
                                                     <div class="col-md-4 form-group mb-2">
                                                         <label class="text-sm mb-1">Dirección Empresa</label>
                                                         <div class="input-group input-group-sm">

@@ -35,16 +35,17 @@ class GradeBookPdfController extends Controller
             'totals',
         ]);
 
+        // Consulta de estudiantes con el ordenamiento solicitado
         $students = Student::whereHas('enrollments', function ($q) use ($gradeBook) {
             $q->where('classroom_id', $gradeBook->assignment->classroom_id)
-                ->where('status', 'Activo');
+                ->where('status', 'Activo'); // <-- Filtro de status
         })
             ->join('users', 'students.user_id', '=', 'users.id')
+            ->select('students.*')
             ->orderBy('users.surname')
             ->orderBy('users.second_surname')
             ->orderBy('users.first_name')
             ->orderBy('users.middle_name')
-            ->select('students.*')
             ->with('user')
             ->get();
 
@@ -94,10 +95,7 @@ class GradeBookPdfController extends Controller
         $pdf->AliasNbPages();
         $pdf->AddPage();
 
-        // ==========================================
-        // ENCABEZADO
-        // ==========================================
-        // LOGO
+        // LOGO E INSTITUCIÓN
         $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
         $pdf->addImage($logoPath, 10, 6, 16);
 
@@ -119,15 +117,12 @@ class GradeBookPdfController extends Controller
         $pdf->CellUTF8(104, 4, $pdf->dec('PROFESOR(A): ' . $profesor), 0, 1, 'R');
         $pdf->Ln(2);
 
-        // ==========================================
-        // ENCABEZADO DE LA TABLA (texto rotado)
-        // ==========================================
+        // ENCABEZADO DE LA TABLA
         $headerY    = $pdf->GetY();
-        $headerH    = 12; // alto del bloque de encabezados rotados
+        $headerH    = 12;
         $startX     = $pdf->GetX();
         $currentX   = $startX;
 
-        // Encabezados fijos
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->SetFillColor(217, 217, 217);
         $pdf->SetXY($currentX, $headerY + $headerH - 4);
@@ -135,158 +130,107 @@ class GradeBookPdfController extends Controller
         $currentX += $numWidth;
 
         $pdf->SetXY($currentX, $headerY + $headerH - 4);
-        $pdf->CellUTF8($nameWidth, 4, $pdf->dec('Estudiante'), 1, 0, 'C', true);
+        $pdf->CellUTF8($nameWidth, 4, $pdf->dec('Estudiante (Apellidos, Nombres)'), 1, 0, 'C', true);
         $currentX += $nameWidth;
 
-        // Encabezados de actividades (rotados)
-        $pdf->SetFont('Arial', 'B', 7);
         foreach ($activities as $activity) {
             $isExtra = $activity->activityType->is_extra;
-
-            // Nota
             $pdf->SetFillColor($isExtra ? 255 : 217, $isExtra ? 243 : 217, $isExtra ? 205 : 217);
             $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, (string) $activity->ordering);
             $currentX += $colWidth;
-
-            // Mejora
             $pdf->SetFillColor(198, 239, 206);
             $pdf->rotatedHeader($currentX, $headerY, $colWidth, $headerH, 'Mejora');
             $currentX += $colWidth;
         }
 
-        // Totales
         $pdf->SetFillColor(180, 180, 180);
-        $pdf->SetFont('Arial', 'B', 7);
         $pdf->rotatedHeader($currentX, $headerY, 10, $headerH, 'Normal');
         $currentX += 10;
-
         if ($hasExtra) {
             $pdf->SetFillColor(255, 235, 156);
             $pdf->rotatedHeader($currentX, $headerY, 10, $headerH, 'Extra');
             $currentX += 10;
         }
-
         $pdf->SetFillColor(180, 180, 180);
         $pdf->rotatedHeader($currentX, $headerY, 10, $headerH, 'Total');
 
         $pdf->SetY($headerY + $headerH);
 
-        // ==========================================
-        // FILAS DE ESTUDIANTES
-        // ==========================================
+        // CUERPO DE LA TABLA
         $pdf->SetFont('Arial', '', 8);
         $rowH = 4;
         $num  = 1;
 
         foreach ($students as $student) {
-            $total      = $gradeBook->totals->firstWhere('student_id', $student->id);
-            $currentX   = $startX;
-
-            $pdf->SetFillColor(255, 255, 255);
-            if ($num % 2 === 0) {
-                $pdf->SetFillColor(245, 245, 245);
-            }
+            $currentX = $startX;
+            $pdf->SetFillColor($num % 2 === 0 ? 245 : 255);
 
             $pdf->SetXY($currentX, $pdf->GetY());
             $pdf->CellUTF8($numWidth, $rowH, $num, 1, 0, 'C', true);
             $currentX += $numWidth;
 
-            $nombreCompleto = $student->user->surname . ' ' . $student->user->second_surname . ', ' . $student->user->first_name . ' ' . $student->user->middle_name;
+            // USANDO EL ACCESSOR DEFINIDO EN EL MODELO USER
             $pdf->SetXY($currentX, $pdf->GetY());
-            $pdf->CellUTF8($nameWidth, $rowH, $pdf->dec(trim($nombreCompleto)), 1, 0, 'L', true);
+            $pdf->CellUTF8($nameWidth, $rowH, $pdf->dec($student->user->full_full_name), 1, 0, 'L', true);
             $currentX += $nameWidth;
 
             $normalCalc = 0;
-            $extraCalc  = 0;
+            $extraCalc = 0;
 
             foreach ($activities as $activity) {
-                $score       = $activity->scores->firstWhere('student_id', $student->id);
-                $rawScore    = $score ? (float) $score->score : 0;
+                $score = $activity->scores->firstWhere('student_id', $student->id);
+                $rawScore = $score ? (float) $score->score : 0;
                 $improvement = $score ? $score->improvement_score : null;
-                $isExtra     = $activity->activityType->is_extra;
-
                 $eff = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
-                if ($isExtra) {
-                    $extraCalc += $eff;
-                } else {
-                    $normalCalc += $eff;
-                }
 
-                $fillNote = $isExtra ? [255, 243, 205] : [255, 255, 255];
-                if ($num % 2 === 0) $fillNote = $isExtra ? [255, 235, 156] : [245, 245, 245];
+                $activity->activityType->is_extra ? $extraCalc += $eff : $normalCalc += $eff;
 
-                $pdf->SetFillColor(...$fillNote);
-                $pdf->SetXY($currentX, $pdf->GetY());
+                // Celdas de Notas
+                $pdf->SetFillColor(...($activity->activityType->is_extra ? ($num % 2 === 0 ? [255, 235, 156] : [255, 243, 205]) : ($num % 2 === 0 ? [245, 245, 245] : [255, 255, 255])));
                 $pdf->CellUTF8($colWidth, $rowH, $rawScore > 0 ? number_format($rawScore, 1) : '', 1, 0, 'C', true);
                 $currentX += $colWidth;
 
-                $fillMejora = $num % 2 === 0 ? [198, 239, 206] : [255, 255, 255];
-                $pdf->SetFillColor(...$fillMejora);
-                $pdf->SetXY($currentX, $pdf->GetY());
+                // Celdas de Mejora
+                $pdf->SetFillColor(...($num % 2 === 0 ? [198, 239, 206] : [255, 255, 255]));
                 $pdf->CellUTF8($colWidth, $rowH, (!is_null($improvement) && $improvement > 0) ? number_format($improvement, 1) : '', 1, 0, 'C', true);
                 $currentX += $colWidth;
             }
 
-            $normalPts = (int) ceil($normalCalc);
-            $extraPts  = (int) ceil($extraCalc);
-            $totalPts  = (int) ceil($normalCalc + $extraCalc);
-
-            $fillTotal = $num % 2 === 0 ? [200, 200, 200] : [230, 230, 230];
-            $pdf->SetFillColor(...$fillTotal);
-
-            $pdf->SetXY($currentX, $pdf->GetY());
+            // Totales finales
             $pdf->SetFont('Arial', 'B', 8);
-            $pdf->CellUTF8(10, $rowH, number_format($normalPts, 0), 1, 0, 'C', true);
-            $currentX += 10;
-
+            $pdf->SetFillColor($num % 2 === 0 ? 200 : 230);
+            $pdf->CellUTF8(10, $rowH, number_format(ceil($normalCalc), 0), 1, 0, 'C', true);
             if ($hasExtra) {
                 $pdf->SetFillColor(255, 235, 156);
-                $pdf->SetXY($currentX, $pdf->GetY());
-                $pdf->CellUTF8(10, $rowH, number_format($extraPts, 0), 1, 0, 'C', true);
-                $currentX += 10;
+                $pdf->CellUTF8(10, $rowH, number_format(ceil($extraCalc), 0), 1, 0, 'C', true);
             }
-
-            $pdf->SetFillColor(...$fillTotal);
-            $pdf->SetXY($currentX, $pdf->GetY());
-            $pdf->CellUTF8(10, $rowH, number_format($totalPts, 0), 1, 0, 'C', true);
+            $pdf->SetFillColor($num % 2 === 0 ? 200 : 230);
+            $pdf->CellUTF8(10, $rowH, number_format(ceil($normalCalc + $extraCalc), 0), 1, 0, 'C', true);
 
             $pdf->SetFont('Arial', '', 8);
             $pdf->Ln($rowH);
             $num++;
         }
 
-        // LEYENDA DE ACTIVIDADES
+        // LEYENDA (Sin cambios significativos, solo limpieza)
         $pdf->SetAutoPageBreak(false);
         $pdf->Ln(1);
         $pdf->SetFont('Arial', 'B', 7);
-        $pdf->SetX($startX);
         $pdf->CellUTF8($usableWidth, 4, $pdf->dec('Leyenda de actividades:'), 0, 1, 'L');
         $pdf->SetFont('Arial', '', 7);
-
-        $actArray   = $activities->values();
-        $totalActs  = $actArray->count();
+        $actArray = $activities->values();
         $legendCols = 4;
         $legendColW = (int) ($usableWidth / $legendCols);
-        $legendIdx  = 0;
-
-        while ($legendIdx < $totalActs) {
-            $pdf->SetX($startX);
-            for ($lc = 0; $lc < $legendCols; $lc++) {
-                if ($legendIdx < $totalActs) {
-                    $act     = $actArray[$legendIdx];
-                    $isExtra = $act->activityType->is_extra;
-                    $maxPts  = number_format((float) $act->max_points, 0);
-                    $marker  = $isExtra ? ' [Extra]' : '';
-                    $text    = "{$act->ordering}. {$act->name} ({$maxPts} pts){$marker}";
-                    $pdf->CellUTF8($legendColW, 4, $pdf->dec($text), 0, 0, 'L');
-                    $legendIdx++;
-                } else {
-                    $pdf->CellUTF8($legendColW, 4, '', 0, 0, 'L');
+        for ($i = 0; $i < $actArray->count(); $i += $legendCols) {
+            for ($j = 0; $j < $legendCols; $j++) {
+                if (isset($actArray[$i + $j])) {
+                    $act = $actArray[$i + $j];
+                    $txt = "{$act->ordering}. {$act->name} (" . number_format($act->max_points, 0) . " pts)" . ($act->activityType->is_extra ? ' [Extra]' : '');
+                    $pdf->CellUTF8($legendColW, 4, $pdf->dec($txt), 0, 0, 'L');
                 }
             }
             $pdf->Ln(4);
         }
-        $pdf->SetAutoPageBreak(true, 14);
 
         $name = 'Cuadro_' . date('dmY_His') . '.pdf';
         return response($pdf->Output('S'), 200)

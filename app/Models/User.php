@@ -167,4 +167,34 @@ class User extends Authenticatable
     {
         $this->notify(new ResetPasswordNotification($token));
     }
+
+    /**
+     * Obtiene el nombre completo en formato: Apellidos, Nombres
+     * Corrige el espacio antes de la coma cuando falta el segundo apellido.
+     */
+    public function getFullFullNameAttribute(): string
+    {
+        // Limpiamos y filtramos apellidos
+        $apellidos = array_filter(array_map('trim', [
+            $this->surname,
+            $this->second_surname
+        ]));
+
+        // Limpiamos y filtramos nombres
+        $nombres = array_filter(array_map('trim', [
+            $this->first_name,
+            $this->middle_name
+        ]));
+
+        $apellidosStr = implode(' ', $apellidos);
+        $nombresStr = implode(' ', $nombres);
+
+        // Solo añadimos la coma si tenemos ambas partes
+        if (!empty($apellidosStr) && !empty($nombresStr)) {
+            return $apellidosStr . ', ' . $nombresStr;
+        }
+
+        // Caso de emergencia si faltara alguna parte (aunque no debería pasar)
+        return $apellidosStr ?: $nombresStr;
+    }
 }

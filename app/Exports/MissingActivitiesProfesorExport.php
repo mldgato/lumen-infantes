@@ -81,15 +81,19 @@ class MissingActivitiesProfesorExport implements FromArray, WithHeadings, WithSt
             $q->where('classroom_id', $this->classroomId)->where('status', 'Activo')
         )
             ->join('users', 'students.user_id', '=', 'users.id')
-            ->orderBy('users.surname')->orderBy('users.first_name')
-            ->select('students.*')->with('user')
+            ->orderBy('users.surname')
+            ->orderBy('users.second_surname')
+            ->orderBy('users.first_name')
+            ->orderBy('users.middle_name')
+            ->select('students.*')
+            ->with('user')
             ->get();
 
         foreach ($students->values() as $idx => $student) {
             $studentScores = $scoresByStudent->get($student->id, collect());
-            $row           = [
+            $row = [
                 $idx + 1,
-                trim($student->user->surname . ' ' . $student->user->second_surname . ', ' . $student->user->first_name . ' ' . $student->user->middle_name),
+                $student->user->full_full_name,
             ];
             $missing = 0;
 

@@ -643,11 +643,19 @@
                                         title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button
-                                        onclick="confirmDelete({{ $pensum->id }}, '¿Eliminar el pénsum de {{ addslashes($pensum->grade->grade_name) }} {{ $pensum->year }}?')"
-                                        class="btn btn-sm btn-danger shadow-sm" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @if ($pensum->has_gradebooks)
+                                        <button class="btn btn-sm btn-secondary shadow-sm"
+                                            style="cursor: not-allowed; opacity: 0.6;"
+                                            title="No se puede eliminar porque ya tiene GradeBooks creados">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    @else
+                                        <button
+                                            onclick="confirmDelete({{ $pensum->id }}, '¿Eliminar el pénsum de {{ addslashes($pensum->grade->grade_name) }} {{ $pensum->year }}?')"
+                                            class="btn btn-sm btn-danger shadow-sm" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    @endif
                                     <button wire:click="openCopyModal({{ $pensum->id }})" data-toggle="modal"
                                         data-target="#CopyPensumModal" class="btn btn-sm btn-info shadow-sm"
                                         title="Copiar Pénsum">

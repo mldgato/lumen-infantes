@@ -9,6 +9,8 @@ use App\Models\Professor;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use App\Models\AuditLog;
+use Illuminate\Support\Facades\Auth;
 
 class ClassroomCourseAssignments extends Component
 {
@@ -34,6 +36,12 @@ class ClassroomCourseAssignments extends Component
     // Classrooms del mismo grado para asignación en bloque
     public array $selectedClassrooms = [];
     public array $sameGradeClassrooms = [];
+
+    // Guarda el estado de bloqueo de las asignaciones: lockedAssignments[pensum_course_id][unit] = true
+    public array $lockedAssignments = [];
+
+    // Almacena el valor original para la auditoría: originalAssignments[pensum_course_id][unit] = professor_id
+    public array $originalAssignments = [];
 
     protected $queryString = [
         'cant'       => ['except' => '10'],
@@ -87,16 +95,25 @@ class ClassroomCourseAssignments extends Component
             ->where('year', $this->managingClassroom->year)
             ->first();
 
-        // Cargar asignaciones existentes
-        $this->assignments = [];
+        // Cargar asignaciones existentes y verificar bloqueos
+        $this->assignments         = [];
+        $this->lockedAssignments   = [];
+        $this->originalAssignments = [];
 
         if ($this->pensum) {
-            $existing = ClassroomCourseAssignment::where('classroom_id', $classroomId)
+            // Optimización: Traemos la relación gradeBook solo con el ID para saber si existe
+            $existing = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
+                ->where('classroom_id', $classroomId)
                 ->get();
 
             foreach ($existing as $assignment) {
-                $this->assignments[$assignment->pensum_course_id][$assignment->unit]
-                    = $assignment->professor_id;
+                $this->assignments[$assignment->pensum_course_id][$assignment->unit] = $assignment->professor_id;
+                $this->originalAssignments[$assignment->pensum_course_id][$assignment->unit] = $assignment->professor_id;
+
+                // Si tiene un GradeBook, lo marcamos como bloqueado
+                if ($assignment->gradeBook) {
+                    $this->lockedAssignments[$assignment->pensum_course_id][$assignment->unit] = true;
+                }
             }
         }
 
@@ -117,6 +134,8 @@ class ClassroomCourseAssignments extends Component
         $this->managingClassroom    = null;
         $this->pensum               = null;
         $this->assignments          = [];
+        $this->lockedAssignments    = [];
+        $this->originalAssignments  = [];
         $this->selectedClassrooms   = [];
         $this->sameGradeClassrooms  = [];
     }
@@ -141,27 +160,54 @@ class ClassroomCourseAssignments extends Component
         );
 
         foreach ($classroomIds as $classroomId) {
+            // Consultar las asignaciones actuales de cada classroom para no sobrescribir las bloqueadas
+            $existingAssignments = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
+                ->where('classroom_id', $classroomId)
+                ->get()
+                ->keyBy(function ($item) {
+                    return $item->pensum_course_id . '_' . $item->unit;
+                });
+
             foreach ($this->assignments as $pensumCourseId => $units) {
                 foreach ($units as $unit => $professorId) {
-                    if (!$professorId) {
-                        // Si no hay profesor seleccionado, eliminar la asignación si existía
-                        ClassroomCourseAssignment::where('classroom_id', $classroomId)
-                            ->where('pensum_course_id', $pensumCourseId)
-                            ->where('unit', $unit)
-                            ->delete();
+                    $key = $pensumCourseId . '_' . $unit;
+                    $existing = $existingAssignments->get($key);
+
+                    // Si la asignación existe y ya tiene GradeBook, la ignoramos (está protegida)
+                    if ($existing && $existing->gradeBook) {
                         continue;
                     }
 
-                    ClassroomCourseAssignment::updateOrCreate(
-                        [
-                            'classroom_id'    => $classroomId,
+                    if (!$professorId) {
+                        // Si no hay profesor seleccionado, eliminar la asignación si existía
+                        if ($existing) {
+                            $oldProfId = $existing->professor_id;
+                            $existing->delete();
+
+                            $this->logAudit('deleted', $existing, ['professor_id' => $oldProfId], null, 'Asignación eliminada');
+                        }
+                        continue;
+                    }
+
+                    if ($existing) {
+                        // Si la asignación ya existía pero es un profesor diferente, actualizamos
+                        if ($existing->professor_id != $professorId) {
+                            $oldProfId = $existing->professor_id;
+                            $existing->update(['professor_id' => $professorId]);
+
+                            $this->logAudit('updated', $existing, ['professor_id' => $oldProfId], ['professor_id' => $professorId], 'Asignación de profesor modificada');
+                        }
+                    } else {
+                        // Si no existía, creamos una nueva
+                        $newAssignment = ClassroomCourseAssignment::create([
+                            'classroom_id'     => $classroomId,
                             'pensum_course_id' => $pensumCourseId,
-                            'unit'            => $unit,
-                        ],
-                        [
-                            'professor_id' => $professorId,
-                        ]
-                    );
+                            'unit'             => $unit,
+                            'professor_id'     => $professorId,
+                        ]);
+
+                        $this->logAudit('created', $newAssignment, null, ['professor_id' => $professorId], 'Nueva asignación de profesor');
+                    }
                 }
             }
         }
@@ -187,17 +233,52 @@ class ClassroomCourseAssignments extends Component
     {
         $this->authorize('admin.classroom-course-assignments.delete');
 
-        ClassroomCourseAssignment::where('classroom_id', $this->managingClassroomId)
+        $assignment = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
+            ->where('classroom_id', $this->managingClassroomId)
             ->where('pensum_course_id', $pensumCourseId)
             ->where('unit', $unit)
-            ->delete();
+            ->first();
 
-        // Limpiar del array local
+        if ($assignment) {
+            // Protección adicional de eliminación directa
+            if ($assignment->gradeBook) {
+                $this->dispatch('showAlert', [
+                    'title'   => '¡Acción denegada!',
+                    'message' => 'No se puede eliminar esta asignación porque ya tiene un cuadro de calificaciones.',
+                    'type'    => 'error',
+                ]);
+                return;
+            }
+
+            $oldProfId = $assignment->professor_id;
+            $assignment->delete();
+
+            $this->logAudit('deleted', $assignment, ['professor_id' => $oldProfId], null, 'Asignación eliminada');
+        }
+
+        // Limpiar de los arrays locales
         unset($this->assignments[$pensumCourseId][$unit]);
+        unset($this->originalAssignments[$pensumCourseId][$unit]);
+        unset($this->lockedAssignments[$pensumCourseId][$unit]);
 
         $this->dispatch('toastMessage', [
             'type'    => 'info',
             'message' => 'Asignación eliminada.',
+        ]);
+    }
+
+    private function logAudit(string $event, ClassroomCourseAssignment $assignment, ?array $oldValues, ?array $newValues, string $description): void
+    {
+        AuditLog::create([
+            'user_id'        => Auth::id(),
+            'event'          => $event,
+            'auditable_type' => ClassroomCourseAssignment::class,
+            'auditable_id'   => $assignment->id,
+            'module'         => 'Asignaciones',
+            'description'    => "{$description} (Aula: {$assignment->classroom_id}, Curso: {$assignment->pensum_course_id}, Unidad: {$assignment->unit})",
+            'old_values'     => $oldValues,
+            'new_values'     => $newValues,
+            'ip_address'     => request()->ip(),
         ]);
     }
 

@@ -88,16 +88,29 @@
                                                 @for ($u = 1; $u <= $pensum->units; $u++)
                                                     <td class="p-1">
                                                         @if (!$pc->is_main && ($pc->units === null || in_array($u, $pc->units)))
-                                                            <select
-                                                                wire:model="assignments.{{ $pc->id }}.{{ $u }}"
-                                                                class="form-control form-control-sm">
-                                                                <option value="">-- Sin asignar --</option>
-                                                                @foreach ($professors as $professor)
-                                                                    <option value="{{ $professor->id }}">
-                                                                        {{ $professor->user->name }}
-                                                                    </option>
-                                                                @endforeach
-                                                            </select>
+                                                            @if (isset($lockedAssignments[$pc->id][$u]))
+                                                                <select disabled
+                                                                    class="form-control form-control-sm bg-light"
+                                                                    title="No modificable: Cuadro de notas ya creado">
+                                                                    @foreach ($professors as $professor)
+                                                                        <option value="{{ $professor->id }}"
+                                                                            {{ ($assignments[$pc->id][$u] ?? '') == $professor->id ? 'selected' : '' }}>
+                                                                            {{ $professor->user->name }}
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            @else
+                                                                <select
+                                                                    wire:model="assignments.{{ $pc->id }}.{{ $u }}"
+                                                                    class="form-control form-control-sm">
+                                                                    <option value="">-- Sin asignar --</option>
+                                                                    @foreach ($professors as $professor)
+                                                                        <option value="{{ $professor->id }}">
+                                                                            {{ $professor->user->name }}
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            @endif
                                                         @elseif ($pc->is_main)
                                                             <span class="text-muted text-sm d-block text-center">Ver sub
                                                                 cursos</span>
@@ -122,16 +135,30 @@
                                                     @for ($u = 1; $u <= $pensum->units; $u++)
                                                         <td class="p-1">
                                                             @if (in_array($u, $sub->units ?? []))
-                                                                <select
-                                                                    wire:model="assignments.{{ $sub->id }}.{{ $u }}"
-                                                                    class="form-control form-control-sm">
-                                                                    <option value="">-- Sin asignar --</option>
-                                                                    @foreach ($professors as $professor)
-                                                                        <option value="{{ $professor->id }}">
-                                                                            {{ $professor->user->name }}
+                                                                @if (isset($lockedAssignments[$sub->id][$u]))
+                                                                    <select disabled
+                                                                        class="form-control form-control-sm bg-light"
+                                                                        title="No modificable: Cuadro de notas ya creado">
+                                                                        @foreach ($professors as $professor)
+                                                                            <option value="{{ $professor->id }}"
+                                                                                {{ ($assignments[$sub->id][$u] ?? '') == $professor->id ? 'selected' : '' }}>
+                                                                                {{ $professor->user->name }}
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                @else
+                                                                    <select
+                                                                        wire:model="assignments.{{ $sub->id }}.{{ $u }}"
+                                                                        class="form-control form-control-sm">
+                                                                        <option value="">-- Sin asignar --
                                                                         </option>
-                                                                    @endforeach
-                                                                </select>
+                                                                        @foreach ($professors as $professor)
+                                                                            <option value="{{ $professor->id }}">
+                                                                                {{ $professor->user->name }}
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                @endif
                                                             @else
                                                                 <span
                                                                     class="text-muted text-sm d-block text-center">—</span>
