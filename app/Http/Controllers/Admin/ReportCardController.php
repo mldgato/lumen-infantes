@@ -87,12 +87,13 @@ class ReportCardController extends Controller
 
         if (! $pensum) abort(404, 'No existe un pénsum para este grado y año.');
 
+        // VALIDACIÓN DE STATUS ACTIVO
         $enrolled = $student->enrollments()
             ->where('classroom_id', $classroom->id)
             ->where('status', 'Activo')
             ->exists();
 
-        if (! $enrolled) abort(403, 'El estudiante no está inscrito en esta aula.');
+        if (! $enrolled) abort(403, 'El estudiante no está inscrito o está retirado.');
 
         $students = $this->getStudents($classroom->id)->pluck('id')->values();
         $clave    = $students->search($student->id) + 1;
@@ -106,7 +107,7 @@ class ReportCardController extends Controller
 
         $this->appendBoleta($pdf, $student, $classroom, $pensum, $assignments, (int) $request->unit, $clave);
 
-        $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $student->user->surname . '_' . $student->user->first_name);
+        $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $student->user->full_full_name);
         $name     = "Boleta_{$safeName}_" . date('dmY_His') . '.pdf';
 
         return response($pdf->Output('S'), 200)
@@ -158,8 +159,7 @@ class ReportCardController extends Controller
         $usableWidth     = 195;
         $romanNumerals   = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 
-        // Dynamic column widths
-        $totalUnits  = $pensum->units; // total de columnas siempre fijas
+        $totalUnits  = $pensum->units;
         $numWidth    = 10;
         $acumWidth   = 22;
         $unitWidth   = 18;
@@ -173,25 +173,18 @@ class ReportCardController extends Controller
 
         $rowH = 7;
 
-        // ==========================================
-        // HEADER
-        // ==========================================
         $pdf->addImage($logoPath, 7.5, 8, 16);
-
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->SetXY(7.5, 8);
         $pdf->CellUTF8($usableWidth, 6, $pdf->dec($institutionName), 0, 1, 'C');
-
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->SetX(7.5);
         $pdf->CellUTF8($usableWidth, 5, $pdf->dec('BOLETA DE CALIFICACIONES'), 0, 1, 'C');
-
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->SetX(7.5);
         $pdf->CellUTF8($usableWidth, 5, $pdf->dec('CICLO ESCOLAR ' . $year), 0, 1, 'C');
         $pdf->Ln(2);
 
-        // Student info block
         $pdf->SetLineWidth(0.4);
         $blockY = $pdf->GetY();
         $pdf->Rect(7.5, $blockY, $usableWidth, 25);
@@ -200,19 +193,15 @@ class ReportCardController extends Controller
         $pdf->SetXY(10, $blockY + 2);
         $pdf->CellUTF8(35, 4, $pdf->dec('Código del Alumno:'), 0, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->CellUTF8(100, 4, $pdf->dec($student->carnet ?? ''), 0, 1, 'L');
+        $pdf->CellUTF8(100, 4, $pdf->dec($student->carne ?? ''), 0, 1, 'L');
 
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->SetX(10);
         $pdf->CellUTF8(35, 4, $pdf->dec('Nombre del Alumno:'), 0, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $fullName = trim(
-            $student->user->surname . ' ' .
-                $student->user->second_surname . ', ' .
-                $student->user->first_name . ' ' .
-                $student->user->middle_name
-        );
-        $pdf->CellUTF8(120, 4, $pdf->dec($fullName), 0, 1, 'L');
+
+        // USO DEL ACCESSOR FULL_FULL_NAME
+        $pdf->CellUTF8(120, 4, $pdf->dec($student->user->full_full_name), 0, 1, 'L');
 
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->SetX(10);
@@ -234,9 +223,6 @@ class ReportCardController extends Controller
 
         $pdf->Ln(4);
 
-        // ==========================================
-        // TABLE HEADER
-        // ==========================================
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->SetFillColor(47, 117, 182);
         $pdf->SetTextColor(255, 255, 255);
@@ -253,9 +239,6 @@ class ReportCardController extends Controller
         $pdf->CellUTF8($acumWidth, $rowH, 'ACUMULADO', 1, 1, 'C', true);
         $pdf->SetTextColor(0, 0, 0);
 
-        // ==========================================
-        // COURSE ROWS
-        // ==========================================
         $pensumCourses = PensumCourse::with('course')
             ->where('pensum_id', $pensum->id)
             ->where('is_official', true)
@@ -263,11 +246,11 @@ class ReportCardController extends Controller
             ->get();
 
         $pdf->SetFont('Arial', '', 8);
-        $num        = 1;
-        $unitSums   = array_fill(1, $totalUnits, 0);
+        $num = 1;
+        $unitSums = array_fill(1, $totalUnits, 0);
         $unitCounts = array_fill(1, $totalUnits, 0);
-        $acumSum    = 0;
-        $acumCount  = 0;
+        $acumSum = 0;
+        $acumCount = 0;
 
         foreach ($pensumCourses as $pc) {
             $fillBg = $num % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
@@ -277,38 +260,34 @@ class ReportCardController extends Controller
             $pdf->CellUTF8($courseWidth, $rowH, $pdf->dec($pc->course->course_name), 1, 0, 'L', true);
 
             $weightedSum = 0;
-            $totalPct    = 0;
-            $unitScores  = [];
+            $totalPct = 0;
 
             for ($u = 1; $u <= $totalUnits; $u++) {
-                $key        = $pc->id . '-' . $u;
+                $key = $pc->id . '-' . $u;
                 $assignment = $assignments->get($key);
-                $score      = '';
+                $score = '';
 
-                // Solo mostrar score si la unidad es <= a la consultada
                 if ($u <= $unit && $assignment && $assignment->gradeBook) {
                     $total = $assignment->gradeBook->totals->firstWhere('student_id', $student->id);
                     if ($total) {
-                        $scoreVal      = (int) ceil((float) $total->total_points);
-                        $score         = (string) $scoreVal;
-                        $pct           = $pensum->getUnitPercentage($u);
-                        $weightedSum   += $scoreVal * $pct / 100;
-                        $totalPct      += $pct;
-                        $unitSums[$u]  += $scoreVal;
+                        $scoreVal = min(100, (int) round((float) $total->total_points));
+                        $score = (string) $scoreVal;
+                        $pct = $pensum->getUnitPercentage($u);
+                        $weightedSum += $scoreVal * $pct / 100;
+                        $totalPct += $pct;
+                        $unitSums[$u] += $scoreVal;
                         $unitCounts[$u] += 1;
                     }
                 }
-
                 $pdf->SetFillColor(...$fillBg);
                 $pdf->CellUTF8($unitWidth, $rowH, $score, 1, 0, 'C', true);
             }
 
-            // ACUMULADO
             $acumValue = '';
             if ($totalPct > 0) {
-                $acumVal   = (int) round($weightedSum * 100 / $totalPct);
+                $acumVal = (int) round($weightedSum);
                 $acumValue = (string) $acumVal;
-                $acumSum   += $acumVal;
+                $acumSum += $acumVal;
                 $acumCount++;
             }
 
@@ -322,13 +301,10 @@ class ReportCardController extends Controller
             $pdf->CellUTF8($acumWidth, $rowH, $acumValue, 1, 1, 'C', true);
             $pdf->SetTextColor(0, 0, 0);
             $pdf->SetFont('Arial', '', 8);
-
             $num++;
         }
 
-        // ==========================================
-        // PROMEDIO ROW
-        // ==========================================
+        // Fila de Promedios finales
         $pdf->SetFillColor(217, 217, 217);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->SetX(7.5);
@@ -345,20 +321,14 @@ class ReportCardController extends Controller
         $pdf->CellUTF8($acumWidth, $rowH, $acumAvg !== '' ? (string) $acumAvg : '', 1, 1, 'C', true);
 
         $pdf->Ln(4);
-
-        // ==========================================
-        // OBSERVATIONS
-        // ==========================================
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->SetX(7.5);
         $pdf->CellUTF8($usableWidth, 5, 'OBSERVACIONES', 0, 1, 'L');
         $pdf->SetFont('Arial', '', 8);
-
         for ($i = 0; $i < 4; $i++) {
             $pdf->SetX(7.5);
             $pdf->CellUTF8($usableWidth, 7, '', 1, 1, 'L');
         }
-
         $pdf->Ln(3);
         $pdf->SetX(7.5);
         $pdf->CellUTF8($usableWidth, 7, $pdf->dec('Firma:'), 1, 1, 'R');

@@ -130,7 +130,7 @@
 
             <div class="card-body table-responsive p-0">
                 @if ($readyToLoad && count($gradeBooks))
-                    <table class="table table-hover table-striped text-nowrap">
+                    <table class="table table-hover table-striped table-sm text-nowrap">
                         <thead>
                             <tr>
                                 <th style="cursor:pointer" wire:click="order('created_at')">
@@ -150,52 +150,68 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($gradeBooks as $gradeBook)
+                            @foreach ($students as $student)
+                                @php
+                                    // Variables para sumar en tiempo real lo que se ve en la fila
+                                    $calcNormal = 0;
+                                    $calcExtra = 0;
+                                @endphp
                                 <tr>
-                                    <td>{{ $gradeBook->created_at->format('d/m/Y') }}</td>
-                                    <td>{{ $gradeBook->assignment->professor->user->name }}</td>
-                                    <td>{{ $gradeBook->assignment->classroom->level->level_name }}</td>
-                                    <td>{{ $gradeBook->assignment->classroom->grade->grade_name }}</td>
-                                    <td>{{ $gradeBook->assignment->classroom->section->section_name }}</td>
-                                    <td>{{ $gradeBook->assignment->pensumCourse->course->course_name }}</td>
-                                    <td class="text-center">
-                                        <span class="badge badge-secondary">U{{ $gradeBook->assignment->unit }}</span>
+                                    <td>{{ $student->user->name }}</td>
+                                    @foreach ($viewingGradeBook->activities as $activity)
+                                        @php
+                                            $score = $activity->scores->firstWhere('student_id', $student->id);
+                                            $rawScore = $score ? (float) $score->score : null;
+                                            $improvement = $score ? $score->improvement_score : null;
+                                            $effective = $score
+                                                ? $config->effectiveScore(
+                                                    (float) $rawScore,
+                                                    $improvement,
+                                                    (float) $activity->max_points,
+                                                )
+                                                : null;
+
+                                            // Sumamos la nota a la categoría correspondiente
+                                            if (!is_null($effective)) {
+                                                if ($activity->activityType->is_extra) {
+                                                    $calcExtra += $effective;
+                                                } else {
+                                                    $calcNormal += $effective;
+                                                }
+                                            }
+                                        @endphp
+                                        <td
+                                            class="text-center {{ $activity->activityType->is_extra ? 'table-warning' : '' }}">
+                                            @if (!is_null($rawScore))
+                                                <span>{{ number_format($rawScore, 2) }}</span>
+                                                @if ($config->improvement_type !== 'none' && !is_null($improvement) && $improvement > 0)
+                                                    <br>
+                                                    <small class="text-success" title="Mejora">
+                                                        <i class="fas fa-arrow-up"></i>
+                                                        {{ number_format($improvement, 2) }}
+                                                    </small>
+                                                    <br>
+                                                    <span class="badge badge-success">
+                                                        {{ number_format($effective, 2) }}
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                    @endforeach
+
+                                    {{-- Impresión de los totales calculados dinámicamente --}}
+                                    <td class="text-center font-weight-bold">
+                                        {{ number_format($calcNormal, 2) }}
                                     </td>
-                                    <td class="text-center">{{ $gradeBook->assignment->classroom->year }}</td>
-                                    <td class="text-center">
-                                        @if ($gradeBook->status === 'open')
-                                            <span class="badge badge-success">Abierto</span>
-                                        @elseif ($gradeBook->status === 'locked')
-                                            <span class="badge badge-secondary">Bloqueado</span>
-                                        @elseif ($gradeBook->status === 'rejected')
-                                            <span class="badge badge-danger">Rechazado</span>
-                                        @elseif ($gradeBook->status === 'approved')
-                                            <span class="badge badge-primary">Aprobado</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        <button wire:click="openGradeBook({{ $gradeBook->id }})"
-                                            class="btn btn-sm btn-info shadow-sm" title="Ver detalle">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        @if ($gradeBook->status === 'locked')
-                                            <button onclick="confirmApprove({{ $gradeBook->id }})"
-                                                class="btn btn-sm btn-primary shadow-sm" title="Aprobar">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                            <button wire:click="openRejectModal({{ $gradeBook->id }})"
-                                                data-toggle="modal" data-target="#RejectModal"
-                                                class="btn btn-sm btn-danger shadow-sm" title="Rechazar">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        @endif
-                                        @if ($gradeBook->status === 'rejected')
-                                            <span class="text-muted text-sm"
-                                                title="{{ $gradeBook->rejection_reason }}">
-                                                <i class="fas fa-info-circle"></i>
-                                                {{ Str::limit($gradeBook->rejection_reason, 25) }}
-                                            </span>
-                                        @endif
+                                    @if ($extraMax > 0)
+                                        <td class="text-center font-weight-bold text-warning">
+                                            {{ number_format($calcExtra, 2) }}
+                                        </td>
+                                    @endif
+                                    <td class="text-center font-weight-bold text-primary">
+                                        {{ number_format($calcNormal + $calcExtra, 2) }}
                                     </td>
                                 </tr>
                             @endforeach
@@ -315,11 +331,13 @@
                             <div class="info-box-content">
                                 <span class="info-box-text text-sm">Proceso de Mejora</span>
                                 <span class="info-box-number text-sm">
-                                    @if ($config->improvement_type === 'full')
+                                    @if ($config->improvement_type === 'none')
+                                        Ninguno
+                                    @elseif ($config->improvement_type === 'full')
                                         100%
                                     @elseif ($config->improvement_type === 'percentage')
                                         {{ $config->improvement_percentage }}%
-                                    @else
+                                    @elseif ($config->improvement_type === 'additive')
                                         Suma
                                     @endif
                                 </span>
@@ -356,17 +374,31 @@
                                             </div>
                                         </th>
                                     @endforeach
-                                    <th class="text-center bg-light" style="min-width:100px">Normal</th>
+                                    <th class="text-center bg-light" style="min-width:100px">
+                                        Normal
+                                        <small class="d-block text-muted font-weight-normal">Máx:
+                                            {{ number_format($normalMax, 2) }}</small>
+                                    </th>
                                     @if ($extraMax > 0)
-                                        <th class="text-center bg-warning" style="min-width:100px">Extra</th>
+                                        <th class="text-center bg-warning" style="min-width:100px">
+                                            Extra
+                                            <small class="d-block text-muted font-weight-normal">Máx:
+                                                {{ number_format($extraMax, 2) }}</small>
+                                        </th>
                                     @endif
-                                    <th class="text-center bg-light" style="min-width:100px">Total</th>
+                                    <th class="text-center bg-light" style="min-width:100px">
+                                        Total
+                                        <small class="d-block text-muted font-weight-normal">Máx:
+                                            {{ number_format($normalMax + $extraMax, 2) }}</small>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($students as $student)
                                     @php
-                                        $total = $viewingGradeBook->totals->firstWhere('student_id', $student->id);
+                                        // Variables para sumar en tiempo real lo que se ve en la fila
+                                        $calcNormal = 0;
+                                        $calcExtra = 0;
                                     @endphp
                                     <tr>
                                         <td>{{ $student->user->name }}</td>
@@ -382,12 +414,21 @@
                                                         (float) $activity->max_points,
                                                     )
                                                     : null;
+
+                                                // Sumamos la nota a la categoría correspondiente
+                                                if (!is_null($effective)) {
+                                                    if ($activity->activityType->is_extra) {
+                                                        $calcExtra += $effective;
+                                                    } else {
+                                                        $calcNormal += $effective;
+                                                    }
+                                                }
                                             @endphp
                                             <td
                                                 class="text-center {{ $activity->activityType->is_extra ? 'table-warning' : '' }}">
                                                 @if (!is_null($rawScore))
                                                     <span>{{ number_format($rawScore, 2) }}</span>
-                                                    @if (!is_null($improvement) && $improvement > 0)
+                                                    @if ($config->improvement_type !== 'none' && !is_null($improvement) && $improvement > 0)
                                                         <br>
                                                         <small class="text-success" title="Mejora">
                                                             <i class="fas fa-arrow-up"></i>
@@ -403,16 +444,18 @@
                                                 @endif
                                             </td>
                                         @endforeach
+
+                                        {{-- Impresión de los totales calculados dinámicamente --}}
                                         <td class="text-center font-weight-bold">
-                                            {{ $total ? number_format(ceil($total->normal_points), 0) : '0' }}
+                                            {{ number_format($calcNormal, 2) }}
                                         </td>
                                         @if ($extraMax > 0)
                                             <td class="text-center font-weight-bold text-warning">
-                                                {{ $total ? number_format(ceil($total->extra_points), 0) : '0' }}
+                                                {{ number_format($calcExtra, 2) }}
                                             </td>
                                         @endif
                                         <td class="text-center font-weight-bold text-primary">
-                                            {{ $total ? number_format(ceil($total->total_points), 0) : '0' }}
+                                            {{ number_format($calcNormal + $calcExtra, 2) }}
                                         </td>
                                     </tr>
                                 @endforeach

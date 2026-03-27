@@ -167,6 +167,44 @@ class GradeChangeRequests extends Component
         ]);
     }
 
+    protected function recalculateTotal(GradeBook $gradeBook, int $studentId): void
+    {
+        $activities = GradeBookActivity::with(['scores', 'activityType'])
+            ->where('grade_book_id', $gradeBook->id)
+            ->get();
+
+        $config       = $gradeBook->academicConfiguration;
+        $normalPoints = 0;
+        $extraPoints  = 0;
+
+        foreach ($activities as $activity) {
+            $score = $activity->scores->firstWhere('student_id', $studentId);
+
+            $rawScore    = $score ? (float) $score->score : 0;
+            $improvement = $score ? $score->improvement_score : null;
+
+            $effective = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
+
+            if ($activity->activityType->is_extra) {
+                $extraPoints += $effective;
+            } else {
+                $normalPoints += $effective;
+            }
+        }
+
+        GradeBookTotal::updateOrCreate(
+            [
+                'grade_book_id' => $gradeBook->id,
+                'student_id'    => $studentId,
+            ],
+            [
+                'normal_points' => $normalPoints,
+                'extra_points'  => $extraPoints,
+                'total_points'  => ceil($normalPoints + $extraPoints),
+            ]
+        );
+    }
+
     public function render()
     {
         $requests = $this->readyToLoad

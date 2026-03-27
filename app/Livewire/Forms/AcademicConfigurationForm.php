@@ -12,7 +12,7 @@ class AcademicConfigurationForm extends Form
 
     public string $year = '';
     public string $mode = 'free';
-    public string $improvement_type = 'full';
+    public string $improvement_type = '';
     public string $improvement_percentage = '';
 
     public function rules(): array
@@ -25,7 +25,8 @@ class AcademicConfigurationForm extends Form
                 Rule::unique('academic_configurations', 'year')->ignore($this->configuration),
             ],
             'mode'                   => ['required', 'in:free,assigned'],
-            'improvement_type'       => ['required', 'in:full,percentage,additive'],
+            // Agregamos 'none' a la lista de valores permitidos
+            'improvement_type'       => ['required', 'in:none,full,percentage,additive'],
             'improvement_percentage' => [
                 'nullable',
                 'numeric',
@@ -89,7 +90,7 @@ class AcademicConfigurationForm extends Form
         $this->configuration          = null;
         $this->year                   = '';
         $this->mode                   = 'free';
-        $this->improvement_type       = 'full';
+        $this->improvement_type       = '';
         $this->improvement_percentage = '';
     }
 }

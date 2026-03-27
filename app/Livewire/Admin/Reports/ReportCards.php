@@ -85,7 +85,6 @@ class ReportCards extends Component
             )->orderBy('section_name')->get()
             : collect();
 
-        // Units available for selected grade/section
         $units = collect();
         if ($this->filterSection && $this->filterSection !== 'all') {
             $classroom = Classroom::where('year', $this->filterYear)
@@ -108,7 +107,6 @@ class ReportCards extends Component
                 ->distinct()->pluck('unit')->sort()->values();
         }
 
-        // Student list when all filters are set
         $studentList = collect();
         if ($this->filterYear && $this->filterLevel && $this->filterGrade && $this->filterSection && $this->filterUnit) {
             $classroomQuery = Classroom::where('year', $this->filterYear)
@@ -122,6 +120,7 @@ class ReportCards extends Component
             $classrooms = $classroomQuery->with('section')->get();
 
             foreach ($classrooms as $classroom) {
+                // CONSULTA CON FILTRO ACTIVO Y ORDEN COMPLETO
                 $students = Student::whereHas(
                     'enrollments',
                     fn($q) =>
@@ -140,7 +139,7 @@ class ReportCards extends Component
                     $studentList->push([
                         'id'           => $student->id,
                         'clave'        => $idx + 1,
-                        'name'         => trim($student->user->surname . ' ' . $student->user->second_surname . ', ' . $student->user->first_name . ' ' . $student->user->middle_name),
+                        'name'         => $student->user->full_full_name, // USO DEL ACCESSOR
                         'carnet'       => $student->carnet ?? '—',
                         'section'      => $classroom->section->section_name,
                         'classroom_id' => $classroom->id,

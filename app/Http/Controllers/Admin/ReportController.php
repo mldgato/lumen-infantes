@@ -104,6 +104,7 @@ class ReportController extends Controller
 
         $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
 
+        // Consulta estandarizada: Solo Activos, orden jerárquico por 4 campos y Eager Loading del usuario
         $students = Student::whereHas(
             'enrollments',
             fn($q) =>
@@ -142,7 +143,7 @@ class ReportController extends Controller
         $pdf->SetFont('Arial', '', 9);
         $pdf->CellUTF8(90, 5, $pdf->dec('NIVEL: ' . $levelName), 0, 0, 'L');
         $pdf->CellUTF8(90, 5, $pdf->dec('AÑO: ' . $year), 0, 1, 'R');
-        $pdf->CellUTF8(90, 5, $pdf->dec('GRADO: ' . $gradeName . ' ' . $sectionName), 0, 1, 'L');
+        $pdf->CellUTF8(180, 5, $pdf->dec('GRADO: ' . $gradeName . ' ' . $sectionName), 0, 1, 'L');
         $pdf->Ln(4);
 
         $numWidth         = 10;
@@ -154,7 +155,7 @@ class ReportController extends Controller
         $pdf->SetFillColor(47, 117, 182);
         $pdf->SetTextColor(255, 255, 255);
         $pdf->CellUTF8($numWidth, $rowHeight, 'No.', 1, 0, 'C', true);
-        $pdf->CellUTF8($nameWidth, $rowHeight, $pdf->dec('Estudiante'), 1, 0, 'C', true);
+        $pdf->CellUTF8($nameWidth, $rowHeight, $pdf->dec('Estudiante (Apellidos, Nombres)'), 1, 0, 'C', true);
         $pdf->CellUTF8($observationWidth, $rowHeight, $pdf->dec('Observación'), 1, 1, 'C', true);
 
         $pdf->SetTextColor(0, 0, 0);
@@ -165,15 +166,11 @@ class ReportController extends Controller
             $fillColor = $count % 2 === 0 ? [240, 240, 240] : [255, 255, 255];
             $pdf->SetFillColor(...$fillColor);
 
-            $fullName = trim(
-                $student->user->surname . ' ' .
-                    $student->user->second_surname . ', ' .
-                    $student->user->first_name . ' ' .
-                    $student->user->middle_name
-            );
-
             $pdf->CellUTF8($numWidth, $rowHeight, $count, 1, 0, 'C', true);
-            $pdf->CellUTF8($nameWidth, $rowHeight, $pdf->dec($fullName), 1, 0, 'L', true);
+
+            // REEMPLAZO: Uso de accessor full_full_name del modelo User
+            $pdf->CellUTF8($nameWidth, $rowHeight, $pdf->dec($student->user->full_full_name), 1, 0, 'L', true);
+
             $pdf->CellUTF8($observationWidth, $rowHeight, '', 1, 1, 'L', true);
             $count++;
         }

@@ -67,8 +67,8 @@ class ReportController extends Controller
             ->with('user')
             ->get();
 
-        $courseCount = count($courseColumns);
-        $unitCounts  = array_map(fn($c) => $c['assignments']->count(), $courseColumns);
+        $courseCount   = count($courseColumns);
+        $unitCounts    = array_map(fn($c) => $c['assignments']->count(), $courseColumns);
         $totalUnitCols = array_sum($unitCounts);
         $totalPromCols = $courseCount;
 
@@ -99,11 +99,11 @@ class ReportController extends Controller
         $pdf->CellUTF8(104, 5, $pdf->dec('AÑO: ' . $classroom->year), 0, 1, 'R');
         $pdf->Ln(3);
 
-        $headerH1   = 8;
-        $headerH2   = 6;
-        $headerY    = $pdf->GetY();
-        $startX     = $pdf->GetX();
-        $currentX   = $startX;
+        $headerH1      = 8;
+        $headerH2      = 6;
+        $headerY       = $pdf->GetY();
+        $startX        = $pdf->GetX();
+        $currentX      = $startX;
         $romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 
         $pdf->SetFont('Arial', 'B', 8);
@@ -117,7 +117,7 @@ class ReportController extends Controller
         $currentX += $nameWidth;
 
         foreach ($courseColumns as $pcId => $data) {
-            $unitCount  = $data['assignments']->count();
+            $unitCount   = $data['assignments']->count();
             $courseWidth = ($unitCount * $unitWidth) + $promWidth;
             $pdf->SetFillColor(47, 117, 182);
             $pdf->SetXY($currentX, $headerY);
@@ -128,7 +128,7 @@ class ReportController extends Controller
         $currentX = $startX + $numWidth + $nameWidth;
         $pdf->SetFont('Arial', 'B', 7);
         foreach ($courseColumns as $pcId => $data) {
-            foreach ($data['assignments'] as $aIdx => $assignment) {
+            foreach ($data['assignments'] as $assignment) {
                 $label = $romanNumerals[$assignment->unit - 1] ?? $assignment->unit;
                 $pdf->SetFillColor(47, 117, 182);
                 $pdf->SetXY($currentX, $headerY + $headerH1);
@@ -137,7 +137,7 @@ class ReportController extends Controller
             }
             $pdf->SetFillColor(55, 86, 35);
             $pdf->SetXY($currentX, $headerY + $headerH1);
-            $pdf->CellUTF8($promWidth, $headerH2, 'Prom', 1, 0, 'C', true);
+            $pdf->CellUTF8($promWidth, $headerH2, 'Acum.', 1, 0, 'C', true);
             $currentX += $promWidth;
         }
 
@@ -156,50 +156,64 @@ class ReportController extends Controller
             $pdf->CellUTF8($numWidth, $rowH, $num, 1, 0, 'C', true);
             $currentX += $numWidth;
 
-            // NOMBRE ACTUALIZADO
             $pdf->SetXY($currentX, $pdf->GetY());
             $pdf->CellUTF8($nameWidth, $rowH, $pdf->dec($student->user->full_full_name), 1, 0, 'L', true);
             $currentX += $nameWidth;
 
             foreach ($courseColumns as $pcId => $data) {
                 $weightedSum = 0;
-                $totalPct = 0;
+                $totalPct    = 0;
+
                 foreach ($data['assignments'] as $assignment) {
                     $pdf->SetFillColor(...$fillBg);
                     $value = '';
+
                     if ($assignment->gradeBook && $assignment->gradeBook->status === 'approved') {
                         $total = GradeBookTotal::where('grade_book_id', $assignment->gradeBook->id)
-                            ->where('student_id', $student->id)->first();
+                            ->where('student_id', $student->id)
+                            ->first();
+
                         if ($total) {
-                            $value = (int) ceil((float) $total->total_points);
-                            $pct = $pensum->getUnitPercentage($assignment->unit);
+                            // CAMBIO 1: cap en 100
+                            $value = min(100, (int) round((float) $total->total_points));
+                            $pct   = $pensum->getUnitPercentage($assignment->unit);
                             $weightedSum += $value * $pct / 100;
-                            $totalPct += $pct;
+                            $totalPct    += $pct;
                         }
                     }
+
                     $pdf->SetXY($currentX, $pdf->GetY());
                     $pdf->CellUTF8($unitWidth, $rowH, $value !== '' ? (string) $value : '', 1, 0, 'C', true);
                     $currentX += $unitWidth;
                 }
-                $promValue = $totalPct > 0 ? (int) round($weightedSum * 100 / $totalPct) : '';
-                $fillProm  = $num % 2 === 0 ? [198, 239, 206] : [214, 228, 188];
+
+                // CAMBIO 2: acumulado real, sin normalizar por $totalPct
+                $promValue = $totalPct > 0 ? (int) round($weightedSum) : '';
+
+                $fillProm = $num % 2 === 0 ? [198, 239, 206] : [214, 228, 188];
                 $pdf->SetFillColor(...$fillProm);
                 $pdf->SetFont('Arial', 'B', 7);
                 $pdf->SetXY($currentX, $pdf->GetY());
-                if ($promValue !== '' && $promValue < 60) $pdf->SetTextColor(156, 0, 6);
+                if ($promValue !== '' && $promValue < 60) {
+                    $pdf->SetTextColor(156, 0, 6);
+                }
                 $pdf->CellUTF8($promWidth, $rowH, $promValue !== '' ? (string) $promValue : '', 1, 0, 'C', true);
                 $pdf->SetTextColor(0, 0, 0);
                 $pdf->SetFont('Arial', '', 7);
                 $currentX += $promWidth;
             }
+
             $pdf->Ln($rowH);
             $num++;
         }
 
-        $grado = $classroom->grade->grade_name;
+        $grado   = $classroom->grade->grade_name;
         $seccion = $classroom->section->section_name;
-        $name = 'Sabana_' . preg_replace('/\s+/', '_', $grado) . "_{$seccion}_" . date('dmY_His') . '.pdf';
-        return response($pdf->Output('S'), 200)->header('Content-Type', 'application/pdf')->header('Content-Disposition', 'inline; filename="' . $name . '"');
+        $name    = 'Sabana_' . preg_replace('/\s+/', '_', $grado) . "_{$seccion}_" . date('dmY_His') . '.pdf';
+
+        return response($pdf->Output('S'), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $name . '"');
     }
 
     public function cuadroVacio(Request $request)

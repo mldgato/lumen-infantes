@@ -16,8 +16,8 @@ class AcademicConfigurationSeeder extends Seeder
                 'id' => 1,
                 'year' => 2026,
                 'mode' => 'assigned',
-                'improvement_type' => 'percentage',
-                'improvement_percentage' => 60.00,
+                'improvement_type' => 'none',
+                'improvement_percentage' => null,
                 'created_at' => '2026-03-12 13:22:57',
                 'updated_at' => '2026-03-12 13:22:57'
             ],

@@ -27,11 +27,12 @@ class UserSeeder extends Seeder
             'birthdate' => '1984-03-13',
             'gender' => 'Male',
             'email' => 'manueldardon@hotmail.com',
-            'password' => Hash::make('password123'), // Tu contraseña de acceso
+            'password' => Hash::make('Alejandro31$'), // Tu contraseña de acceso
             'cellphone' => '57170018',
             'personal_email' => 'manueldardon@gmail.com',
             'address' => '9na. Calle C 2-50 Colonia Montserrat 2 zona 4 de Mixco, Guatemala',
             'is_active' => true,
+            'must_change_password' => false,
         ]);
         $user->assignRole('Super Administrador');
         $user->image()->save(Image::factory()->make());

@@ -82,6 +82,7 @@ class MissingActivities extends Component
             return;
         }
 
+        // CONSULTA DE ESTUDIANTES ESTANDARIZADA
         $students = Student::whereHas(
             'enrollments',
             fn($q) =>
@@ -91,6 +92,7 @@ class MissingActivities extends Component
             ->orderBy('users.surname')
             ->orderBy('users.second_surname')
             ->orderBy('users.first_name')
+            ->orderBy('users.middle_name')
             ->select('students.*')
             ->with('user')
             ->get();
@@ -140,7 +142,7 @@ class MissingActivities extends Component
 
                 return [
                     'clave'         => $idx + 1,
-                    'name'          => trim($student->user->surname . ' ' . $student->user->second_surname . ', ' . $student->user->first_name . ' ' . $student->user->middle_name),
+                    'name'          => $student->user->full_full_name, // USO DEL ACCESSOR
                     'results'       => $results,
                     'missing_count' => $missingCount,
                 ];
