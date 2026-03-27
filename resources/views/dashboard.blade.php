@@ -20,7 +20,8 @@
 @section('content')
     @can('admin.grade-books.index')
         <livewire:admin.dashboard />
-    @else
+    @endcan
+    @can('profesor.menu.cuadros')
         <livewire:profesor.dashboard />
     @endcan
 @endsection
