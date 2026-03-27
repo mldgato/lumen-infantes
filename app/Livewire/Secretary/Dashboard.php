@@ -11,6 +11,7 @@ use App\Models\StudentEnrollment;
 use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
+use App\Models\User;
 
 class Dashboard extends Component
 {
