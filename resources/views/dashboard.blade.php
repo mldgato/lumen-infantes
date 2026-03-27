@@ -25,6 +25,6 @@
         <livewire:profesor.dashboard />
     @endcan
     @can('admin.secretary')
-        
+        <livewire:secretary.dashboard />
     @endcan
 @endsection
