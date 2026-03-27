@@ -24,4 +24,7 @@
     @can('profesor.menu.cuadros')
         <livewire:profesor.dashboard />
     @endcan
+    @can('admin.secretary')
+        
+    @endcan
 @endsection
