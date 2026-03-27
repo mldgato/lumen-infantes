@@ -9,6 +9,8 @@ use App\Models\Professor;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use Livewire\Component;
+use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
 class Dashboard extends Component
 {
@@ -25,9 +27,13 @@ class Dashboard extends Component
     public array $recentPendingRequests = [];
     public array $recentGradeBooks      = [];
 
+    public array $birthdayStudents  = [];
+    public array $upcomingBirthdays = [];
+
     public function loadData(): void
     {
-        $year = date('Y');
+        $year  = date('Y');
+        $month = now()->month;
 
         $this->totalStudents = Student::whereHas(
             'enrollments',
@@ -120,6 +126,62 @@ class Dashboard extends Component
                 'professor'  => $gb->assignment->professor->user->name,
                 'unit'       => $gb->assignment->unit,
                 'updated_at' => $gb->updated_at->diffForHumans(),
+            ])
+            ->toArray();
+
+        // Estudiantes cumpleañeros del mes con enrollment activo
+        $this->birthdayStudents = User::role('Estudiante')
+            ->whereNotNull('birthdate')
+            ->whereMonth('birthdate', $month)
+            ->whereHas(
+                'student.enrollments',
+                fn($q) =>
+                $q->where('status', 'Activo')
+                    ->whereHas('classroom', fn($q2) => $q2->where('year', $year))
+            )
+            ->orderByRaw('DAY(birthdate)')
+            ->get()
+            ->map(fn($u) => [
+                'name'     => Str::limit($u->name, 20),
+                'day'      => $u->birthdate->day,
+                'age'      => now()->year - $u->birthdate->year,
+                'initials' => $u->initials(),
+                'image'    => $u->adminlte_image(),
+                'is_today' => $u->birthdate->day === now()->day,
+            ])
+            ->toArray();
+
+        // Próximos 4 cumpleaños del personal (sin Estudiante ni Super Administrador)
+        $this->upcomingBirthdays = User::whereNotNull('birthdate')
+            ->whereDoesntHave(
+                'roles',
+                fn($q) =>
+                $q->whereIn('name', ['Estudiante', 'Super Administrador'])
+            )
+            ->selectRaw("*, DATEDIFF(
+            DATE(CONCAT(
+                IF(
+                    DATE_FORMAT(birthdate, '%m-%d') >= DATE_FORMAT(NOW(), '%m-%d'),
+                    YEAR(NOW()),
+                    YEAR(NOW()) + 1
+                ),
+                '-',
+                DATE_FORMAT(birthdate, '%m-%d')
+            )),
+            DATE(NOW())
+        ) as days_until")
+            ->orderBy('days_until')
+            ->take(4)
+            ->get()
+            ->map(fn($u) => [
+                'name'       => Str::limit($u->name, 24),
+                'role'       => $u->roles()->first()?->name ?? 'Sin rol',
+                'initials'   => $u->initials(),
+                'image'      => $u->adminlte_image(),
+                'day'        => $u->birthdate->day,
+                'month'      => ucfirst(Carbon::parse($u->birthdate)->locale('es')->isoFormat('MMMM')),
+                'days_until' => (int) $u->days_until,
+                'is_today'   => (int) $u->days_until === 0,
             ])
             ->toArray();
 
