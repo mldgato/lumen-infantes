@@ -293,8 +293,9 @@ class GradeBooks extends Component
             ->values()
             : collect();
 
-        $gradeBooks = $this->readyToLoad
-            ? GradeBook::with([
+        $gradeBooks = collect();
+        if ($this->readyToLoad) {
+            $gradeBooks = GradeBook::with([
                 'assignment.classroom.level',
                 'assignment.classroom.grade',
                 'assignment.classroom.section',
@@ -302,40 +303,40 @@ class GradeBooks extends Component
                 'assignment.professor.user',
                 'academicConfiguration',
             ])
-            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
-            ->when($this->filterYear, fn($q) => $q->whereHas(
-                'assignment.classroom',
-                fn($q) => $q->where('year', $this->filterYear)
-            ))
-            ->when($this->filterLevel, fn($q) => $q->whereHas(
-                'assignment.classroom',
-                fn($q) => $q->where('level_id', $this->filterLevel)
-            ))
-            ->when($this->filterGrade, fn($q) => $q->whereHas(
-                'assignment.classroom',
-                fn($q) => $q->where('grade_id', $this->filterGrade)
-            ))
-            ->when($this->filterSection, fn($q) => $q->whereHas(
-                'assignment.classroom',
-                fn($q) => $q->where('section_id', $this->filterSection)
-            ))
-            ->when($this->filterUnit, fn($q) => $q->whereHas(
-                'assignment',
-                fn($q) => $q->where('unit', $this->filterUnit)
-            ))
-            ->where(function ($q) {
-                $q->whereHas('assignment.classroom.grade', fn($q) =>
-                $q->where('grade_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('assignment.classroom.section', fn($q) =>
-                    $q->where('section_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('assignment.pensumCourse.course', fn($q) =>
-                    $q->where('course_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('assignment.professor.user', fn($q) =>
-                    $q->where('name', 'like', '%' . $this->search . '%'));
-            })
-            ->orderBy($this->sort, $this->direction)
-            ->paginate($this->cant)
-            : [];
+                ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+                ->when($this->filterYear, fn($q) => $q->whereHas(
+                    'assignment.classroom',
+                    fn($q) => $q->where('year', $this->filterYear)
+                ))
+                ->when($this->filterLevel, fn($q) => $q->whereHas(
+                    'assignment.classroom',
+                    fn($q) => $q->where('level_id', $this->filterLevel)
+                ))
+                ->when($this->filterGrade, fn($q) => $q->whereHas(
+                    'assignment.classroom',
+                    fn($q) => $q->where('grade_id', $this->filterGrade)
+                ))
+                ->when($this->filterSection, fn($q) => $q->whereHas(
+                    'assignment.classroom',
+                    fn($q) => $q->where('section_id', $this->filterSection)
+                ))
+                ->when($this->filterUnit, fn($q) => $q->whereHas(
+                    'assignment',
+                    fn($q) => $q->where('unit', $this->filterUnit)
+                ))
+                ->where(function ($q) {
+                    $q->whereHas('assignment.classroom.grade', fn($q) =>
+                    $q->where('grade_name', 'like', '%' . $this->search . '%'))
+                        ->orWhereHas('assignment.classroom.section', fn($q) =>
+                        $q->where('section_name', 'like', '%' . $this->search . '%'))
+                        ->orWhereHas('assignment.pensumCourse.course', fn($q) =>
+                        $q->where('course_name', 'like', '%' . $this->search . '%'))
+                        ->orWhereHas('assignment.professor.user', fn($q) =>
+                        $q->where('name', 'like', '%' . $this->search . '%'));
+                })
+                ->orderBy($this->sort, $this->direction)
+                ->paginate($this->cant);
+        }
 
         $students = $this->viewingGradeBook
             ? $this->getStudentsForGradeBook()

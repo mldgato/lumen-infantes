@@ -150,68 +150,39 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($students as $student)
-                                @php
-                                    // Variables para sumar en tiempo real lo que se ve en la fila
-                                    $calcNormal = 0;
-                                    $calcExtra = 0;
-                                @endphp
+                            @foreach ($gradeBooks as $gb)
                                 <tr>
-                                    <td>{{ $student->user->name }}</td>
-                                    @foreach ($viewingGradeBook->activities as $activity)
-                                        @php
-                                            $score = $activity->scores->firstWhere('student_id', $student->id);
-                                            $rawScore = $score ? (float) $score->score : null;
-                                            $improvement = $score ? $score->improvement_score : null;
-                                            $effective = $score
-                                                ? $config->effectiveScore(
-                                                    (float) $rawScore,
-                                                    $improvement,
-                                                    (float) $activity->max_points,
-                                                )
-                                                : null;
-
-                                            // Sumamos la nota a la categoría correspondiente
-                                            if (!is_null($effective)) {
-                                                if ($activity->activityType->is_extra) {
-                                                    $calcExtra += $effective;
-                                                } else {
-                                                    $calcNormal += $effective;
-                                                }
-                                            }
-                                        @endphp
-                                        <td
-                                            class="text-center {{ $activity->activityType->is_extra ? 'table-warning' : '' }}">
-                                            @if (!is_null($rawScore))
-                                                <span>{{ number_format($rawScore, 2) }}</span>
-                                                @if ($config->improvement_type !== 'none' && !is_null($improvement) && $improvement > 0)
-                                                    <br>
-                                                    <small class="text-success" title="Mejora">
-                                                        <i class="fas fa-arrow-up"></i>
-                                                        {{ number_format($improvement, 2) }}
-                                                    </small>
-                                                    <br>
-                                                    <span class="badge badge-success">
-                                                        {{ number_format($effective, 2) }}
-                                                    </span>
-                                                @endif
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
-                                    @endforeach
-
-                                    {{-- Impresión de los totales calculados dinámicamente --}}
-                                    <td class="text-center font-weight-bold">
-                                        {{ number_format($calcNormal, 2) }}
+                                    <td>{{ $gb->created_at->format('d/m/Y H:i') }}</td>
+                                    <td>
+                                        <div class="text-sm font-weight-bold">
+                                            {{ $gb->assignment->professor->user->name }}</div>
+                                        <small class="text-muted">ID: {{ $gb->id }}</small>
                                     </td>
-                                    @if ($extraMax > 0)
-                                        <td class="text-center font-weight-bold text-warning">
-                                            {{ number_format($calcExtra, 2) }}
-                                        </td>
-                                    @endif
-                                    <td class="text-center font-weight-bold text-primary">
-                                        {{ number_format($calcNormal + $calcExtra, 2) }}
+                                    <td>{{ $gb->assignment->classroom->level->level_name }}</td>
+                                    <td>{{ $gb->assignment->classroom->grade->grade_name }}</td>
+                                    <td class="text-center">{{ $gb->assignment->classroom->section->section_name }}
+                                    </td>
+                                    <td>{{ $gb->assignment->pensumCourse->course->course_name }}</td>
+                                    <td class="text-center">
+                                        <span class="badge badge-info">U{{ $gb->assignment->unit }}</span>
+                                    </td>
+                                    <td class="text-center">{{ $gb->assignment->classroom->year }}</td>
+                                    <td class="text-center">
+                                        @if ($gb->status === 'open')
+                                            <span class="badge badge-success">Abierto</span>
+                                        @elseif ($gb->status === 'locked')
+                                            <span class="badge badge-secondary">Bloqueado</span>
+                                        @elseif ($gb->status === 'rejected')
+                                            <span class="badge badge-danger">Rechazado</span>
+                                        @elseif ($gb->status === 'approved')
+                                            <span class="badge badge-primary">Aprobado</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <button wire:click="openGradeBook({{ $gb->id }})"
+                                            class="btn btn-xs btn-info shadow-sm" title="Ver detalle del cuadro">
+                                            <i class="fas fa-eye"></i> Ver Notas
+                                        </button>
                                     </td>
                                 </tr>
                             @endforeach
