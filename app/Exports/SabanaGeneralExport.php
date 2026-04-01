@@ -47,14 +47,14 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
 
                 if (! $pensum) return;
 
-                // Obtener cursos del pénsum (solo principales, sin sub cursos)
+                // Obtener cursos del pénsum (solo principales)
                 $pensumCourses = $pensum->mainCourses()
                     ->with('course')
                     ->orderBy('ordering')
                     ->get();
 
-                // Para cada curso, obtener las unidades asignadas en este classroom
-                $courseColumns = []; // [pensumCourseId => [unit => assignmentId, ...]]
+                // Mapeo de columnas por curso
+                $courseColumns = [];
                 foreach ($pensumCourses as $pc) {
                     $assignments = ClassroomCourseAssignment::with('gradeBook')
                         ->where('classroom_id', $this->classroomId)
@@ -66,10 +66,11 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
 
                     $courseColumns[$pc->id] = [
                         'name'        => $pc->course->course_name,
-                        'assignments' => $assignments, // colección ordenada por unit
+                        'assignments' => $assignments,
                     ];
                 }
 
+                // CONSULTA DE ESTUDIANTES: Filtro Activo, Ordenamiento alfabético completo y Eager Loading
                 $students = Student::whereHas(
                     'enrollments',
                     fn($q) =>
@@ -86,7 +87,7 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
 
                 $studentCount = $students->count();
 
-                // Filas
+                // Definición de filas
                 $titleRow     = 1;
                 $courseRow    = 2;
                 $headerRow    = 3;
@@ -96,13 +97,11 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                 $noAprobRow   = $dataEndRow + 2;
                 $promedioRow  = $dataEndRow + 3;
 
-                // Calcular columnas dinámicamente
-                // A=No, B=Estudiante, luego por cada curso: unidades + Prom
-                $colMap = []; // [pensumCourseId => ['start' => colIndex, 'units' => [...], 'prom' => colIndex]]
-                $currentColIndex = 3; // empieza en C
+                // Cálculo dinámico de índices de columnas
+                $colMap = []; 
+                $currentColIndex = 3; // Empezamos en la columna C
 
                 foreach ($courseColumns as $pcId => $data) {
-                    $unitCount = $data['assignments']->count();
                     $startCol  = $currentColIndex;
                     $unitCols  = [];
 
@@ -125,15 +124,13 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                 $lastColIndex  = $currentColIndex - 1;
                 $lastColLetter = Coordinate::stringFromColumnIndex($lastColIndex);
 
-                // ==========================================
-                // FILA 1: TÍTULO
-                // ==========================================
+                // FILA 1: TÍTULO INSTITUCIONAL
                 $sheet->mergeCells("A1:{$lastColLetter}1");
-                $title = 'Año: ' . $classroom->year
+                $titleText = 'Año: ' . $classroom->year
                     . '   |   Nivel: ' . $classroom->level->level_name
                     . '   |   Grado: ' . $classroom->grade->grade_name
                     . '   |   Sección: ' . $classroom->section->section_name;
-                $sheet->setCellValue('A1', $title);
+                $sheet->setCellValue('A1', $titleText);
                 $sheet->getStyle('A1')->applyFromArray([
                     'font'      => ['bold' => true, 'size' => 12, 'color' => ['rgb' => 'FFFFFF']],
                     'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F3864']],
@@ -141,17 +138,14 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                 ]);
                 $sheet->getRowDimension(1)->setRowHeight(24);
 
-                // ==========================================
-                // FILA 2: NOMBRES DE CURSOS (merged por curso)
-                // ==========================================
-                // Celdas A2 y B2 vacías
+                // FILA 2: NOMBRES DE CURSOS (Celdas unidas por curso)
                 $sheet->mergeCells("A2:B3");
                 $sheet->getStyle("A2:B3")->applyFromArray([
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2E75B6']],
                 ]);
 
                 foreach ($courseColumns as $pcId => $data) {
-                    $map       = $colMap[$pcId];
+                    $map = $colMap[$pcId];
                     $startLetter = Coordinate::stringFromColumnIndex($map['start']);
                     $endLetter   = Coordinate::stringFromColumnIndex($map['end']);
 
@@ -160,32 +154,23 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                     $sheet->getStyle("{$startLetter}2:{$endLetter}2")->applyFromArray([
                         'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                         'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2E75B6']],
-                        'alignment' => [
-                            'horizontal' => Alignment::HORIZONTAL_CENTER,
-                            'vertical'   => Alignment::VERTICAL_CENTER,
-                            'wrapText'   => true,
-                        ],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                     ]);
                 }
                 $sheet->getRowDimension(2)->setRowHeight(45);
 
-                // ==========================================
-                // FILA 3: ENCABEZADOS No., Estudiante, I, II, III... Prom
-                // ==========================================
+                // FILA 3: ENCABEZADOS No., Estudiante y Unidades
                 $sheet->setCellValue('A3', 'No.');
-                $sheet->setCellValue('B3', 'Estudiante');
+                $sheet->setCellValue('B3', 'Estudiante (Apellidos, Nombres)');
 
                 $romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 
                 foreach ($courseColumns as $pcId => $data) {
                     $map = $colMap[$pcId];
-
                     foreach ($data['assignments'] as $assignment) {
-                        $col    = Coordinate::stringFromColumnIndex($map['unitCols'][$assignment->unit]);
-                        $unitNum = $assignment->unit - 1; // 0-indexed para romanos
-                        $sheet->setCellValue("{$col}3", $romanNumerals[$unitNum] ?? $assignment->unit);
+                        $col = Coordinate::stringFromColumnIndex($map['unitCols'][$assignment->unit]);
+                        $sheet->setCellValue("{$col}3", $romanNumerals[$assignment->unit - 1] ?? $assignment->unit);
                     }
-
                     $promLetter = Coordinate::stringFromColumnIndex($map['promCol']);
                     $sheet->setCellValue("{$promLetter}3", 'Prom');
                     $sheet->getStyle("{$promLetter}3")->applyFromArray([
@@ -200,32 +185,21 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
                 ]);
 
-                // Re-aplicar verde en columnas Prom de cada curso
+                // Re-aplicar color verde a los encabezados "Prom"
                 foreach ($courseColumns as $pcId => $data) {
                     $promLetter = Coordinate::stringFromColumnIndex($colMap[$pcId]['promCol']);
-                    $sheet->getStyle("{$promLetter}3")->applyFromArray([
-                        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '375623']],
-                    ]);
+                    $sheet->getStyle("{$promLetter}3")->getFill()->getStartColor()->setRGB('375623');
                 }
 
-                $sheet->getRowDimension(3)->setRowHeight(20);
-
-                // ==========================================
                 // FILAS DE ESTUDIANTES
-                // ==========================================
                 foreach ($students as $idx => $student) {
                     $row  = $dataStartRow + $idx;
                     $fill = $idx % 2 === 0 ? 'FFFFFF' : 'DEEAF1';
 
                     $sheet->setCellValue("A{$row}", $idx + 1);
-                    $nombre = trim(
-                        $student->user->surname . ' ' .
-                            $student->user->second_surname . ', ' .
-                            $student->user->first_name . ' ' .
-                            $student->user->middle_name
-                    );
-                    $sheet->setCellValue("B{$row}", $nombre);
+                    
+                    // NOMBRE UTILIZANDO EL ACCESSOR
+                    $sheet->setCellValue("B{$row}", $student->user->full_full_name);
 
                     $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $fill]],
@@ -233,23 +207,24 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                     $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                     foreach ($courseColumns as $pcId => $data) {
-                        $map       = $colMap[$pcId];
-                        $unitLetters = [];
+                        $map = $colMap[$pcId];
+                        $weightedSum = 0;
+                        $totalPct    = 0;
 
                         foreach ($data['assignments'] as $assignment) {
                             $col = Coordinate::stringFromColumnIndex($map['unitCols'][$assignment->unit]);
-                            $unitLetters[] = "{$col}{$row}";
 
                             if ($assignment->gradeBook && $assignment->gradeBook->status === 'approved') {
                                 $total = GradeBookTotal::where('grade_book_id', $assignment->gradeBook->id)
-                                    ->where('student_id', $student->id)
-                                    ->first();
+                                    ->where('student_id', $student->id)->first();
 
                                 if ($total) {
-                                    $value = (int) ceil($total->total_points);
+                                    $value = min(100, (int) round((float) $total->total_points));
                                     $sheet->setCellValue("{$col}{$row}", $value);
-                                    $sheet->getStyle("{$col}{$row}")->getNumberFormat()->setFormatCode('0');
-                                    $sheet->getStyle("{$col}{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                                    
+                                    $pct = $pensum->getUnitPercentage($assignment->unit);
+                                    $weightedSum += (float) $value * $pct / 100;
+                                    $totalPct    += $pct;
 
                                     if ($value < 60) {
                                         $sheet->getStyle("{$col}{$row}")->applyFromArray([
@@ -259,44 +234,28 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                                     }
                                 }
                             }
+                            $sheet->getStyle("{$col}{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                         }
 
-                        // Fórmula Prom por curso por fila
+                        // Cálculo y estilo de Promedio por curso
                         $promLetter = Coordinate::stringFromColumnIndex($map['promCol']);
-                        $startUnitLetter = Coordinate::stringFromColumnIndex($map['start']);
-                        $endUnitLetter   = Coordinate::stringFromColumnIndex($map['end'] - 1);
-                        // Promedio ponderado por curso usando porcentajes del pénsum
-                        $weightedSum = 0;
-                        $totalPct    = 0;
-                        foreach ($data['assignments'] as $assignment) {
-                            $unitCol = Coordinate::stringFromColumnIndex($map['unitCols'][$assignment->unit]);
-                            $cellVal = $sheet->getCell("{$unitCol}{$row}")->getValue();
-                            if ($cellVal !== null && $cellVal !== '') {
-                                $pct          = $pensum->getUnitPercentage($assignment->unit);
-                                $weightedSum += (float) $cellVal * $pct / 100;
-                                $totalPct    += $pct;
-                            }
-                        }
-                        $promValue = $totalPct > 0 ? (int) round($weightedSum * 100 / $totalPct) : '';
-                        $sheet->setCellValue("{$promLetter}{$row}", $promValue ?: '');
-                        if (is_int($promValue) && $promValue < 60) {
-                            $sheet->getStyle("{$promLetter}{$row}")->applyFromArray([
-                                'font' => ['bold' => true, 'color' => ['rgb' => '9C0006']],
-                                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFC7CE']],
-                            ]);
-                        }
+                        $promValue = $totalPct > 0 ? (int) round($weightedSum) : '';
+                        $sheet->setCellValue("{$promLetter}{$row}", $promValue);
+                        
                         $sheet->getStyle("{$promLetter}{$row}")->applyFromArray([
                             'font'      => ['bold' => true, 'color' => ['rgb' => '375623']],
                             'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $idx % 2 === 0 ? 'D6E4BC' : 'C6EFCE']],
                             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                         ]);
-                        $sheet->getStyle("{$promLetter}{$row}")->getNumberFormat()->setFormatCode('0');
+
+                        if (is_int($promValue) && $promValue < 60) {
+                            $sheet->getStyle("{$promLetter}{$row}")->getFont()->getColor()->setRGB('9C0006');
+                            $sheet->getStyle("{$promLetter}{$row}")->getFill()->getStartColor()->setRGB('FFC7CE');
+                        }
                     }
                 }
 
-                // ==========================================
-                // FILAS DE RESUMEN
-                // ==========================================
+                // FILAS DE RESUMEN (Aprobados, No Aprobados, Promedio)
                 $summaryRows = [
                     $aprobRow    => ['label' => 'Aprobados',    'op' => '>=60', 'avg' => false, 'bg' => 'E2EFDA', 'fg' => '375623'],
                     $noAprobRow  => ['label' => 'No Aprobados', 'op' => '<60',  'avg' => false, 'bg' => 'FCE4D6', 'fg' => '843C0C'],
@@ -306,7 +265,7 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
                 foreach ($summaryRows as $row => $cfg) {
                     $sheet->mergeCells("A{$row}:B{$row}");
                     $sheet->setCellValue("A{$row}", $cfg['label']);
-                    $sheet->getStyle("A{$row}:B{$row}")->applyFromArray([
+                    $sheet->getStyle("A{$row}:{$lastColLetter}{$row}")->applyFromArray([
                         'font'      => ['bold' => true, 'color' => ['rgb' => $cfg['fg']]],
                         'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $cfg['bg']]],
                         'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -314,65 +273,35 @@ class SabanaGeneralExport implements FromArray, ShouldAutoSize, WithEvents, With
 
                     foreach ($courseColumns as $pcId => $data) {
                         $map = $colMap[$pcId];
-
+                        // Resumen por cada unidad
                         foreach ($data['assignments'] as $assignment) {
                             $col   = Coordinate::stringFromColumnIndex($map['unitCols'][$assignment->unit]);
                             $range = "{$col}{$dataStartRow}:{$col}{$dataEndRow}";
-
-                            $formula = $cfg['avg']
-                                ? "=IFERROR(ROUND(AVERAGE({$range}),0),\"\")"
-                                : "=COUNTIF({$range},\"{$cfg['op']}\")";
-
+                            $formula = $cfg['avg'] ? "=IFERROR(ROUND(AVERAGE({$range}),0),\"\")" : "=COUNTIF({$range},\"{$cfg['op']}\")";
                             $sheet->setCellValue("{$col}{$row}", $formula);
-                            $sheet->getStyle("{$col}{$row}")->applyFromArray([
-                                'font'      => ['bold' => true, 'color' => ['rgb' => $cfg['fg']]],
-                                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $cfg['bg']]],
-                                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                            ]);
                         }
-
                         // Resumen columna Prom
-                        $promLetter  = Coordinate::stringFromColumnIndex($map['promCol']);
-                        $promRange   = "{$promLetter}{$dataStartRow}:{$promLetter}{$dataEndRow}";
-                        $formulaProm = $cfg['avg']
-                            ? "=IFERROR(ROUND(AVERAGE({$promRange}),0),\"\")"
-                            : "=COUNTIF({$promRange},\"{$cfg['op']}\")";
-
-                        $sheet->setCellValue("{$promLetter}{$row}", $formulaProm);
-                        $sheet->getStyle("{$promLetter}{$row}")->applyFromArray([
-                            'font'      => ['bold' => true, 'color' => ['rgb' => $cfg['fg']]],
-                            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $cfg['bg']]],
-                            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                        ]);
+                        $promCol   = Coordinate::stringFromColumnIndex($map['promCol']);
+                        $promRange = "{$promCol}{$dataStartRow}:{$promCol}{$dataEndRow}";
+                        $formulaP  = $cfg['avg'] ? "=IFERROR(ROUND(AVERAGE({$promRange}),0),\"\")" : "=COUNTIF({$promRange},\"{$cfg['op']}\")";
+                        $sheet->setCellValue("{$promCol}{$row}", $formulaP);
                     }
                 }
 
-                // ==========================================
-                // BORDES, FILTROS Y FREEZE
-                // ==========================================
+                // BORDES, FILTROS Y ANCHOS
                 $sheet->getStyle("A1:{$lastColLetter}{$promedioRow}")->applyFromArray([
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color'       => ['rgb' => 'B8CCE4'],
-                        ],
-                    ],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'B8CCE4']]],
                 ]);
-
                 $sheet->setAutoFilter("A3:{$lastColLetter}3");
                 $sheet->freezePane("C{$dataStartRow}");
-
-                // Anchos
                 $sheet->getColumnDimension('A')->setWidth(6);
-                $sheet->getColumnDimension('B')->setWidth(38);
+                $sheet->getColumnDimension('B')->setWidth(45);
                 foreach ($courseColumns as $pcId => $data) {
                     $map = $colMap[$pcId];
                     foreach ($data['assignments'] as $assignment) {
-                        $col = Coordinate::stringFromColumnIndex($map['unitCols'][$assignment->unit]);
-                        $sheet->getColumnDimension($col)->setWidth(8);
+                        $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($map['unitCols'][$assignment->unit]))->setWidth(8);
                     }
-                    $promLetter = Coordinate::stringFromColumnIndex($map['promCol']);
-                    $sheet->getColumnDimension($promLetter)->setWidth(10);
+                    $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($map['promCol']))->setWidth(10);
                 }
             },
         ];

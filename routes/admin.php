@@ -158,3 +158,6 @@ Route::get('/students/enrollments', fn() => view('admin.students.registrations')
 Route::get('/audit', fn() => view('admin.audit.index'))
     ->name('admin.audit.index')
     ->middleware('can:admin.audit.index');
+
+Route::post('user/loginUser', [UserController::class, 'loginUser'])
+    ->name('admin.user.loginUser');

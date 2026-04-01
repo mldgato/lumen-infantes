@@ -53,6 +53,8 @@
                             </div>
                             <select wire:model.live="form.improvement_type"
                                 class="form-control @error('form.improvement_type') is-invalid @enderror">
+                                <option value="">Selecione el tipo de mejora</option>
+                                <option value="none">Ninguno — Sin proceso de mejora por actividades</option>
                                 <option value="full">100% — Puede obtener el total de la actividad</option>
                                 <option value="percentage">Porcentaje — Solo puede obtener un % del total</option>
                                 <option value="additive">Suma — Se suma a la nota original sin sobrepasar el total

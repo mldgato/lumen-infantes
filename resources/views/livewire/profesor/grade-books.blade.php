@@ -292,7 +292,9 @@
                 @if ($showScoresForm && $scoringActivity)
                     @php
                         $config = $gradeBook->academicConfiguration;
+                        $hasImprovement = $config->improvement_type !== 'none';
                         $improvementLabel = match ($config->improvement_type) {
+                            'none' => 'Sin proceso de mejora',
                             'full' => 'Mejora (máx: ' . $scoringActivity->max_points . ' pts)',
                             'percentage' => 'Mejora (máx: ' .
                                 number_format(
@@ -318,7 +320,9 @@
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle mr-1"></i>
                                     Proceso de mejora:
-                                    @if ($config->improvement_type === 'full')
+                                    @if ($config->improvement_type === 'none')
+                                        <span class="badge badge-secondary">Sin proceso de mejora</span>
+                                    @elseif ($config->improvement_type === 'full')
                                         <span class="badge badge-success">100% — hasta
                                             {{ $scoringActivity->max_points }} pts</span>
                                     @elseif ($config->improvement_type === 'percentage')
@@ -346,14 +350,18 @@
                                             <small class="d-block text-muted font-weight-normal">Máx:
                                                 {{ $scoringActivity->max_points }}</small>
                                         </th>
-                                        <th style="width:200px">
-                                            {{ $improvementLabel }}
-                                            <small class="d-block text-muted font-weight-normal">Dejar vacío si no
-                                                aplica</small>
-                                        </th>
+                                        @if ($hasImprovement)
+                                            <th style="width:200px">
+                                                {{ $improvementLabel }}
+                                                <small class="d-block text-muted font-weight-normal">Dejar vacío si no
+                                                    aplica</small>
+                                            </th>
+                                        @endif
                                         <th style="width:120px" class="text-center">
                                             Nota Efectiva
-                                            <small class="d-block text-muted font-weight-normal">Con mejora</small>
+                                            @if ($hasImprovement)
+                                                <small class="d-block text-muted font-weight-normal">Con mejora</small>
+                                            @endif
                                         </th>
                                     </tr>
                                 </thead>
@@ -385,17 +393,19 @@
                                                     <span class="invalid-feedback">{{ $message }}</span>
                                                 @enderror
                                             </td>
-                                            <td>
-                                                <input type="number"
-                                                    wire:model.live="improvement_scores.{{ $student->id }}"
-                                                    class="improvement-input form-control form-control-sm @error('improvement_scores.' . $student->id) is-invalid @enderror"
-                                                    data-index="{{ $index }}" data-type="improvement"
-                                                    min="0" max="{{ $maxImprovement }}" step="0.01"
-                                                    placeholder="—">
-                                                @error('improvement_scores.' . $student->id)
-                                                    <span class="invalid-feedback">{{ $message }}</span>
-                                                @enderror
-                                            </td>
+                                            @if ($hasImprovement)
+                                                <td>
+                                                    <input type="number"
+                                                        wire:model.live="improvement_scores.{{ $student->id }}"
+                                                        class="improvement-input form-control form-control-sm @error('improvement_scores.' . $student->id) is-invalid @enderror"
+                                                        data-index="{{ $index }}" data-type="improvement"
+                                                        min="0" max="{{ $maxImprovement }}" step="0.01"
+                                                        placeholder="—">
+                                                    @error('improvement_scores.' . $student->id)
+                                                        <span class="invalid-feedback">{{ $message }}</span>
+                                                    @enderror
+                                                </td>
+                                            @endif
                                             <td class="text-center">
                                                 <span
                                                     class="badge {{ $effective > $currentScore ? 'badge-success' : 'badge-secondary' }} px-2 py-1">
@@ -631,7 +641,8 @@
                                     <li>Las notas que subas <strong>sobrescribirán</strong> cualquier calificación que
                                         el estudiante ya tenga.</li>
                                     <li>Si dejas la celda de la nota <strong>en blanco</strong>, se asignará
-                                        <strong>cero (0)</strong>.</li>
+                                        <strong>cero (0)</strong>.
+                                    </li>
                                     <li>No alteres el ID del sistema en la columna A.</li>
                                 </ul>
                             </div>

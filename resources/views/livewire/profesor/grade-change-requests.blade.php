@@ -327,7 +327,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-bordered mb-3">
+                    <table class="table table-bordered table-striped table-hover mb-3">
                         <thead class="thead-light">
                             <tr>
                                 <th style="min-width:200px">Estudiante</th>
@@ -360,7 +360,7 @@
                                                     max="{{ $activity->max_points }}" step="0.01"
                                                     oninput="if(parseFloat(this.value) > {{ $activity->max_points }}) this.value = {{ $activity->max_points }}; if(parseFloat(this.value) < 0) this.value = 0;">
                                             </div>
-                                            @if ($config && $config->improvement_type !== null)
+                                            @if ($config && $config->improvement_type !== 'none')
                                                 <div>
                                                     <small class="text-muted d-block">Mejora</small>
                                                     <input type="number"

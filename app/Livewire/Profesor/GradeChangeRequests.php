@@ -124,13 +124,14 @@ class GradeChangeRequests extends Component
         // Initialize scores with current values
         $this->scores = [];
         $activities   = $this->selectedGradeBook->activities;
+        $hasImprovement = $this->selectedGradeBook->academicConfiguration->improvement_type !== 'none';
 
         foreach ($this->selectedStudents as $studentId) {
             foreach ($activities as $activity) {
                 $score = $activity->scores->firstWhere('student_id', $studentId);
                 $this->scores[$studentId][$activity->id] = [
                     'score'             => $score ? (float) $score->score : 0,
-                    'improvement_score' => $score ? $score->improvement_score : null,
+                    'improvement_score' => ($hasImprovement && $score) ? $score->improvement_score : null,
                 ];
             }
         }
@@ -157,12 +158,11 @@ class GradeChangeRequests extends Component
         // Validar que los scores no superen el máximo de cada actividad
         $activities = $this->selectedGradeBook->activities;
         $config     = $this->selectedGradeBook->academicConfiguration;
+        $hasImprovement = $config->improvement_type !== 'none';
 
         foreach ($this->selectedStudents as $studentId) {
             foreach ($activities as $activity) {
                 $newScore       = (float) ($this->scores[$studentId][$activity->id]['score'] ?? 0);
-                $newImprovement = $this->scores[$studentId][$activity->id]['improvement_score'] ?? null;
-                $newImprovement = $newImprovement !== '' ? (float) $newImprovement : null;
                 $maxPoints      = (float) $activity->max_points;
 
                 if ($newScore < 0 || $newScore > $maxPoints) {
@@ -171,12 +171,17 @@ class GradeChangeRequests extends Component
                     return;
                 }
 
-                if (! is_null($newImprovement) && $newImprovement > 0) {
-                    $maxImprovement = $config->maxImprovementScore($newScore, $maxPoints);
-                    if ($newImprovement < 0 || $newImprovement > $maxImprovement) {
-                        $studentName = Student::with('user')->find($studentId)?->user->name ?? "Estudiante #{$studentId}";
-                        $this->addError('reason', "La mejora de \"{$activity->name}\" para {$studentName} no puede superar {$maxImprovement} puntos.");
-                        return;
+                if ($hasImprovement) {
+                    $newImprovement = $this->scores[$studentId][$activity->id]['improvement_score'] ?? null;
+                    $newImprovement = $newImprovement !== '' ? (float) $newImprovement : null;
+
+                    if (! is_null($newImprovement) && $newImprovement > 0) {
+                        $maxImprovement = $config->maxImprovementScore($newScore, $maxPoints);
+                        if ($newImprovement < 0 || $newImprovement > $maxImprovement) {
+                            $studentName = Student::with('user')->find($studentId)?->user->name ?? "Estudiante #{$studentId}";
+                            $this->addError('reason', "La mejora de \"{$activity->name}\" para {$studentName} no puede superar {$maxImprovement} puntos.");
+                            return;
+                        }
                     }
                 }
             }
@@ -194,10 +199,15 @@ class GradeChangeRequests extends Component
                 $oldScore       = $current ? (float) $current->score : 0;
                 $oldImprovement = $current ? $current->improvement_score : null;
                 $newScore       = (float) ($this->scores[$studentId][$activity->id]['score'] ?? 0);
-                $newImprovement = $this->scores[$studentId][$activity->id]['improvement_score'] ?? null;
-                $newImprovement = $newImprovement !== '' ? $newImprovement : null;
 
-                $scoreChanged      = round($oldScore, 2) !== round($newScore, 2);
+                if ($hasImprovement) {
+                    $newImprovement = $this->scores[$studentId][$activity->id]['improvement_score'] ?? null;
+                    $newImprovement = $newImprovement !== '' ? $newImprovement : null;
+                } else {
+                    $newImprovement = null; // Forzamos a null si no hay mejoras
+                }
+
+                $scoreChanged       = round($oldScore, 2) !== round($newScore, 2);
                 $improvementChanged = round((float) $oldImprovement, 2) !== round((float) $newImprovement, 2);
 
                 if ($scoreChanged || $improvementChanged) {

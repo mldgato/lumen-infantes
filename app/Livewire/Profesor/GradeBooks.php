@@ -213,6 +213,32 @@ class GradeBooks extends Component
             'ordering.required'         => 'El orden es obligatorio.',
         ]);
 
+        // Validación del límite de 100 puntos para actividades normales
+        $activityType = ActivityType::find($this->activity_type_id);
+
+        if ($activityType && !$activityType->is_extra) {
+            $currentNormalPoints = GradeBookActivity::where('grade_book_id', $this->gradeBook->id)
+                ->whereHas('activityType', function ($query) {
+                    $query->where('is_extra', false);
+                })
+                ->when($this->editingActivityId, function ($query) {
+                    $query->where('id', '!=', $this->editingActivityId);
+                })
+                ->sum('max_points');
+
+            $projectedTotal = $currentNormalPoints + (float) $this->max_points;
+
+            if ($projectedTotal > 100) {
+                $this->addError('max_points', "Excede los 100 puntos permitidos.");
+                $this->dispatch('showAlert', [
+                    'title'   => 'Límite excedido',
+                    'message' => "Las actividades normales no pueden sumar más de 100 puntos. Llevas {$currentNormalPoints} pts e intentas agregar {$this->max_points} pts.",
+                    'type'    => 'error',
+                ]);
+                return;
+            }
+        }
+
         // Validar límite de cantidad en modo asignado
         if ($this->configMode === 'assigned') {
             $configActivity = $this->gradeBook->academicConfiguration
@@ -301,30 +327,55 @@ class GradeBooks extends Component
     {
         $activity = GradeBookActivity::findOrFail($this->scoringActivityId);
         $config   = $this->gradeBook->academicConfiguration;
+        $hasImprovement = $config->improvement_type !== 'none';
 
+        $rules = [];
+        $messages = [];
+
+        // 1. Construir las reglas de validación para todos los estudiantes a la vez
         foreach ($this->scores as $studentId => $score) {
-            // Validar nota principal
-            $this->validate([
-                "scores.{$studentId}" => "required|numeric|min:0|max:{$activity->max_points}",
-            ], [
-                "scores.{$studentId}.max" => "La nota no puede superar {$activity->max_points} puntos.",
-                "scores.{$studentId}.min" => "La nota no puede ser negativa.",
+            $rules["scores.{$studentId}"] = "required|numeric|min:0|max:{$activity->max_points}";
+            $messages["scores.{$studentId}.required"] = "La nota es obligatoria.";
+            $messages["scores.{$studentId}.max"] = "La nota no puede superar {$activity->max_points} puntos.";
+            $messages["scores.{$studentId}.min"] = "La nota no puede ser negativa.";
+
+            if ($hasImprovement) {
+                $inputImprovement = $this->improvement_scores[$studentId] ?? null;
+
+                if (!is_null($inputImprovement) && $inputImprovement !== '' && $inputImprovement > 0) {
+                    $maxImprovement = $config->maxImprovementScore((float) $score, (float) $activity->max_points);
+
+                    $rules["improvement_scores.{$studentId}"] = "nullable|numeric|min:0|max:{$maxImprovement}";
+                    $messages["improvement_scores.{$studentId}.max"] = "La mejora no puede superar {$maxImprovement} puntos para este estudiante.";
+                    $messages["improvement_scores.{$studentId}.min"] = "La mejora no puede ser negativa.";
+                }
+            }
+        }
+
+        // 2. Ejecutar la validación global en un bloque Try-Catch
+        try {
+            $this->validate($rules, $messages);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Si la validación falla, disparamos el SweetAlert visible
+            $this->dispatch('showAlert', [
+                'title'   => 'Error en las notas',
+                'message' => 'Hay calificaciones o mejoras que superan el máximo permitido o tienen formato incorrecto. Revisa los campos en rojo.',
+                'type'    => 'error',
             ]);
 
-            // Validar mejora si fue ingresada
-            $improvementScore = $this->improvement_scores[$studentId] ?? null;
+            // Volvemos a lanzar la excepción para que Livewire pinte los inputs de rojo
+            throw $e;
+        }
 
-            if (!is_null($improvementScore) && $improvementScore !== '' && $improvementScore > 0) {
-                $maxImprovement = $config->maxImprovementScore((float) $score, (float) $activity->max_points);
+        // 3. Si todo está correcto, guardamos en base de datos
+        foreach ($this->scores as $studentId => $score) {
+            $improvementScore = null;
 
-                $this->validate([
-                    "improvement_scores.{$studentId}" => "nullable|numeric|min:0|max:{$maxImprovement}",
-                ], [
-                    "improvement_scores.{$studentId}.max" => "La mejora no puede superar {$maxImprovement} puntos para este estudiante.",
-                    "improvement_scores.{$studentId}.min" => "La mejora no puede ser negativa.",
-                ]);
-            } else {
-                $improvementScore = null;
+            if ($hasImprovement) {
+                $inputImprovement = $this->improvement_scores[$studentId] ?? null;
+                if (!is_null($inputImprovement) && $inputImprovement !== '' && $inputImprovement > 0) {
+                    $improvementScore = $inputImprovement;
+                }
             }
 
             GradeBookScore::updateOrCreate(

@@ -31,13 +31,17 @@ class MissingActivitiesAdminExport implements WithMultipleSheets
         $classroom = Classroom::find($classroomId);
         if (! $classroom) return;
 
+        // CONSULTA DE ESTUDIANTES ESTANDARIZADA
         $students = Student::whereHas(
             'enrollments',
             fn($q) =>
             $q->where('classroom_id', $classroomId)->where('status', 'Activo')
         )
             ->join('users', 'students.user_id', '=', 'users.id')
-            ->orderBy('users.surname')->orderBy('users.first_name')
+            ->orderBy('users.surname')
+            ->orderBy('users.second_surname')
+            ->orderBy('users.first_name')
+            ->orderBy('users.middle_name')
             ->select('students.*')->with('user')
             ->get();
 
@@ -56,7 +60,9 @@ class MissingActivitiesAdminExport implements WithMultipleSheets
             $activitiesCollection = $gradeBook->activities;
             if ($activitiesCollection->isEmpty()) continue;
 
-            $scoresByStudent = GradeBookScore::whereIn('grade_book_activity_id', $activitiesCollection->pluck('id'))
+            $activityIds = $activitiesCollection->pluck('id');
+
+            $scoresByStudent = GradeBookScore::whereIn('grade_book_activity_id', $activityIds)
                 ->get()
                 ->groupBy('student_id')
                 ->map(fn($g) => $g->keyBy('grade_book_activity_id'));
@@ -64,10 +70,13 @@ class MissingActivitiesAdminExport implements WithMultipleSheets
             $rows = [];
             foreach ($students->values() as $idx => $student) {
                 $studentScores = $scoresByStudent->get($student->id, collect());
+
+                // ASIGNACIÓN DE FILA CON ACCESSOR
                 $row = [
                     $idx + 1,
-                    trim($student->user->surname . ' ' . $student->user->second_surname . ', ' . $student->user->first_name . ' ' . $student->user->middle_name),
+                    $student->user->full_full_name,
                 ];
+
                 $missing = 0;
                 foreach ($activitiesCollection as $activity) {
                     $score = $studentScores->get($activity->id);
@@ -82,7 +91,6 @@ class MissingActivitiesAdminExport implements WithMultipleSheets
             $courseName  = $assignment->pensumCourse->course->course_name;
             $safeTitle   = substr(preg_replace('/[^A-Za-z0-9 ]/', '', $courseName), 0, 30);
 
-            // Necesitas cargar estos datos del classroom una vez
             $classroom->load(['grade', 'section', 'level']);
 
             $this->sheets[] = new MissingActivitiesSheet(

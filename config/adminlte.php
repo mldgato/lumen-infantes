@@ -303,9 +303,14 @@ return [
 
     'menu' => [
         [
-            'type'         => 'navbar-search',
-            'text'         => 'search',
-            'topnav_right' => false,
+            'type' => 'navbar-search',
+            'text' => 'Email del usuario',
+            'topnav_right' => true,
+            'route' => 'admin.user.loginUser',
+            'method' => 'post',
+            'input_name' => 'searchVal',
+            'id' => 'navbarSearch',
+            'can' => 'admin.user.loginUser',
         ],
         [
             'type'         => 'fullscreen-widget',

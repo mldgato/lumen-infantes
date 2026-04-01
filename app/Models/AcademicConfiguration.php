@@ -35,6 +35,7 @@ class AcademicConfiguration extends Model
     public function maxImprovementScore(float $score, float $maxPoints): float
     {
         return match ($this->improvement_type) {
+            'none'       => 0.0,
             'full'       => $maxPoints,
             'percentage' => round($maxPoints * ($this->improvement_percentage / 100), 2),
             'additive'   => max(0, $maxPoints - $score),
