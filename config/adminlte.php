@@ -552,6 +552,12 @@ return [
                     'icon'  => 'fas fa-fw fa-tasks',
                     'can'   => 'admin.reports.missing-activities',
                 ],
+                [
+                    'text'  => 'Asistencia',
+                    'route' => 'admin.reports.attendance.index',
+                    'icon'  => 'fas fa-fw fa-user-check',
+                    'can'   => 'admin.reports.attendance',
+                ],
             ],
         ],
 
@@ -595,6 +601,12 @@ return [
                     'route' => 'profesor.grade-change-requests.index',
                     'icon'  => 'fas fa-fw fa-edit',
                     'can'   => 'profesor.grade-change-requests.create',
+                ],
+                [
+                    'text'  => 'Asistencia',
+                    'route' => 'profesor.attendance.index',
+                    'icon'  => 'fas fa-fw fa-user-check',
+                    'can'   => 'profesor.attendance.index',
                 ],
             ],
         ],

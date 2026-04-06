@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Profesor\GradeBookController;
 use App\Http\Controllers\Profesor\GradeBookPdfController;
 use App\Http\Controllers\Profesor\ReportController;
+use App\Http\Controllers\Profesor\AttendancePdfController;
 
 Route::get('/grade-books', [GradeBookController::class, 'index'])
     ->name('profesor.grade-books.index')
@@ -73,3 +74,12 @@ Route::get('/reports/missing-activities', fn() => view('profesor.reports.missing
 Route::get('/reports/missing-activities/export', [ReportController::class, 'missingActivitiesExport'])
     ->name('profesor.reports.missing-activities.export')
     ->middleware('can:profesor.reports.missing-activities');
+
+
+Route::get('/attendance/', fn() => view('profesor.attendance.index'))
+    ->name('profesor.attendance.index')
+    ->middleware('can:profesor.attendance.index');
+
+Route::get('/attendance/pdf', [AttendancePdfController::class, 'generate'])
+    ->name('profesor.attendance.pdf')
+    ->middleware('can:profesor.attendance.index');

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\GradeBookController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\GradeBookPdfController;
 use App\Http\Controllers\Admin\ReportCardController;
+use App\Http\Controllers\Profesor\AttendancePdfController;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
@@ -170,3 +171,12 @@ Route::get('/reports/professor-courses/index', fn() => view('admin.reports.profe
 Route::get('/reports/professor-courses/download', [ReportController::class, 'professorCoursesExcel'])
     ->name('admin.reports.professor-courses.download')
     ->middleware('can:admin.reports.professor-courses');
+
+
+Route::get('/reports/attendance/', fn() => view('admin.reports.attendance.index'))
+    ->name('admin.reports.attendance.index')
+    ->middleware('can:admin.reports.attendance');
+
+Route::get('/reports/attendance/pdf', [AttendancePdfController::class, 'adminGenerate'])
+    ->name('admin.reports.attendance.pdf')
+    ->middleware('can:admin.reports.attendance');
