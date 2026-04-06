@@ -216,4 +216,19 @@ class ReportController extends Controller
 
         return \Maatwebsite\Excel\Facades\Excel::download($export, 'actividades_faltantes_aula_' . date('dmY') . '.xlsx');
     }
+
+    public function professorCoursesExcel(Request $request)
+    {
+        $request->validate([
+            'year' => 'required|integer',
+        ]);
+
+        $year     = $request->integer('year');
+        $fileName = "Profesores_Cursos_{$year}_" . date('dmY_His') . '.xlsx';
+
+        return Excel::download(
+            new \App\Exports\ProfessorCoursesExport($year),
+            $fileName
+        );
+    }
 }

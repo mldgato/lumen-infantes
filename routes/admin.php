@@ -161,3 +161,12 @@ Route::get('/audit', fn() => view('admin.audit.index'))
 
 Route::post('user/loginUser', [UserController::class, 'loginUser'])
     ->name('admin.user.loginUser');
+
+
+Route::get('/reports/professor-courses/index', fn() => view('admin.reports.professor-courses.index'))
+    ->name('admin.reports.professor-courses.index')
+    ->middleware('can:admin.reports.professor-courses');
+
+Route::get('/reports/professor-courses/download', [ReportController::class, 'professorCoursesExcel'])
+    ->name('admin.reports.professor-courses.download')
+    ->middleware('can:admin.reports.professor-courses');

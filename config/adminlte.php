@@ -532,6 +532,12 @@ return [
                             'icon'  => 'fas fa-file-excel',
                             'can'   => 'admin.reports.student-list-excel',
                         ],
+                        [
+                            'text'  => 'Profesores y Cursos',
+                            'route' => 'admin.reports.professor-courses.index',
+                            'icon'  => 'fas fa-file-excel',
+                            'can'   => 'admin.reports.professor-courses',
+                        ],
                     ],
                 ],
                 [
