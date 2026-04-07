@@ -82,6 +82,11 @@ class EnrollmentList extends Component
     // ==========================================
     public string $encargado_role = 'otro';
 
+    // ==========================================
+    // Requerir correo institucional
+    // ==========================================
+    public bool $requireInstitutionalEmail = true;
+
     public array $guardians = [
         'padre'     => ['enabled' => false, 'data' => []],
         'madre'     => ['enabled' => false, 'data' => []],
@@ -117,6 +122,7 @@ class EnrollmentList extends Component
 
     public function mount(): void
     {
+        $this->requireInstitutionalEmail = (bool) config('lumen.require_institutional_email', true);
         $this->resetGuardians();
     }
 
@@ -183,6 +189,13 @@ class EnrollmentList extends Component
                 'personal_code' => $u->student->personal_code ?? '—',
             ])
             ->toArray();
+    }
+
+    public function updatedPersonalEmail(string $value): void
+    {
+        if (! $this->requireInstitutionalEmail) {
+            $this->email = $value;
+        }
     }
 
     public function selectStudent(int $studentId, string $name): void
@@ -277,15 +290,12 @@ class EnrollmentList extends Component
 
     public function enrollNew(): void
     {
-        // 1. Reglas base del estudiante
         $rules = [
             'cui'           => 'required|string|max:20|unique:users,cui',
             'first_name'    => 'required|string|max:100',
             'surname'       => 'required|string|max:100',
             'birthdate'     => 'required|date',
             'gender'        => 'required|in:Masculino,Femenino',
-            'email'         => 'required|email|unique:users,email',
-            'password'      => 'required|string|min:6',
             'filterSection' => 'required',
         ];
 
@@ -296,13 +306,23 @@ class EnrollmentList extends Component
             'surname.required'       => 'El primer apellido es obligatorio.',
             'birthdate.required'     => 'La fecha de nacimiento es obligatoria.',
             'gender.required'        => 'El género es obligatorio.',
-            'email.required'         => 'El correo es obligatorio.',
-            'email.unique'           => 'El correo ya está en uso.',
-            'password.required'      => 'La contraseña es obligatoria.',
             'filterSection.required' => 'Seleccione un aula primero.',
         ];
 
-        // 2. Validación dinámica para Guardianes basada estrictamente en la base de datos
+        if ($this->requireInstitutionalEmail) {
+            $rules['email']    = 'required|email|unique:users,email';
+            $rules['password'] = 'required|string|min:6';
+
+            $messages['email.required']    = 'El correo institucional es obligatorio.';
+            $messages['email.unique']      = 'El correo institucional ya está en uso.';
+            $messages['password.required'] = 'La contraseña es obligatoria.';
+        } else {
+            $rules['personal_email'] = 'required|email|unique:users,email';
+
+            $messages['personal_email.required'] = 'El correo personal es obligatorio.';
+            $messages['personal_email.unique']   = 'Este correo personal ya está registrado.';
+        }
+
         foreach (['padre', 'madre', 'encargado'] as $key) {
             if ($this->guardians[$key]['enabled']) {
                 $rules["guardians.$key.data.first_name"]        = 'required|string';
@@ -333,40 +353,42 @@ class EnrollmentList extends Component
         $classroom = $this->getSelectedClassroom();
         if (! $classroom) return;
 
-        DB::transaction(function () use ($classroom) {
+        $resolvedEmail    = $this->requireInstitutionalEmail ? $this->email    : $this->personal_email;
+        $resolvedPassword = $this->requireInstitutionalEmail ? $this->password : 'password';
+
+        DB::transaction(function () use ($classroom, $resolvedEmail, $resolvedPassword) {
             $user = User::create([
-                'cui'            => $this->cui,
-                'first_name'     => $this->first_name,
-                'middle_name'    => $this->middle_name     ?: null,
-                'surname'        => $this->surname,
-                'second_surname' => $this->second_surname  ?: null,
-                'married_surname' => $this->married_surname ?: null,
-                'birthdate'      => $this->birthdate,
-                'gender'         => $this->gender,
-                'civil_status'   => $this->civil_status    ?: null,
-                'email'          => $this->email,
-                'personal_email' => $this->personal_email  ?: null,
-                'password'       => Hash::make($this->password),
-                'cellphone'      => $this->cellphone        ?: null,
-                'address'        => $this->address          ?: null,
-                'is_active'      => true,
+                'cui'             => $this->cui,
+                'first_name'      => $this->first_name,
+                'middle_name'     => $this->middle_name      ?: null,
+                'surname'         => $this->surname,
+                'second_surname'  => $this->second_surname   ?: null,
+                'married_surname' => $this->married_surname  ?: null,
+                'birthdate'       => $this->birthdate,
+                'gender'          => $this->gender,
+                'civil_status'    => $this->civil_status     ?: null,
+                'email'           => $resolvedEmail,
+                'personal_email'  => $this->personal_email   ?: null,
+                'password'        => Hash::make($resolvedPassword),
+                'cellphone'       => $this->cellphone         ?: null,
+                'address'         => $this->address           ?: null,
+                'is_active'       => true,
             ]);
 
             $user->assignRole('Estudiante');
 
             $student = Student::create([
                 'user_id'         => $user->id,
-                'carne'           => $this->carne         ?: null,
-                'personal_code'   => $this->personal_code ?: null,
+                'carne'           => $this->carne          ?: null,
+                'personal_code'   => $this->personal_code  ?: null,
                 'is_own_guardian' => $this->is_own_guardian,
             ]);
 
-            // Ficha médica
             MedicalRecord::create([
                 'user_id'                => $user->id,
-                'blood_type'             => $this->blood_type            ?: null,
-                'weight'                 => $this->weight                ?: null,
-                'height'                 => $this->height                ?: null,
+                'blood_type'             => $this->blood_type             ?: null,
+                'weight'                 => $this->weight                 ?: null,
+                'height'                 => $this->height                 ?: null,
                 'takes_medication'       => $this->takes_medication,
                 'medication_description' => $this->takes_medication ? ($this->medication_description ?: null) : null,
                 'has_disease'            => $this->has_disease,
@@ -377,7 +399,6 @@ class EnrollmentList extends Component
                 'surgery_description'    => $this->had_surgery    ? ($this->surgery_description    ?: null) : null,
             ]);
 
-            // Guardianes
             $relationshipMap = [
                 'padre'     => 'Papá',
                 'madre'     => 'Mamá',
@@ -387,26 +408,23 @@ class EnrollmentList extends Component
             foreach ($this->guardians as $key => $guardian) {
                 if (! $guardian['enabled']) continue;
                 $d = $guardian['data'];
-                // Ya no necesitamos el if (empty()) aquí porque la validación de arriba nos garantiza que vienen llenos
 
-                $guardianModel = null;
-
-                if (!empty($d['cui'])) {
-                    $guardianModel = Guardian::where('cui', $d['cui'])->first();
-                }
+                $guardianModel = ! empty($d['cui'])
+                    ? Guardian::where('cui', $d['cui'])->first()
+                    : null;
 
                 if (! $guardianModel) {
                     $guardianModel = Guardian::create([
                         'first_name'        => $d['first_name'],
                         'last_name'         => $d['last_name'],
                         'birthplace'        => $d['birthplace']        ?: null,
-                        'birthdate'         => $d['birthdate'], // Requerido
-                        'nationality'       => $d['nationality'], // Requerido
-                        'cui'               => $d['cui'], // Requerido
-                        'cui_extended_in'   => $d['cui_extended_in'], // Requerido
-                        'profession'        => $d['profession'], // Requerido
-                        'residence_address' => $d['residence_address'], // Requerido
-                        'phone'             => $d['phone'], // Requerido
+                        'birthdate'         => $d['birthdate'],
+                        'nationality'       => $d['nationality'],
+                        'cui'               => $d['cui'],
+                        'cui_extended_in'   => $d['cui_extended_in'],
+                        'profession'        => $d['profession'],
+                        'residence_address' => $d['residence_address'],
+                        'phone'             => $d['phone'],
                         'email'             => $d['email']             ?: null,
                         'company_name'      => $d['company_name']      ?: null,
                         'company_address'   => $d['company_address']   ?: null,

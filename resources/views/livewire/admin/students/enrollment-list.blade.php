@@ -397,17 +397,31 @@
                                         </div>
                                     </div>
                                     <div class="col-md-4 form-group mb-2">
-                                        <label class="text-sm mb-1">Correo Institucional <span
-                                                class="text-danger">*</span></label>
+                                        <label class="text-sm mb-1">
+                                            Correo Institucional
+                                            @if ($requireInstitutionalEmail)
+                                                <span class="text-danger">*</span>
+                                            @else
+                                                <span class="badge badge-secondary ml-1"
+                                                    style="font-size:0.7rem">Auto</span>
+                                            @endif
+                                        </label>
                                         <div class="input-group input-group-sm">
-                                            <div class="input-group-prepend"><span class="input-group-text"><i
-                                                        class="fas fa-envelope"></i></span></div>
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                            </div>
                                             <input type="email" wire:model="email"
-                                                class="form-control @error('email') is-invalid @enderror">
+                                                class="form-control @error('email') is-invalid @enderror"
+                                                @if (!$requireInstitutionalEmail) readonly @endif>
                                         </div>
                                         @error('email')
                                             <span class="text-danger small">{{ $message }}</span>
                                         @enderror
+                                        @if (!$requireInstitutionalEmail)
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i>Se usará el correo personal.
+                                            </small>
+                                        @endif
                                     </div>
                                     <div class="col-md-4 form-group mb-2">
                                         <label class="text-sm mb-1">Correo Personal</label>
@@ -417,19 +431,37 @@
                                             <input type="email" wire:model="personal_email" class="form-control">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 form-group mb-2">
-                                        <label class="text-sm mb-1">Contraseña <span
-                                                class="text-danger">*</span></label>
-                                        <div class="input-group input-group-sm">
-                                            <div class="input-group-prepend"><span class="input-group-text"><i
-                                                        class="fas fa-lock"></i></span></div>
-                                            <input type="password" wire:model="password"
-                                                class="form-control @error('password') is-invalid @enderror">
+                                    @if ($requireInstitutionalEmail)
+                                        <div class="col-md-4 form-group mb-2">
+                                            <label class="text-sm mb-1">Contraseña <span
+                                                    class="text-danger">*</span></label>
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                                </div>
+                                                <input type="password" wire:model="password"
+                                                    class="form-control @error('password') is-invalid @enderror">
+                                            </div>
+                                            @error('password')
+                                                <span class="text-danger small">{{ $message }}</span>
+                                            @enderror
                                         </div>
-                                        @error('password')
-                                            <span class="text-danger small">{{ $message }}</span>
-                                        @enderror
-                                    </div>
+                                    @else
+                                        <div class="col-md-4 form-group mb-2">
+                                            <label class="text-sm mb-1">Contraseña</label>
+                                            <div class="input-group input-group-sm">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                                </div>
+                                                <input type="password" class="form-control" value="password"
+                                                    readonly>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i>Contraseña por defecto:
+                                                <code>password</code>
+                                            </small>
+                                        </div>
+                                    @endif
                                     <div class="col-12 form-group mb-2">
                                         <label class="text-sm mb-1">Dirección</label>
                                         <div class="input-group input-group-sm">
