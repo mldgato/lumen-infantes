@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\EnsurePasswordIsChanged;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -28,7 +29,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'force.password.change' => EnsurePasswordIsChanged::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'reauth',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(function (TokenMismatchException $e, $request) {
+            if (! $request->expectsJson()) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('reauth_required', true);
+            }
+        });
     })->create();

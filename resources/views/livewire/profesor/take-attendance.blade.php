@@ -394,7 +394,7 @@
 
                 Livewire.on('downloadAttendancePdf', (event) => {
                     let payload = event[0] || event;
-                    window.location.href = payload.url;
+                    window.open(payload.url, '_blank');
                 });
 
                 Livewire.on('scrollToForm', () => {

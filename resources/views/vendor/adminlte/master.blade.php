@@ -31,7 +31,7 @@
     @yield('adminlte_css_pre')
 
     {{-- Base Stylesheets (depends on Laravel asset bundling tool) --}}
-    @if(config('adminlte.enabled_laravel_mix', false))
+    @if (config('adminlte.enabled_laravel_mix', false))
         <link rel="stylesheet" href="{{ mix(config('adminlte.laravel_mix_css_path', 'css/app.css')) }}">
     @else
         @switch(config('adminlte.laravel_asset_bundling', false))
@@ -52,8 +52,9 @@
                 <link rel="stylesheet" href="{{ asset('vendor/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
                 <link rel="stylesheet" href="{{ asset('vendor/adminlte/dist/css/adminlte.min.css') }}">
 
-                @if(config('adminlte.google_fonts.allowed', true))
-                    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
+                @if (config('adminlte.google_fonts.allowed', true))
+                    <link rel="stylesheet"
+                        href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
                 @endif
         @endswitch
     @endif
@@ -62,8 +63,8 @@
     @include('adminlte::plugins', ['type' => 'css'])
 
     {{-- Livewire Styles --}}
-    @if(config('adminlte.livewire'))
-        @if(intval(app()->version()) >= 7)
+    @if (config('adminlte.livewire'))
+        @if (intval(app()->version()) >= 7)
             @livewireStyles
         @else
             <livewire:styles />
@@ -74,7 +75,7 @@
     @yield('adminlte_css')
 
     {{-- Favicon --}}
-    @if(config('adminlte.use_ico_only'))
+    @if (config('adminlte.use_ico_only'))
         <link rel="shortcut icon" href="{{ asset('favicons/favicon.ico') }}" />
     @elseif(config('adminlte.use_full_favicon'))
         <link rel="shortcut icon" href="{{ asset('favicons/favicon.ico') }}" />
@@ -104,7 +105,7 @@
     @yield('body')
 
     {{-- Base Scripts (depends on Laravel asset bundling tool) --}}
-    @if(config('adminlte.enabled_laravel_mix', false))
+    @if (config('adminlte.enabled_laravel_mix', false))
         <script src="{{ mix(config('adminlte.laravel_mix_js_path', 'js/app.js')) }}"></script>
     @else
         @switch(config('adminlte.laravel_asset_bundling', false))
@@ -128,13 +129,125 @@
     @include('adminlte::plugins', ['type' => 'js'])
 
     {{-- Livewire Script --}}
-    @if(config('adminlte.livewire'))
-        @if(intval(app()->version()) >= 7)
+    @if (config('adminlte.livewire'))
+        @if (intval(app()->version()) >= 7)
             @livewireScripts
         @else
             <livewire:scripts />
         @endif
     @endif
+
+    {{-- Modal re-autenticación --}}
+    @include('partials.reauth-modal')
+
+    {{-- Disparar modal si venimos de un redirect por 419 --}}
+    @if (session('reauth_required'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => showReauthModal());
+        </script>
+    @endif
+
+    {{-- Script re-autenticación --}}
+    @auth
+        <script>
+            (function() {
+                const authEmail = @json(auth()->user()->email);
+
+                function showReauthModal() {
+                    document.getElementById('reauthEmail').value = authEmail;
+                    document.getElementById('reauthPassword').value = '';
+                    document.getElementById('reauthError').classList.add('d-none');
+                    document.getElementById('reauthError').textContent = '';
+                    $('#reauthModal').modal('show');
+                    setTimeout(() => document.getElementById('reauthPassword').focus(), 400);
+                }
+
+                async function submitReauth() {
+                    const password = document.getElementById('reauthPassword').value;
+                    const errorEl = document.getElementById('reauthError');
+                    const btnText = document.getElementById('reauthBtnText');
+                    const btnLoad = document.getElementById('reauthBtnLoading');
+
+                    if (!password) {
+                        errorEl.textContent = 'Ingresa tu contraseña.';
+                        errorEl.classList.remove('d-none');
+                        return;
+                    }
+
+                    btnText.classList.add('d-none');
+                    btnLoad.classList.remove('d-none');
+                    errorEl.classList.add('d-none');
+
+                    try {
+                        const response = await fetch('/reauth', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                password
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            errorEl.textContent = data.message ?? 'Error al verificar.';
+                            errorEl.classList.remove('d-none');
+                            document.getElementById('reauthPassword').focus();
+                        }
+                    } catch (e) {
+                        errorEl.textContent = 'Error de conexión. Intenta de nuevo.';
+                        errorEl.classList.remove('d-none');
+                    } finally {
+                        btnText.classList.remove('d-none');
+                        btnLoad.classList.add('d-none');
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.getElementById('reauthSubmit').addEventListener('click', submitReauth);
+                    document.getElementById('reauthPassword').addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') submitReauth();
+                    });
+                });
+
+                // Interceptar 419 de Livewire 4
+                document.addEventListener('livewire:init', function() {
+                    Livewire.hook('request', ({
+                        fail
+                    }) => {
+                        fail(({
+                            status,
+                            preventDefault
+                        }) => {
+                            if (status === 419) {
+                                preventDefault();
+                                showReauthModal();
+                            }
+                        });
+                    });
+                });
+
+                // Interceptar 419 en fetch normales
+                const _fetch = window.fetch;
+                window.fetch = async function(...args) {
+                    const response = await _fetch(...args);
+                    if (response.status === 419) {
+                        showReauthModal();
+                        return response;
+                    }
+                    return response;
+                };
+
+                window.showReauthModal = showReauthModal;
+            })
+            ();
+        </script>
+    @endauth
 
     {{-- Custom Scripts --}}
     @yield('adminlte_js')

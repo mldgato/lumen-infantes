@@ -257,7 +257,7 @@
             document.addEventListener('livewire:init', () => {
                 Livewire.on('downloadAttendancePdfAdmin', (event) => {
                     let payload = event[0] || event;
-                    window.location.href = payload.url;
+                    window.open(payload.url, '_blank');
                 });
             });
         </script>
