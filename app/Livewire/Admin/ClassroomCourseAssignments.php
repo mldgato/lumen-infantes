@@ -153,14 +153,12 @@ class ClassroomCourseAssignments extends Component
             return;
         }
 
-        // Classrooms a los que se aplicará (el actual + los seleccionados)
         $classroomIds = array_merge(
             [$this->managingClassroomId],
             $this->selectedClassrooms
         );
 
         foreach ($classroomIds as $classroomId) {
-            // Consultar las asignaciones actuales de cada classroom para no sobrescribir las bloqueadas
             $existingAssignments = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
                 ->where('classroom_id', $classroomId)
                 ->get()
@@ -170,35 +168,34 @@ class ClassroomCourseAssignments extends Component
 
             foreach ($this->assignments as $pensumCourseId => $units) {
                 foreach ($units as $unit => $professorId) {
-                    $key = $pensumCourseId . '_' . $unit;
+                    $key      = $pensumCourseId . '_' . $unit;
                     $existing = $existingAssignments->get($key);
 
-                    // Si la asignación existe y ya tiene GradeBook, la ignoramos (está protegida)
-                    if ($existing && $existing->gradeBook) {
-                        continue;
-                    }
-
                     if (!$professorId) {
-                        // Si no hay profesor seleccionado, eliminar la asignación si existía
+                        // Si no hay profesor y la asignación existe pero tiene GradeBook, no se puede borrar
                         if ($existing) {
+                            if ($existing->gradeBook) {
+                                continue; // No se puede dejar vacía una asignación con cuadro activo
+                            }
                             $oldProfId = $existing->professor_id;
                             $existing->delete();
-
                             $this->logAudit('deleted', $existing, ['professor_id' => $oldProfId], null, 'Asignación eliminada');
                         }
                         continue;
                     }
 
                     if ($existing) {
-                        // Si la asignación ya existía pero es un profesor diferente, actualizamos
                         if ($existing->professor_id != $professorId) {
                             $oldProfId = $existing->professor_id;
                             $existing->update(['professor_id' => $professorId]);
 
-                            $this->logAudit('updated', $existing, ['professor_id' => $oldProfId], ['professor_id' => $professorId], 'Asignación de profesor modificada');
+                            $description = $existing->gradeBook
+                                ? 'Profesor modificado (cuadro de calificaciones transferido al nuevo profesor)'
+                                : 'Asignación de profesor modificada';
+
+                            $this->logAudit('updated', $existing, ['professor_id' => $oldProfId], ['professor_id' => $professorId], $description);
                         }
                     } else {
-                        // Si no existía, creamos una nueva
                         $newAssignment = ClassroomCourseAssignment::create([
                             'classroom_id'     => $classroomId,
                             'pensum_course_id' => $pensumCourseId,
@@ -225,7 +222,6 @@ class ClassroomCourseAssignments extends Component
 
         $this->dispatch('closeModal', ['modalId' => 'AssignmentsModal']);
 
-        // Recargar asignaciones del classroom actual
         $this->manageAssignments($this->managingClassroomId);
     }
 
