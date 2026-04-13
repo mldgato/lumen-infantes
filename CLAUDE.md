@@ -1,273 +1,424 @@
-<laravel-boost-guidelines>
-=== foundation rules ===
+# EduCheck — CLAUDE.md
 
-# Laravel Boost Guidelines
+## Descripción del proyecto
+EduCheck es un sistema de gestión escolar desarrollado como proyecto de tesis para la
+Licenciatura en Enseñanza de la Computación e Informática, EFPEM, Universidad de San
+Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martínez Rojas.
 
-The Laravel Boost guidelines are specifically curated by Laravel maintainers for this application. These guidelines should be followed closely to ensure the best experience when building Laravel applications.
+## Stack tecnológico
+- PHP 8.3 / Laravel 12 / Livewire 4
+- AdminLTE v3.15.3 / Bootstrap 4 (no Tailwind en vistas existentes)
+- Spatie Permission v7 / Laravel Fortify v1
+- FPDF (helper personalizado en `app/Helpers/PDF.php`)
+- Maatwebsite Excel v3.1
+- SweetAlert2 / Chart.js v4.4.0
+- MySQL / Session driver: database / Queue driver: database
 
-## Foundational Context
+## Versión actual
+v1.6.0
 
-This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
+## Variables de entorno clave
+- `APP_NAME=Lumen` — nunca debe cambiar
+- `APP_INSTITUTION_NAME="Instituto Clemente Martínez Rojas"` — nombre visible en UI
+- `APP_INSTITUTION_LOGO_IMG="vendor/adminlte/dist/img/Escudo.png"`
+- `REQUIRE_INSTITUTIONAL_EMAIL=false`
+- `APP_LOCALE=es_GT` / `APP_FALLBACK_LOCALE=es`
+- `DB_CONNECTION=mysql`
+- `MAIL_MAILER=log` (desarrollo), SMTP en producción
 
-- php - 8.3.30
-- laravel/fortify (FORTIFY) - v1
-- laravel/framework (LARAVEL) - v12
-- laravel/prompts (PROMPTS) - v0
-- livewire/flux (FLUXUI_FREE) - v2
-- livewire/livewire (LIVEWIRE) - v4
-- laravel/mcp (MCP) - v0
-- laravel/pint (PINT) - v1
-- laravel/sail (SAIL) - v1
-- pestphp/pest (PEST) - v4
-- phpunit/phpunit (PHPUNIT) - v12
-- tailwindcss (TAILWINDCSS) - v4
+## Convenciones de código
+- Código PHP/Laravel: **inglés** (clases, métodos, variables, rutas, archivos)
+- Textos de usuario: **español** (labels, validaciones, PDFs, alertas, mensajes)
+- Siempre usar `use` imports, nunca rutas inline (`\Namespace\Class`)
+- Siempre llaves en estructuras de control, incluso para cuerpos de una sola línea
+- PHPDoc blocks sobre comentarios inline; nunca comentarios dentro del código salvo lógica excepcionalmente compleja
+- Constructor property promotion en PHP 8: `public function __construct(public Foo $foo) {}`
+- Casts definidos en método `casts(): array` (no en propiedad `$casts`)
+- Enums con keys en TitleCase
+- Return types explícitos en todos los métodos
 
-## Skills Activation
+## Estructura de rutas
+- `routes/web.php` — login, dashboard, profile, reauth
+- `routes/admin.php` — todas las rutas del administrador
+- `routes/profesor.php` — todas las rutas del profesor
+- `routes/settings.php` — configuración de perfil/contraseña/2FA
+- Middleware de permisos: `can:nombre.del.permiso`
+- Middleware personalizado: `force.password.change` → `EnsurePasswordIsChanged`
+- Registro de rutas y middleware en `bootstrap/app.php`
 
-This project has domain-specific skills available. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+## Roles del sistema
+1. Super Administrador (`$role1`)
+2. Administrador (`$role2`)
+3. Secretaria (`$role3`)
+4. Profesor (`$role4`)
+5. Estudiante (`$role5`)
 
-- `fluxui-development` — Develops UIs with Flux UI Free components. Activates when creating buttons, forms, modals, inputs, dropdowns, checkboxes, or UI components; replacing HTML form elements with Flux; working with flux: components; or when the user mentions Flux, component library, UI components, form fields, or asks about available Flux components.
-- `livewire-development` — Develops reactive Livewire 4 components. Activates when creating, updating, or modifying Livewire components; working with wire:model, wire:click, wire:loading, or any wire: directives; adding real-time updates, loading states, or reactivity; debugging component behavior; writing Livewire tests; or when the user mentions Livewire, component, counter, or reactive UI.
-- `pest-testing` — Tests applications using the Pest 4 PHP framework. Activates when writing tests, creating unit or feature tests, adding assertions, testing Livewire components, browser testing, debugging test failures, working with datasets or mocking; or when the user mentions test, spec, TDD, expects, assertion, coverage, or needs to verify functionality works.
-- `tailwindcss-development` — Styles applications using Tailwind CSS v4 utilities. Activates when adding styles, restyling components, working with gradients, spacing, layout, flex, grid, responsive design, dark mode, colors, typography, or borders; or when the user mentions CSS, styling, classes, Tailwind, restyle, hero section, cards, buttons, or any visual/UI changes.
-- `developing-with-fortify` — Laravel Fortify headless authentication backend development. Activate when implementing authentication features including login, registration, password reset, email verification, two-factor authentication (2FA/TOTP), profile updates, headless auth, authentication scaffolding, or auth guards in Laravel applications.
+Permisos con convención `admin.recurso.accion` y `profesor.recurso.accion`.
+Livewire components validan con `$this->authorize('permiso')`.
 
-## Conventions
+## Autenticación
+- **Laravel Fortify** para: login, register, reset password, 2FA (TOTP)
+- **FortifyServiceProvider** configura actions, vistas y rate limiting (5 intentos/min)
+- **Custom Notification:** `app/Notifications/ResetPasswordNotification.php`
+- **Plantilla email reset:** `resources/views/emails/reset-password.blade.php`
+- **Forced Password Change:** middleware `EnsurePasswordIsChanged` + componente Livewire
+  - Redirige a `/forzar-cambio-clave` si `users.must_change_password = true`
+- **Re-autenticación:** ruta `POST /reauth` para sesiones expiradas (v1.5.0)
+- **Session:** database driver, lifetime 120 min
 
-- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
-- Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
-- Check for existing components to reuse before writing a new one.
+## Módulos implementados
 
-## Verification Scripts
+### Administración
+- Gestión de usuarios, roles y permisos (Spatie)
+- Inscripciones de estudiantes (con guardianes y ficha médica)
+- Cuadros de calificaciones (actividades, scores, mejoras, totales)
+- Flujo de aprobación/rechazo de cuadros
+- Solicitudes de cambio de notas
+- Dashboard con gráficos (Chart.js)
+- Reportes PDF y Excel (sábanas, boletas, cuadros, listados, actividades no entregadas)
+- Auditoría general de eventos
+- Configuración académica por ciclo escolar
 
-- Do not create verification scripts or tinker when tests cover that functionality and prove they work. Unit and feature tests are more important.
+### Profesor
+- Mis Cuadros (crear actividades, calificar, bloquear, reabrir)
+- Solicitar cambio de notas
+- Toma de asistencia diaria con historial
+- Reportes: acumulado, cuadros por unidad, cuadro vacío, listados PDF/Excel, actividades no entregadas
 
-## Application Structure & Architecture
+### Autenticación
+- Login / Forgot Password / Reset Password en estilo AdminLTE
+- Correo de reset con plantilla HTML personalizada
+- `must_change_password` en tabla users — middleware implementado y funcional (v1.5.0)
 
-- Stick to existing directory structure; don't create new base folders without approval.
-- Do not change the application's dependencies without approval.
+## Modelos principales (app/Models/)
 
-## Frontend Bundling
+### Usuarios y personas
+- `User` — autenticación + `HasRoles` (Spatie) + `TwoFactorAuthenticatable` (Fortify)
+  - Fillable: cui, first_name, second_name, first_surname, second_surname, marital_status, birthdate, gender, email, password, phone, address, is_active, must_change_password
+  - Relaciones: `hasOne(Student)`, `hasOne(Professor)`, `hasOne(MedicalRecord)`, `morphOne(Image)`, `hasMany(AuditLog)`
+  - Accessors: `getAgeAttribute()`, `initials()`, `getFullFullNameAttribute()`
+- `Student` — carne, personal_code, is_own_guardian
+  - Relaciones: `belongsTo(User)`, `belongsToMany(Guardian)` con pivot `relationship_type`, `hasMany(StudentEnrollment)`, `hasMany(GradeBookScore)`, `hasMany(GradeBookTotal)`
+- `Professor` — hire_date, nit, teaching_cedula, igss_affiliation, title, bachelor_degree, spouse_name, spouse_phone
+  - Relaciones: `belongsTo(User)`, `hasMany(ClassroomCourseAssignment)`
+- `Guardian` — datos completos del tutor
+  - Relaciones: `belongsToMany(Student)` con pivot `relationship_type`
+- `MedicalRecord` — medicamentos, enfermedades, alergias, cirugías, tipo_sangre, peso, altura
+- `Image` — polimórfica: `morphTo()` (usada por User)
 
-- If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.
+### Estructura académica
+- `Level` — nivel educativo (ordering)
+- `Grade` — grado (ordering, supervised_practice:boolean)
+- `Section` — sección (ordering)
+- `Classroom` — year + level_id + grade_id + section_id → aula única
+  - Relaciones: `hasMany(StudentEnrollment)`, `hasMany(ClassroomCourseAssignment)`, `hasOneThrough(Pensum)`
+- `StudentEnrollment` — student_id, classroom_id, status
+- `Course` — course_name
+- `Pensum` — grade_id, year, units (int), unit_percentages (array)
+  - Métodos: `mainCourses()`, `getUnitPercentage(int $unit): float`
+- `PensumCourse` — estructura jerárquica (parent_id), units:array, is_main, is_official, ordering
+  - Relaciones: `belongsTo(self as parent)`, `hasMany(self as subCourses)`, `hasMany(ClassroomCourseAssignment)`
+- `ClassroomCourseAssignment` — classroom_id, professor_id, pensum_course_id, unit (int)
+  - Relaciones: `hasOne(GradeBook)`, `hasMany(AttendanceRecord)`
 
-## Documentation Files
+### Cuadros de calificaciones
+- `AcademicConfiguration` — year, mode (free/assigned), improvement_type (none/full/percentage/additive), improvement_percentage
+  - Métodos: `maxImprovementScore()`, `effectiveScore()`
+- `AcademicConfigurationActivity` — academic_configuration_id, activity_type_id, quantity, points_each
+- `ActivityType` — name, is_extra:boolean
+- `GradeBook` — classroom_course_assignment_id, academic_configuration_id, status (open/locked/approved/rejected), rejection_reason
+  - Métodos: `isOpen()`, `isLocked()`, `isApproved()`, `isRejected()`, `getImprovementConfig()`
+- `GradeBookActivity` — grade_book_id, activity_type_id, name, max_points, ordering
+- `GradeBookScore` — grade_book_activity_id, student_id, score, improvement_score (ambos decimal:2)
+- `GradeBookTotal` — grade_book_id, student_id, normal_points, extra_points, total_points (todos decimal:2)
+  - Total = `ceil(normal_points + extra_points)` — redondeo hacia arriba
+- `GradeChangeRequest` — status (pending/approved/rejected), reviewed_by, reviewed_at
+  - Métodos: `isPending()`, `isApproved()`, `isRejected()`
+- `GradeChangeRequestItem` — old_score, new_score, old_improvement_score, new_improvement_score
 
-- You must only create documentation files if explicitly requested by the user.
+### Asistencia y auditoría
+- `AttendanceRecord` — classroom_course_assignment_id, date (1 registro = 1 día de clase)
+- `AttendanceEntry` — attendance_record_id, student_id, present:boolean
+- `AuditLog` — user_id, event, auditable_type, auditable_id, module, description, old_values:array, new_values:array, ip_address
 
-## Replies
+## Flujo de aprobación de cuadros
+1. Profesor crea el cuadro (status = **open**)
+2. Crea actividades y carga calificaciones (con mejoras opcionales)
+3. Valida que la suma de puntos normales = 100
+4. Bloquea el cuadro (status = **locked**, auditado)
+5. Admin revisa → aprueba (status = **approved**) o rechaza con motivo (status = **rejected**)
+6. Si rechazado, profesor puede reabrir (status = **open**) y editar
 
-- Be concise in your explanations - focus on what's important rather than explaining obvious details.
+## Servicios
+- `app/Services/AuditService.php` — métodos estáticos para registrar eventos:
+  - `gradeBookStatusChanged`, `scoreChanged`
+  - `enrollmentCreated`, `enrollmentStatusChanged`
+  - `userCreated`, `userUpdated`
+  - `gradeChangeRequestCreated`, `gradeChangeRequestResolved`
+  - `configChanged`, `passwordChanged`
+  - Captura IP del cliente; etiquetas en español
 
-=== boost rules ===
+## Componentes Livewire (app/Livewire/)
 
-# Laravel Boost
+### Admin (app/Livewire/Admin/)
+| Componente | Responsabilidad |
+|---|---|
+| `Dashboard` | Estadísticas + gráficos Chart.js |
+| `Levels`, `Grades`, `Sections` | CRUD con paginación y búsqueda |
+| `Classrooms` | CRUD de aulas |
+| `Courses`, `Pensums` | Gestión de cursos y planes |
+| `ClassroomCourseAssignments` | Asignación profesor-curso |
+| `AcademicConfigurations` | Config por ciclo escolar |
+| `GradeBooks` | Lista filtrable + aprobación/rechazo |
+| `GradeChangeRequests` | Gestión de solicitudes |
+| `AuditLog` | Registro de auditoría |
+| `Reports/SabanaGeneral` | Sábana general |
+| `Reports/SabanaPromedio` | Sábana de promedios |
+| `Reports/SabanaUnidad` | Sábana por unidad |
+| `Reports/CuadrosClassroom` | Cuadros por aula |
+| `Reports/ReportCards` | Boletas PDF |
+| `Reports/StudentList` | Listado de estudiantes |
+| `Reports/StudentListExcel` | Export Excel de estudiantes |
+| `Reports/MissingActivities` | Actividades no entregadas |
+| `Reports/AttendanceReport` | Reporte de asistencia |
+| `Reports/ProfessorCoursesExcel` | Cursos por profesor |
+| `Roles/ShowRoles` | Gestión de roles (Spatie) |
+| `Permissions/ShowPermissions` | Gestión de permisos |
+| `Students/EnrollmentList` | Listado de inscripciones |
 
-- Laravel Boost is an MCP server that comes with powerful tools designed specifically for this application. Use them.
+### Profesor (app/Livewire/Profesor/)
+| Componente | Responsabilidad |
+|---|---|
+| `Dashboard` | Estadísticas + cuadros accionables |
+| `GradeBooks` | Edición completa de cuadros |
+| `GradeChangeRequests` | Crear solicitudes de cambio |
+| `TakeAttendance` | Asistencia diaria + historial |
+| `Reports/*` | Reportes específicos del profesor |
 
-## Artisan
+### Forms (app/Livewire/Forms/) — objetos `Livewire\Form`
+`UserForm`, `StudentForm`, `GuardianForm`, `ProfessorForm`, `MedicalForm`,
+`LevelForm`, `SectionForm`, `ClassroomForm`, `CourseForm`, `GradeForm`,
+`PensumForm`, `AcademicConfigurationForm`
 
-- Use the `list-artisan-commands` tool when you need to call an Artisan command to double-check the available parameters.
+### Settings y Profile
+`Settings\Profile`, `Settings\Password`, `Settings\Appearance`, `Settings\TwoFactor`,
+`Profile\UpdateProfile`, `Profile\UpdateProfessorInfo`, `Profile\UpdateMedicalInfo`
 
-## URLs
+## Creación de componentes Livewire
 
-- Whenever you share a project URL with the user, you should use the `get-absolute-url` tool to ensure you're using the correct scheme, domain/IP, and port.
+**CRÍTICO:** Siempre usar `--class` al crear componentes Livewire:
+```bash
+php artisan make:livewire NombreComponente --class
+# También funciona con subdirectorios:
+php artisan make:livewire Admin/NombreComponente --class
+```
+Sin `--class`, artisan crea un componente Volt anónimo (vista con ⚡ prefix) en lugar de una clase PHP + vista separada.
 
-## Tinker / Debugging
+## Patrones Livewire establecidos
 
-- You should use the `tinker` tool when you need to execute PHP to debug code or query Eloquent models directly.
-- Use the `database-query` tool when you only need to read from the database.
-
-## Reading Browser Logs With the `browser-logs` Tool
-
-- You can read browser logs, errors, and exceptions using the `browser-logs` tool from Boost.
-- Only recent browser logs will be useful - ignore old logs.
-
-## Searching Documentation (Critically Important)
-
-- Boost comes with a powerful `search-docs` tool you should use before trying other approaches when working with Laravel or Laravel ecosystem packages. This tool automatically passes a list of installed packages and their versions to the remote Boost API, so it returns only version-specific documentation for the user's circumstance. You should pass an array of packages to filter on if you know you need docs for particular packages.
-- Search the documentation before making code changes to ensure we are taking the correct approach.
-- Use multiple, broad, simple, topic-based queries at once. For example: `['rate limiting', 'routing rate limiting', 'routing']`. The most relevant results will be returned first.
-- Do not add package names to queries; package information is already shared. For example, use `test resource table`, not `filament 4 test resource table`.
-
-### Available Search Syntax
-
-1. Simple Word Searches with auto-stemming - query=authentication - finds 'authenticate' and 'auth'.
-2. Multiple Words (AND Logic) - query=rate limit - finds knowledge containing both "rate" AND "limit".
-3. Quoted Phrases (Exact Position) - query="infinite scroll" - words must be adjacent and in that order.
-4. Mixed Queries - query=middleware "rate limit" - "middleware" AND exact phrase "rate limit".
-5. Multiple Queries - queries=["authentication", "middleware"] - ANY of these terms.
-
-=== php rules ===
-
-# PHP
-
-- Always use curly braces for control structures, even for single-line bodies.
-
-## Constructors
-
-- Use PHP 8 constructor property promotion in `__construct()`.
-    - <code-snippet>public function __construct(public GitHub $github) { }</code-snippet>
-- Do not allow empty `__construct()` methods with zero parameters unless the constructor is private.
-
-## Type Declarations
-
-- Always use explicit return type declarations for methods and functions.
-- Use appropriate PHP type hints for method parameters.
-
-<code-snippet name="Explicit Return Types and Method Params" lang="php">
-protected function isAccessible(User $user, ?string $path = null): bool
+### Cascading dropdowns (patrón Admin)
+```php
+public function updatedFilterYear(): void
 {
-    ...
+    $this->reset(['filterLevel', 'filterGrade', ...]);
 }
-</code-snippet>
+// En render(): cargar opciones dinámicamente según filtros activos
+```
 
-## Enums
+### Query string para persistencia de filtros
+```php
+protected $queryString = ['search', 'filterYear', 'cant'];
+```
 
-- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+### Reset de paginación al filtrar
+```php
+public function updatingSearch(): void { $this->resetPage(); }
+public function updatingCant(): void { $this->resetPage(); }
+```
 
-## Comments
+### Ordenamiento dinámico
+Clic en encabezado alterna `$sortDirection` entre asc/desc sobre `$sortField`.
 
-- Prefer PHPDoc blocks over inline comments. Never use comments within the code itself unless the logic is exceptionally complex.
+### Dispatch de eventos hacia Alpine/JS
+```php
+$this->dispatch('closeModalMessaje', title: '...', text: '...', icon: 'success');
+$this->dispatch('showAlert', title: '...', icon: 'success');
+$this->dispatch('toastMessage', title: '...', icon: 'success');
+```
 
-## PHPDoc Blocks
+### Transacciones DB en operaciones críticas
+```php
+DB::transaction(function () {
+    // Excel import, asistencia, cuadros
+});
+```
 
-- Add useful array shape type definitions when appropriate.
+## Eventos de Livewire usados
+- `closeModalMessaje` — cierra modal y muestra SweetAlert
+- `showAlert` — SweetAlert top-end sin modal
+- `toastMessage` — toast top-end
+- `openEnrollmentModal`, `openAuditDetailModal` — abrir modales específicos
+- `downloadAttendancePdf` — trigger descarga PDF asistencia
 
-=== tests rules ===
+## Exportaciones e importaciones Excel
+**Exports (app/Exports/):**
+- `ActivityTemplateExport` — plantilla formateada con header `[ACT_ID:X]` para cargar notas
+- `SabanaGeneralExport`, `SabanaPromedioExport`, `SabanaUnidadExport`
+- `StudentListExport`, `ProfessorCoursesExport`
+- `MissingActivitiesAdminExport`, `MissingActivitiesProfesorExport`
 
-# Test Enforcement
+**Imports (app/Imports/):**
+- `ActivityScoresImport` — convierte Excel a array (validación de seguridad en Livewire)
 
-- Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
-- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
+## PDF Helper
+- `app/Helpers/PDF.php` extiende FPDF
+- Métodos clave: `CellUTF8()`, `rotatedHeader()`, `addImage()`, `dec()`
+- Propiedad `$hideFooter = false` — activar en cuadros de calificaciones
+- Orientación landscape: `[215, 330]` (carta oficio)
 
-=== laravel/core rules ===
+## Patrón de datos postgrado
+- Secciones con `level_id` 2 o 5 usan `Enrollment.carne` para display/sorting
+- Otras secciones usan `User.carne`
+- Patrón de ordenamiento: `leftJoin` + `orderByRaw('CAST(COALESCE(...) AS UNSIGNED) ASC')`
 
-# Do Things the Laravel Way
+## Tablas de base de datos (43 migraciones)
 
-- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using the `list-artisan-commands` tool.
-- If you're creating a generic PHP class, use `php artisan make:class`.
-- Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
+| Tabla | Descripción |
+|---|---|
+| `users` | Autenticación + 2FA + must_change_password |
+| `students` | Datos académicos del estudiante |
+| `professors` | Datos laborales del profesor |
+| `guardians` | Tutores legales |
+| `guardian_student` | Pivot M:M con relationship_type |
+| `medical_records` | Fichas médicas |
+| `images` | Polimórfica para avatares |
+| `levels`, `grades`, `sections` | Estructura académica |
+| `classrooms` | Aula = nivel + grado + sección + año |
+| `courses`, `pensums`, `pensum_courses` | Plan de estudios jerárquico |
+| `classroom_course_assignments` | Profesor ↔ curso ↔ aula |
+| `student_enrollments` | Inscripciones con status |
+| `activity_types` | Tipos (is_extra distingue normales/extras) |
+| `academic_configurations` | Config por ciclo (mode, improvement_type) |
+| `academic_configuration_activities` | Actividades predefinidas |
+| `grade_books` | Cuadro con status workflow |
+| `grade_book_activities` | Actividades dentro del cuadro |
+| `grade_book_scores` | score + improvement_score por estudiante |
+| `grade_book_totals` | normal_points + extra_points + total_points |
+| `grade_change_requests` | Solicitudes con reviewed_by/at |
+| `grade_change_request_items` | Valores old/new por actividad |
+| `attendance_records` | 1 registro = 1 día de clase |
+| `attendance_entries` | present:boolean por estudiante |
+| `audit_logs` | Auditoría completa con old/new values |
+| `roles`, `permissions`, `role_has_permissions` | Spatie |
+| `cache`, `jobs`, `sessions` | Laravel estándar |
 
-## Database
+## Estructura de vistas (resources/views/)
+```
+livewire/
+├── admin/          Vistas de los 23 componentes admin
+├── profesor/       Vistas de los componentes de profesor
+├── auth/           Login, register, 2FA, reset-password
+├── settings/       Perfil, contraseña, apariencia, 2FA
+├── profile/        UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo
+└── force-password-change.blade.php
+emails/
+└── reset-password.blade.php   Plantilla HTML de reset
+components/         Componentes Blade reutilizables
+admin/              Vistas de reportes y config (no Livewire)
+profesor/           Vistas de reportes profesor
+```
 
-- Always use proper Eloquent relationship methods with return type hints. Prefer relationship methods over raw queries or manual joins.
-- Use Eloquent models and relationships before suggesting raw database queries.
-- Avoid `DB::`; prefer `Model::query()`. Generate code that leverages Laravel's ORM capabilities rather than bypassing them.
-- Generate code that prevents N+1 query problems by using eager loading.
-- Use Laravel's query builder for very complex database operations.
+## Providers y bootstrap
+- `AppServiceProvider` — CarbonImmutable, alias Excel, password rules por env
+- `FortifyServiceProvider` — actions, vistas, rate limiting (5/min login y 2FA)
+- `bootstrap/providers.php` — registra AppServiceProvider, FortifyServiceProvider, ExcelServiceProvider
+- `bootstrap/app.php` — rutas, middleware stack, alias, manejo TokenMismatchException
 
-### Model Creation
+## Comandos útiles
+```bash
+# Desarrollo
+composer run dev         # serve + queue:listen + npm run dev (concurrentemente)
+npm run build            # build assets para producción
 
-- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `list-artisan-commands` to check the available options to `php artisan make:model`.
+# Calidad de código
+vendor/bin/pint --dirty  # formatear solo archivos modificados (OBLIGATORIO antes de commit)
 
-### APIs & Eloquent Resources
+# Tests
+php artisan test --compact                      # todos los tests
+php artisan test --compact --filter=NombreTest  # filtrar tests
 
-- For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
+# Base de datos
+php artisan migrate
+php artisan db:seed
 
-## Controllers & Validation
+# Setup inicial
+composer run setup       # instala deps, genera .env, crea DB
+```
 
-- Always create Form Request classes for validation rather than inline validation in controllers. Include both validation rules and custom error messages.
-- Check sibling Form Requests to see if the application uses array or string based validation rules.
+## Servidor de producción
+- URL: `cmr.deproweb.net`
+- Base de datos: `deproweb_cmr`
+- Zona horaria: `America/Guatemala`
+- Locale: `es_GT`
 
-## Authentication & Authorization
+## Sistema de actualización de datos via enlace público
 
-- Use Laravel's built-in authentication and authorization features (gates, policies, Sanctum, etc.).
+### Flujo implementado (Prompt 1)
+1. Alumno accede a `GET /actualizar-datos` (ruta pública, sin auth)
+2. Ingresa su código personal o carné + correo electrónico
+3. Sistema verifica si ya actualizó datos este año (`student_data_updates.year`)
+4. Si no actualizó: genera token (60 chars), lo guarda en cache `"student_update_{token}"` por 60 min con `[student_id, email_nuevo]`, y envía `StudentDataUpdateNotification`
+5. Alumno hace clic en enlace del correo → `GET /actualizar-datos/{token}`
+6. `StudentDataController::verifyToken()` valida el token en cache → muestra formulario o vista de expirado
 
-## URL Generation
+### Componentes
+- `App\Livewire\StudentDataRequest` — Componente público (Paso 1)
+- `App\Http\Controllers\StudentDataController` — Validación de token
+- `App\Notifications\StudentDataUpdateNotification` — Email con enlace
+- `App\Models\StudentDataUpdate` — Registro de actualizaciones completadas
+- `resources/views/student-data/expired.blade.php` — Enlace expirado
+- `resources/views/student-data/form.blade.php` — Placeholder para Prompt 2
+- `resources/views/layouts/public.blade.php` — Layout sin auth para páginas públicas
 
-- When generating links to other pages, prefer named routes and the `route()` function.
+### El formulario completo (Prompt 2) debe:
+- Recibir `$token`, `$studentId`, `$emailNuevo` desde la vista `student-data/form.blade.php`
+- Cargar y editar datos del User, Student, Guardian(es), MedicalRecord
+- Al guardar: crear registro en `student_data_updates` con `completed_at = now()`, `ip_address`, limpiar el token del cache
+- Considerar que `email_nuevo` puede diferir del `user.email` actual
 
-## Queues
+## Sistema de actualización de datos — Formulario (Prompt 2)
 
-- Use queued jobs for time-consuming operations with the `ShouldQueue` interface.
+### Flujo implementado
+1. `StudentDataController::verifyToken()` valida token → `student-data/form.blade.php`
+2. `form.blade.php` extiende `layouts.public` e incrusta `<livewire:student-data-update-form :token="$token" />`
+3. `StudentDataUpdateForm` (app/Livewire/) carga datos del alumno en `mount()`, presenta 3 tabs Bootstrap 4
+4. `save()` ejecuta DB transaction: actualiza User, crea/actualiza MedicalRecord y Guardian, crea StudentDataUpdate, borra token del cache, hace audit log (módulo: 'Actualización QR'), redirige a `student.data.done`
+5. `student-data/done.blade.php` — página estática de confirmación (sin Livewire)
 
-## Configuration
+### Rutas públicas
+```
+GET /actualizar-datos           → StudentDataRequest (Livewire)
+GET /actualizar-datos/completado → student-data.done (Route::view)
+GET /actualizar-datos/{token}   → StudentDataController::verifyToken
+```
+**IMPORTANTE:** la ruta `/completado` debe ir ANTES de `{token}` para no ser capturada como token.
 
-- Use environment variables only in configuration files - never use the `env()` function directly outside of config files. Always use `config('app.name')`, not `env('APP_NAME')`.
+### Layout public
+- `resources/views/layouts/public.blade.php` — layout sin auth con Bootstrap 4 + FontAwesome CDN
+- `.public-card` (max-width: 520px) — para formularios pequeños
+- `.public-card-wide` (max-width: 760px) — para el formulario de 3 tabs
 
-## Testing
+## Pendientes
+- Resolver codificación UTF-8 en correos (workaround actual: editar `.env` directamente en servidor con UTF-8)
 
-- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
-- Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
-- When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
-
-## Vite Error
-
-- If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
-
-=== laravel/v12 rules ===
-
-# Laravel 12
-
-- CRITICAL: ALWAYS use `search-docs` tool for version-specific Laravel documentation and updated code examples.
-- Since Laravel 11, Laravel has a new streamlined file structure which this project uses.
-
-## Laravel 12 Structure
-
-- In Laravel 12, middleware are no longer registered in `app/Http/Kernel.php`.
-- Middleware are configured declaratively in `bootstrap/app.php` using `Application::configure()->withMiddleware()`.
-- `bootstrap/app.php` is the file to register middleware, exceptions, and routing files.
-- `bootstrap/providers.php` contains application specific service providers.
-- The `app\Console\Kernel.php` file no longer exists; use `bootstrap/app.php` or `routes/console.php` for console configuration.
-- Console commands in `app/Console/Commands/` are automatically available and do not require manual registration.
-
-## Database
-
-- When modifying a column, the migration must include all of the attributes that were previously defined on the column. Otherwise, they will be dropped and lost.
-- Laravel 12 allows limiting eagerly loaded records natively, without external packages: `$query->latest()->limit(10);`.
-
-### Models
-
-- Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
-
-=== fluxui-free/core rules ===
-
-# Flux UI Free
-
-- Flux UI is the official Livewire component library. This project uses the free edition, which includes all free components and variants but not Pro components.
-- Use `<flux:*>` components when available; they are the recommended way to build Livewire interfaces.
-- IMPORTANT: Activate `fluxui-development` when working with Flux UI components.
-
-=== livewire/core rules ===
-
-# Livewire
-
-- Livewire allows you to build dynamic, reactive interfaces using only PHP — no JavaScript required.
-- Instead of writing frontend code in JavaScript frameworks, you use Alpine.js to build the UI when client-side interactions are required.
-- State lives on the server; the UI reflects it. Validate and authorize in actions (they're like HTTP requests).
-- IMPORTANT: Activate `livewire-development` every time you're working with Livewire-related tasks.
-
-=== pint/core rules ===
-
-# Laravel Pint Code Formatter
-
-- You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
-- Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
-
-=== pest/core rules ===
-
-## Pest
-
-- This project uses Pest for testing. Create tests: `php artisan make:test --pest {name}`.
-- Run tests: `php artisan test --compact` or filter: `php artisan test --compact --filter=testName`.
-- Do NOT delete tests without approval.
-- CRITICAL: ALWAYS use `search-docs` tool for version-specific Pest documentation and updated code examples.
-- IMPORTANT: Activate `pest-testing` every time you're working with a Pest or testing-related task.
-
-=== tailwindcss/core rules ===
-
-# Tailwind CSS
-
-- Always use existing Tailwind conventions; check project patterns before adding new ones.
-- IMPORTANT: Always use `search-docs` tool for version-specific Tailwind CSS documentation and updated code examples. Never rely on training data.
-- IMPORTANT: Activate `tailwindcss-development` every time you're working with a Tailwind CSS or styling-related task.
-
-=== laravel/fortify rules ===
-
-# Laravel Fortify
-
-- Fortify is a headless authentication backend that provides authentication routes and controllers for Laravel applications.
-- IMPORTANT: Always use the `search-docs` tool for detailed Laravel Fortify patterns and documentation.
-- IMPORTANT: Activate `developing-with-fortify` skill when working with Fortify authentication features.
-</laravel-boost-guidelines>
+## Historial de versiones
+- v1.0.0 — Base del sistema
+- v1.1.0 — Reportes PDF y Excel
+- v1.2.0 — Solicitudes de cambio de notas y dashboards
+- v1.3.0 — Inscripciones de estudiantes
+- v1.4.0 — Auditoría general y reorganización del menú
+- v1.4.1 — Correcciones PDF y validaciones
+- v1.4.2 — Fix autenticación y correo reset
+- v1.4.3 — Optimización integral de procesos académicos, reportes y auditoría
+- v1.5.0 — Modal de re-autenticación por sesión expirada, asistencia y cambio forzado de contraseña
+- v1.6.0 — Audit logging en componentes de perfil (UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo) + sistema de actualización de datos para estudiantes via QR (formulario público, notificación por correo, token con expiración, registro único por año)

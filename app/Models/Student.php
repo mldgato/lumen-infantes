@@ -47,4 +47,9 @@ class Student extends Model
     {
         return $this->hasMany(GradeBookTotal::class);
     }
+
+    public function dataUpdates(): HasMany
+    {
+        return $this->hasMany(StudentDataUpdate::class);
+    }
 }

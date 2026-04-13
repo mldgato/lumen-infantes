@@ -1,5 +1,17 @@
 <div wire:init="loadData">
 
+    {{-- Enlace de actualización de datos para compartir --}}
+    <div class="alert alert-light border mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2" role="alert">
+        <span class="text-sm text-muted">
+            <i class="fas fa-link mr-1"></i>
+            URL pública para actualización de datos de estudiantes:
+            <code class="ml-1">{{ route('student.data.request') }}</code>
+        </span>
+        <a href="{{ route('student.data.request') }}" target="_blank" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-external-link-alt mr-1"></i> Abrir
+        </a>
+    </div>
+
     {{-- FILTROS --}}
     <div class="card card-primary card-outline">
         <div class="card-header">

@@ -2,18 +2,21 @@
 
 namespace App\Livewire\Profile;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class UpdateProfile extends Component
 {
     use WithFileUploads;
 
     public $current_password;
+
     public $password;
+
     public $password_confirmation;
 
     public $photo; // Variable para la nueva imagen
@@ -28,6 +31,8 @@ class UpdateProfile extends Component
         Auth::user()->update([
             'password' => Hash::make($this->password),
         ]);
+
+        AuditService::passwordChanged(Auth::user());
 
         // 1. Mensaje flash para SweetAlert
         session()->flash('password_message', 'La contraseña ha sido actualizada correctamente.');
@@ -52,6 +57,13 @@ class UpdateProfile extends Component
         } else {
             $user->image()->create(['url' => $path]);
         }
+
+        AuditService::log(
+            event: 'updated',
+            module: 'Perfil',
+            description: "Usuario \"{$user->name}\" actualizó su foto de perfil",
+            auditable: $user,
+        );
 
         session()->flash('image_message', 'Imagen de perfil actualizada.');
         $this->redirect(route('profile'));

@@ -15,28 +15,28 @@ use Illuminate\Support\Facades\Request;
 class AuditService
 {
     public static function log(
-        string  $event,
-        string  $module,
-        string  $description,
-        ?Model  $auditable  = null,
-        ?array  $oldValues  = null,
-        ?array  $newValues  = null,
-        ?int    $userId     = null,
+        string $event,
+        string $module,
+        string $description,
+        ?Model $auditable = null,
+        ?array $oldValues = null,
+        ?array $newValues = null,
+        ?int $userId = null,
     ): void {
         try {
             AuditLog::create([
-                'user_id'        => $userId ?? Auth::id(),
-                'event'          => $event,
-                'module'         => $module,
-                'description'    => $description,
+                'user_id' => $userId ?? Auth::id(),
+                'event' => $event,
+                'module' => $module,
+                'description' => $description,
                 'auditable_type' => $auditable ? get_class($auditable) : null,
-                'auditable_id'   => $auditable?->id,
-                'old_values'     => $oldValues,
-                'new_values'     => $newValues,
-                'ip_address'     => Request::ip(),
+                'auditable_id' => $auditable?->id,
+                'old_values' => $oldValues,
+                'new_values' => $newValues,
+                'ip_address' => Request::ip(),
             ]);
         } catch (\Throwable $e) {
-            logger()->error('AuditService error: ' . $e->getMessage());
+            logger()->error('AuditService error: '.$e->getMessage());
         }
     }
 
@@ -47,8 +47,8 @@ class AuditService
         ?string $reason = null,
     ): void {
         $statusLabels = [
-            'open'     => 'Abierto',
-            'locked'   => 'Enviado a revisión',
+            'open' => 'Abierto',
+            'locked' => 'Enviado a revisión',
             'approved' => 'Aprobado',
             'rejected' => 'Rechazado',
         ];
@@ -64,7 +64,9 @@ class AuditService
         );
 
         $newValues = ['status' => $newStatus];
-        if ($reason) $newValues['rejection_reason'] = $reason;
+        if ($reason) {
+            $newValues['rejection_reason'] = $reason;
+        }
 
         self::log(
             event: 'status_changed',
@@ -81,7 +83,7 @@ class AuditService
         ?float $oldScore,
         float $newScore,
     ): void {
-        $studentName  = $score->student->user->name ?? '—';
+        $studentName = $score->student->user->name ?? '—';
         $activityName = $score->activity->name ?? '—';
 
         self::log(
@@ -97,9 +99,9 @@ class AuditService
     public static function enrollmentCreated(StudentEnrollment $enrollment): void
     {
         $studentName = $enrollment->student->user->name ?? '—';
-        $classroom   = $enrollment->classroom->grade->grade_name . ' '
-            . $enrollment->classroom->section->section_name . ' '
-            . $enrollment->classroom->year;
+        $classroom = $enrollment->classroom->grade->grade_name.' '
+            .$enrollment->classroom->section->section_name.' '
+            .$enrollment->classroom->year;
 
         self::log(
             event: 'enrolled',
@@ -146,8 +148,8 @@ class AuditService
             module: 'Usuarios',
             description: "Usuario \"{$user->name}\" fue actualizado — campos: {$fields}",
             auditable: $user,
-            oldValues: array_map(fn($c) => $c['old'] ?? null, $changed),
-            newValues: array_map(fn($c) => $c['new'] ?? null, $changed),
+            oldValues: array_map(fn ($c) => $c['old'] ?? null, $changed),
+            newValues: array_map(fn ($c) => $c['new'] ?? null, $changed),
         );
     }
 
@@ -168,7 +170,9 @@ class AuditService
         ?string $reason = null,
     ): void {
         $description = "Solicitud de cambio de notas {$resolution}";
-        if ($reason) $description .= " — motivo: {$reason}";
+        if ($reason) {
+            $description .= " — motivo: {$reason}";
+        }
 
         self::log(
             event: $resolution === 'approved' ? 'approved' : 'rejected',
@@ -177,6 +181,32 @@ class AuditService
             auditable: $request,
             oldValues: ['status' => 'pending'],
             newValues: ['status' => $resolution, 'reason' => $reason],
+        );
+    }
+
+    public static function professorProfileUpdated(User $user, array $changed): void
+    {
+        $fields = implode(', ', array_keys($changed));
+        self::log(
+            event: 'updated',
+            module: 'Perfil',
+            description: "Información docente de \"{$user->name}\" fue actualizada — campos: {$fields}",
+            auditable: $user->professor,
+            oldValues: array_map(fn ($c) => $c['old'] ?? null, $changed),
+            newValues: array_map(fn ($c) => $c['new'] ?? null, $changed),
+        );
+    }
+
+    public static function medicalRecordUpdated(User $user, array $changed): void
+    {
+        $fields = implode(', ', array_keys($changed));
+        self::log(
+            event: 'updated',
+            module: 'Perfil',
+            description: "Ficha médica de \"{$user->name}\" fue actualizada — campos: {$fields}",
+            auditable: $user->medicalRecord,
+            oldValues: array_map(fn ($c) => $c['old'] ?? null, $changed),
+            newValues: array_map(fn ($c) => $c['new'] ?? null, $changed),
         );
     }
 
