@@ -263,7 +263,7 @@ class StudentDataUpdateForm extends Component
             );
         });
 
-        return redirect()->route('student.data.done');
+        $this->redirectRoute('student.data.done');
     }
 
     public function render()
