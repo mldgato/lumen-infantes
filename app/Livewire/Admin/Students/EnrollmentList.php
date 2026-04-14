@@ -300,6 +300,7 @@ class EnrollmentList extends Component
             'filterSection' => 'required',
             'weight'        => 'nullable|numeric',
             'height'        => 'nullable|numeric',
+            'personal_email' => 'nullable|email',
         ];
 
         $messages = [
@@ -312,6 +313,7 @@ class EnrollmentList extends Component
             'filterSection.required' => 'Seleccione un aula primero.',
             'weight.numeric'         => 'El peso debe ser un número válido.',
             'height.numeric'         => 'La estatura debe ser un número válido.',
+            'personal_email.email'   => 'El correo personal no tiene un formato válido.',
         ];
 
         if ($this->requireInstitutionalEmail) {
@@ -321,18 +323,9 @@ class EnrollmentList extends Component
             $messages['email.required']    = 'El correo institucional es obligatorio.';
             $messages['email.unique']      = 'El correo institucional ya está en uso.';
             $messages['password.required'] = 'La contraseña es obligatoria.';
-        } else {
-            // Cuando el correo institucional NO es requerido, el correo personal
-            // se usa como correo de login. Debe ser único contra users.email.
-            $rules['personal_email'] = 'required|email|unique:users,email';
-
-            $messages['personal_email.required'] = 'El correo personal es obligatorio (se usará para ingresar al sistema).';
-            $messages['personal_email.email']    = 'El correo personal no tiene un formato válido.';
-            $messages['personal_email.unique']   = 'Este correo personal ya está registrado.';
         }
 
         // Solo validamos los guardianes que el usuario habilitó manualmente.
-        // Si ninguno está marcado, se permite guardar sin encargados.
         foreach (['padre', 'madre', 'encargado'] as $key) {
             if (! ($this->guardians[$key]['enabled'] ?? false)) {
                 continue;
@@ -363,7 +356,6 @@ class EnrollmentList extends Component
         try {
             $this->validate($rules, $messages);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Saltar automáticamente al tab con el primer error para que el usuario lo vea.
             $this->jumpToTabWithError(array_key_first($e->validator->errors()->toArray()));
             throw $e;
         }
@@ -375,7 +367,14 @@ class EnrollmentList extends Component
             return;
         }
 
-        $resolvedEmail    = $this->requireInstitutionalEmail ? $this->email    : $this->personal_email;
+        // Resolver correo de login:
+        // 1) Si requiere institucional, usar el que el usuario escribió.
+        // 2) Si no, usar el personal si lo escribió.
+        // 3) Si no hay ninguno, generar uno automático basado en el CUI.
+        $resolvedEmail = $this->requireInstitutionalEmail
+            ? $this->email
+            : ($this->personal_email ?: $this->generateAutoEmail());
+
         $resolvedPassword = $this->requireInstitutionalEmail ? $this->password : 'password';
 
         try {
@@ -620,6 +619,25 @@ class EnrollmentList extends Component
         }
 
         $this->activeTab = 'general';
+    }
+
+    /**
+     * Genera un correo institucional automático único basado en el CUI,
+     * para casos donde no se exige correo institucional ni personal.
+     */
+    private function generateAutoEmail(): string
+    {
+        $domain = config('lumen.auto_email_domain', 'cmr.deproweb.net');
+        $base   = 'estudiante' . $this->cui;
+        $email  = $base . '@' . $domain;
+
+        $i = 1;
+        while (User::where('email', $email)->exists()) {
+            $email = $base . '.' . $i . '@' . $domain;
+            $i++;
+        }
+
+        return $email;
     }
 
     public function render()
