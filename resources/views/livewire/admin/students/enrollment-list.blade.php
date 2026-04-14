@@ -1,7 +1,8 @@
 <div wire:init="loadData">
 
     {{-- Enlace de actualización de datos para compartir --}}
-    <div class="alert alert-light border mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2" role="alert">
+    <div class="alert alert-light border mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
+        role="alert">
         <span class="text-sm text-muted">
             <i class="fas fa-link mr-1"></i>
             URL pública para actualización de datos de estudiantes:
@@ -436,12 +437,21 @@
                                         @endif
                                     </div>
                                     <div class="col-md-4 form-group mb-2">
-                                        <label class="text-sm mb-1">Correo Personal</label>
+                                        <label class="text-sm mb-1">
+                                            Correo Personal
+                                            @if (!$requireInstitutionalEmail)
+                                                <span class="text-danger">*</span>
+                                            @endif
+                                        </label>
                                         <div class="input-group input-group-sm">
                                             <div class="input-group-prepend"><span class="input-group-text"><i
                                                         class="fas fa-envelope"></i></span></div>
-                                            <input type="email" wire:model="personal_email" class="form-control">
+                                            <input type="email" wire:model="personal_email"
+                                                class="form-control @error('personal_email') is-invalid @enderror">
                                         </div>
+                                        @error('personal_email')
+                                            <span class="text-danger small">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                     @if ($requireInstitutionalEmail)
                                         <div class="col-md-4 form-group mb-2">

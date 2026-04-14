@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Services\AuditService;
+use Illuminate\Support\Facades\Log;
 
 class EnrollmentList extends Component
 {
@@ -297,6 +298,8 @@ class EnrollmentList extends Component
             'birthdate'     => 'required|date',
             'gender'        => 'required|in:Masculino,Femenino',
             'filterSection' => 'required',
+            'weight'        => 'nullable|numeric',
+            'height'        => 'nullable|numeric',
         ];
 
         $messages = [
@@ -307,6 +310,8 @@ class EnrollmentList extends Component
             'birthdate.required'     => 'La fecha de nacimiento es obligatoria.',
             'gender.required'        => 'El género es obligatorio.',
             'filterSection.required' => 'Seleccione un aula primero.',
+            'weight.numeric'         => 'El peso debe ser un número válido.',
+            'height.numeric'         => 'La estatura debe ser un número válido.',
         ];
 
         if ($this->requireInstitutionalEmail) {
@@ -317,138 +322,169 @@ class EnrollmentList extends Component
             $messages['email.unique']      = 'El correo institucional ya está en uso.';
             $messages['password.required'] = 'La contraseña es obligatoria.';
         } else {
+            // Cuando el correo institucional NO es requerido, el correo personal
+            // se usa como correo de login. Debe ser único contra users.email.
             $rules['personal_email'] = 'required|email|unique:users,email';
 
-            $messages['personal_email.required'] = 'El correo personal es obligatorio.';
+            $messages['personal_email.required'] = 'El correo personal es obligatorio (se usará para ingresar al sistema).';
+            $messages['personal_email.email']    = 'El correo personal no tiene un formato válido.';
             $messages['personal_email.unique']   = 'Este correo personal ya está registrado.';
         }
 
+        // Solo validamos los guardianes que el usuario habilitó manualmente.
+        // Si ninguno está marcado, se permite guardar sin encargados.
         foreach (['padre', 'madre', 'encargado'] as $key) {
-            if ($this->guardians[$key]['enabled']) {
-                $rules["guardians.$key.data.first_name"]        = 'required|string';
-                $rules["guardians.$key.data.last_name"]         = 'required|string';
-                $rules["guardians.$key.data.birthdate"]         = 'required|date';
-                $rules["guardians.$key.data.nationality"]       = 'required|string';
-                $rules["guardians.$key.data.cui"]               = 'required|string';
-                $rules["guardians.$key.data.cui_extended_in"]   = 'required|string';
-                $rules["guardians.$key.data.profession"]        = 'required|string';
-                $rules["guardians.$key.data.residence_address"] = 'required|string';
-                $rules["guardians.$key.data.phone"]             = 'required|string';
-
-                $label = ucfirst($key);
-                $messages["guardians.$key.data.first_name.required"]        = "El nombre del $label es obligatorio.";
-                $messages["guardians.$key.data.last_name.required"]         = "El apellido del $label es obligatorio.";
-                $messages["guardians.$key.data.birthdate.required"]         = "La fecha de nacimiento del $label es obligatoria.";
-                $messages["guardians.$key.data.nationality.required"]       = "La nacionalidad del $label es obligatoria.";
-                $messages["guardians.$key.data.cui.required"]               = "El CUI del $label es obligatorio.";
-                $messages["guardians.$key.data.cui_extended_in.required"]   = "El lugar de extensión del CUI del $label es obligatorio.";
-                $messages["guardians.$key.data.profession.required"]        = "La profesión del $label es obligatoria.";
-                $messages["guardians.$key.data.residence_address.required"] = "La dirección del $label es obligatoria.";
-                $messages["guardians.$key.data.phone.required"]             = "El teléfono del $label es obligatorio.";
+            if (! ($this->guardians[$key]['enabled'] ?? false)) {
+                continue;
             }
+
+            $rules["guardians.$key.data.first_name"]        = 'required|string';
+            $rules["guardians.$key.data.last_name"]         = 'required|string';
+            $rules["guardians.$key.data.birthdate"]         = 'required|date';
+            $rules["guardians.$key.data.nationality"]       = 'required|string';
+            $rules["guardians.$key.data.cui"]               = 'required|string';
+            $rules["guardians.$key.data.cui_extended_in"]   = 'required|string';
+            $rules["guardians.$key.data.profession"]        = 'required|string';
+            $rules["guardians.$key.data.residence_address"] = 'required|string';
+            $rules["guardians.$key.data.phone"]             = 'required|string';
+
+            $label = ucfirst($key);
+            $messages["guardians.$key.data.first_name.required"]        = "El nombre del $label es obligatorio.";
+            $messages["guardians.$key.data.last_name.required"]         = "El apellido del $label es obligatorio.";
+            $messages["guardians.$key.data.birthdate.required"]         = "La fecha de nacimiento del $label es obligatoria.";
+            $messages["guardians.$key.data.nationality.required"]       = "La nacionalidad del $label es obligatoria.";
+            $messages["guardians.$key.data.cui.required"]               = "El CUI del $label es obligatorio.";
+            $messages["guardians.$key.data.cui_extended_in.required"]   = "El lugar de extensión del CUI del $label es obligatorio.";
+            $messages["guardians.$key.data.profession.required"]        = "La profesión del $label es obligatoria.";
+            $messages["guardians.$key.data.residence_address.required"] = "La dirección del $label es obligatoria.";
+            $messages["guardians.$key.data.phone.required"]             = "El teléfono del $label es obligatorio.";
         }
 
-        $this->validate($rules, $messages);
+        try {
+            $this->validate($rules, $messages);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Saltar automáticamente al tab con el primer error para que el usuario lo vea.
+            $this->jumpToTabWithError(array_key_first($e->validator->errors()->toArray()));
+            throw $e;
+        }
 
         $classroom = $this->getSelectedClassroom();
-        if (! $classroom) return;
+        if (! $classroom) {
+            $this->addError('filterSection', 'No se pudo resolver el aula seleccionada.');
+            $this->activeTab = 'general';
+            return;
+        }
 
         $resolvedEmail    = $this->requireInstitutionalEmail ? $this->email    : $this->personal_email;
         $resolvedPassword = $this->requireInstitutionalEmail ? $this->password : 'password';
 
-        DB::transaction(function () use ($classroom, $resolvedEmail, $resolvedPassword) {
-            $user = User::create([
-                'cui'             => $this->cui,
-                'first_name'      => $this->first_name,
-                'middle_name'     => $this->middle_name      ?: null,
-                'surname'         => $this->surname,
-                'second_surname'  => $this->second_surname   ?: null,
-                'married_surname' => $this->married_surname  ?: null,
-                'birthdate'       => $this->birthdate,
-                'gender'          => $this->gender,
-                'civil_status'    => $this->civil_status     ?: null,
-                'email'           => $resolvedEmail,
-                'personal_email'  => $this->personal_email   ?: null,
-                'password'        => Hash::make($resolvedPassword),
-                'cellphone'       => $this->cellphone         ?: null,
-                'address'         => $this->address           ?: null,
-                'is_active'       => true,
-            ]);
+        try {
+            DB::transaction(function () use ($classroom, $resolvedEmail, $resolvedPassword) {
+                $user = User::create([
+                    'cui'             => $this->cui,
+                    'first_name'      => $this->first_name,
+                    'middle_name'     => $this->middle_name      ?: null,
+                    'surname'         => $this->surname,
+                    'second_surname'  => $this->second_surname   ?: null,
+                    'married_surname' => $this->married_surname  ?: null,
+                    'birthdate'       => $this->birthdate,
+                    'gender'          => $this->gender,
+                    'civil_status'    => $this->civil_status     ?: null,
+                    'email'           => $resolvedEmail,
+                    'personal_email'  => $this->personal_email   ?: null,
+                    'password'        => Hash::make($resolvedPassword),
+                    'cellphone'       => $this->cellphone        ?: null,
+                    'address'         => $this->address          ?: null,
+                    'is_active'       => true,
+                ]);
 
-            $user->assignRole('Estudiante');
+                $user->assignRole('Estudiante');
 
-            $student = Student::create([
-                'user_id'         => $user->id,
-                'carne'           => $this->carne          ?: null,
-                'personal_code'   => $this->personal_code  ?: null,
-                'is_own_guardian' => $this->is_own_guardian,
-            ]);
+                $student = Student::create([
+                    'user_id'         => $user->id,
+                    'carne'           => $this->carne          ?: null,
+                    'personal_code'   => $this->personal_code  ?: null,
+                    'is_own_guardian' => $this->is_own_guardian,
+                ]);
 
-            MedicalRecord::create([
-                'user_id'                => $user->id,
-                'blood_type'             => $this->blood_type             ?: null,
-                'weight'                 => $this->weight                 ?: null,
-                'height'                 => $this->height                 ?: null,
-                'takes_medication'       => $this->takes_medication,
-                'medication_description' => $this->takes_medication ? ($this->medication_description ?: null) : null,
-                'has_disease'            => $this->has_disease,
-                'disease_description'    => $this->has_disease    ? ($this->disease_description    ?: null) : null,
-                'has_allergies'          => $this->has_allergies,
-                'allergies_description'  => $this->has_allergies  ? ($this->allergies_description  ?: null) : null,
-                'had_surgery'            => $this->had_surgery,
-                'surgery_description'    => $this->had_surgery    ? ($this->surgery_description    ?: null) : null,
-            ]);
+                MedicalRecord::create([
+                    'user_id'                => $user->id,
+                    'blood_type'             => $this->blood_type ?: null,
+                    'weight'                 => is_numeric($this->weight) ? $this->weight : null,
+                    'height'                 => is_numeric($this->height) ? $this->height : null,
+                    'takes_medication'       => $this->takes_medication,
+                    'medication_description' => $this->takes_medication ? ($this->medication_description ?: null) : null,
+                    'has_disease'            => $this->has_disease,
+                    'disease_description'    => $this->has_disease    ? ($this->disease_description    ?: null) : null,
+                    'has_allergies'          => $this->has_allergies,
+                    'allergies_description'  => $this->has_allergies  ? ($this->allergies_description  ?: null) : null,
+                    'had_surgery'            => $this->had_surgery,
+                    'surgery_description'    => $this->had_surgery    ? ($this->surgery_description    ?: null) : null,
+                ]);
 
-            $relationshipMap = [
-                'padre'     => 'Papá',
-                'madre'     => 'Mamá',
-                'encargado' => 'Encargado',
-            ];
+                $relationshipMap = [
+                    'padre'     => 'Papá',
+                    'madre'     => 'Mamá',
+                    'encargado' => 'Encargado',
+                ];
 
-            foreach ($this->guardians as $key => $guardian) {
-                if (! $guardian['enabled']) continue;
-                $d = $guardian['data'];
+                foreach ($this->guardians as $key => $guardian) {
+                    if (! ($guardian['enabled'] ?? false)) {
+                        continue;
+                    }
 
-                $guardianModel = ! empty($d['cui'])
-                    ? Guardian::where('cui', $d['cui'])->first()
-                    : null;
+                    $d = $guardian['data'];
 
-                if (! $guardianModel) {
-                    $guardianModel = Guardian::create([
-                        'first_name'        => $d['first_name'],
-                        'last_name'         => $d['last_name'],
-                        'birthplace'        => $d['birthplace']        ?: null,
-                        'birthdate'         => $d['birthdate'],
-                        'nationality'       => $d['nationality'],
-                        'cui'               => $d['cui'],
-                        'cui_extended_in'   => $d['cui_extended_in'],
-                        'profession'        => $d['profession'],
-                        'residence_address' => $d['residence_address'],
-                        'phone'             => $d['phone'],
-                        'email'             => $d['email']             ?: null,
-                        'company_name'      => $d['company_name']      ?: null,
-                        'company_address'   => $d['company_address']   ?: null,
-                        'company_phone'     => $d['company_phone']     ?: null,
+                    $guardianModel = ! empty($d['cui'])
+                        ? Guardian::where('cui', $d['cui'])->first()
+                        : null;
+
+                    if (! $guardianModel) {
+                        $guardianModel = Guardian::create([
+                            'first_name'        => $d['first_name'],
+                            'last_name'         => $d['last_name'],
+                            'birthplace'        => $d['birthplace']        ?: null,
+                            'birthdate'         => $d['birthdate'],
+                            'nationality'       => $d['nationality'],
+                            'cui'               => $d['cui'],
+                            'cui_extended_in'   => $d['cui_extended_in'],
+                            'profession'        => $d['profession'],
+                            'residence_address' => $d['residence_address'],
+                            'phone'             => $d['phone'],
+                            'email'             => $d['email']             ?: null,
+                            'company_name'      => $d['company_name']      ?: null,
+                            'company_address'   => $d['company_address']   ?: null,
+                            'company_phone'     => $d['company_phone']     ?: null,
+                        ]);
+                    }
+
+                    $student->guardians()->attach($guardianModel->id, [
+                        'relationship_type' => $relationshipMap[$key],
                     ]);
                 }
 
-                $student->guardians()->attach($guardianModel->id, [
-                    'relationship_type' => $relationshipMap[$key],
+                $enrollment = StudentEnrollment::create([
+                    'student_id'   => $student->id,
+                    'classroom_id' => $classroom->id,
+                    'status'       => 'Activo',
                 ]);
-            }
 
-            $enrollment = StudentEnrollment::create([
-                'student_id'   => $student->id,
-                'classroom_id' => $classroom->id,
-                'status'       => 'Activo',
+                AuditService::enrollmentCreated(
+                    $enrollment->load('student.user', 'classroom.grade', 'classroom.section')
+                );
+
+                $this->createEmptyScoresAndTotals($student->id, $classroom->id);
+            });
+        } catch (\Throwable $e) {
+            Log::error('Error al inscribir nuevo estudiante: ' . $e->getMessage(), [
+                'exception' => $e,
             ]);
-
-            AuditService::enrollmentCreated(
-                $enrollment->load('student.user', 'classroom.grade', 'classroom.section')
-            );
-
-            $this->createEmptyScoresAndTotals($student->id, $classroom->id);
-        });
+            $this->dispatch('toastMessage', [
+                'type'    => 'error',
+                'message' => 'Ocurrió un error al guardar: ' . $e->getMessage(),
+            ]);
+            return;
+        }
 
         $this->resetModal();
         $this->dispatch('closeModalMessaje', [
@@ -514,6 +550,7 @@ class EnrollmentList extends Component
         } else {
             if ($this->encargado_role === 'estudiante') {
                 $this->encargado_role = 'otro';
+                $this->guardians['encargado']['enabled'] = false;
                 $this->resetEncargado();
             }
         }
@@ -544,10 +581,13 @@ class EnrollmentList extends Component
                 'first_name'        => trim($this->first_name . ' ' . $this->middle_name),
                 'last_name'         => trim($this->surname . ' ' . $this->second_surname),
                 'cui'               => $this->cui,
+                'cui_extended_in'   => 'Guatemala',
+                'nationality'       => 'Guatemalteca',
+                'profession'        => 'Estudiante',
                 'birthdate'         => $this->birthdate,
-                'phone'             => $this->cellphone,
+                'phone'             => $this->cellphone ?: 'N/A',
                 'email'             => $this->personal_email,
-                'residence_address' => $this->address,
+                'residence_address' => $this->address ?: 'N/A',
             ]);
         } elseif ($source === 'padre' || $source === 'madre') {
             $this->guardians['encargado']['data'] = $this->guardians[$source]['data'];
@@ -557,6 +597,29 @@ class EnrollmentList extends Component
     private function resetEncargado(): void
     {
         $this->guardians['encargado']['data'] = $this->emptyGuardian();
+    }
+
+    /**
+     * Cambia automáticamente al tab que contiene el primer error de validación,
+     * para que el usuario vea qué campo falló sin tener que buscarlo.
+     */
+    private function jumpToTabWithError(?string $firstErrorKey): void
+    {
+        if (! $firstErrorKey) {
+            return;
+        }
+
+        if (str_starts_with($firstErrorKey, 'guardians.')) {
+            $this->activeTab = 'guardians';
+            return;
+        }
+
+        if (in_array($firstErrorKey, ['blood_type', 'weight', 'height', 'medication_description', 'disease_description', 'allergies_description', 'surgery_description'], true)) {
+            $this->activeTab = 'medical';
+            return;
+        }
+
+        $this->activeTab = 'general';
     }
 
     public function render()
