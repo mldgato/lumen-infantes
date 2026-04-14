@@ -34,4 +34,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/reauth', [ReauthController::class, 'store'])->name('reauth');
 
 // Las rutas de configuración adicionales de tu Starter Kit
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

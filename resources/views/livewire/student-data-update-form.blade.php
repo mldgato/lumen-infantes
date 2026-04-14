@@ -56,13 +56,38 @@
                        wire:click.prevent="$set('activeTab','guardian')"
                        class="nav-link {{ $activeTab === 'guardian' ? 'active' : '' }}">
                         <i class="fas fa-users mr-1"></i>
-                        <span class="d-none d-sm-inline">Encargado</span>
-                        <span class="d-inline d-sm-none">Encargado</span>
+                        <span class="d-none d-sm-inline">Encargados</span>
+                        <span class="d-inline d-sm-none">Encargados</span>
                     </a>
                 </li>
             </ul>
 
             <form wire:submit="save">
+
+                {{-- Aviso de eliminación de guardianes --}}
+                @if ($showDeleteWarning)
+                    <div class="alert alert-warning mt-3" role="alert">
+                        <h6 class="font-weight-bold mb-2">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> Atención
+                        </h6>
+                        <p class="mb-2">Los siguientes registros serán eliminados al guardar:</p>
+                        <ul class="mb-3">
+                            @foreach ($pendingDeleteLabels as $label)
+                                <li>{{ $label }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button"
+                                wire:click="confirmDeleteAndSave"
+                                class="btn btn-danger btn-sm mr-2">
+                            <i class="fas fa-trash mr-1"></i> Sí, eliminar y guardar
+                        </button>
+                        <button type="button"
+                                wire:click="cancelDeleteWarning"
+                                class="btn btn-outline-secondary btn-sm">
+                            Cancelar
+                        </button>
+                    </div>
+                @endif
 
                 {{-- ═══════════════════════════════════════════════
                      TAB 1 — DATOS PERSONALES
@@ -348,181 +373,258 @@
                 </div>
 
                 {{-- ═══════════════════════════════════════════════
-                     TAB 3 — ENCARGADO
+                     TAB 3 — ENCARGADOS
                 ═══════════════════════════════════════════════ --}}
                 <div class="{{ $activeTab !== 'guardian' ? 'd-none' : '' }}">
 
-                    <div class="form-row">
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Nombre(s) <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianFirstName"
-                                   class="form-control form-control-sm @error('guardianFirstName') is-invalid @enderror"
-                                   placeholder="Nombre completo">
-                            @error('guardianFirstName')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Apellido(s) <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianLastName"
-                                   class="form-control form-control-sm @error('guardianLastName') is-invalid @enderror"
-                                   placeholder="Apellido completo">
-                            @error('guardianLastName')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                    @foreach ([
+                        ['padre',     'Padre',     'fa-male',        'border-primary',   'text-primary'],
+                        ['madre',     'Madre',     'fa-female',      'border-danger',    'text-danger'],
+                        ['encargado', 'Encargado', 'fa-user-shield', 'border-secondary', 'text-secondary'],
+                    ] as [$key, $label, $icon, $borderClass, $iconClass])
+                        <div class="card {{ $borderClass }} mb-3">
+                            <div class="card-header py-2 bg-light">
+                                <div class="d-flex align-items-center">
+                                    <div class="custom-control custom-switch mr-3">
+                                        <input type="checkbox"
+                                               wire:model.live="guardians.{{ $key }}.enabled"
+                                               class="custom-control-input"
+                                               id="guardian_{{ $key }}_enabled">
+                                        <label class="custom-control-label font-weight-bold"
+                                               for="guardian_{{ $key }}_enabled">
+                                            <i class="fas {{ $icon }} {{ $iconClass }} mr-1"></i>
+                                            {{ $label }}
+                                        </label>
+                                    </div>
+                                    @if (! $guardians[$key]['enabled'])
+                                        <small class="text-muted">No registrado</small>
+                                    @else
+                                        <small class="{{ $iconClass }}">
+                                            <i class="fas fa-check-circle mr-1"></i> Activo
+                                        </small>
+                                    @endif
+                                </div>
+                            </div>
 
-                    <div class="form-row">
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">Lugar de nacimiento</label>
-                            <input type="text"
-                                   wire:model="guardianBirthplace"
-                                   class="form-control form-control-sm @error('guardianBirthplace') is-invalid @enderror"
-                                   placeholder="Ciudad, país">
-                            @error('guardianBirthplace')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Fecha de nacimiento <span class="text-danger">*</span>
-                            </label>
-                            <input type="date"
-                                   wire:model="guardianBirthdate"
-                                   class="form-control form-control-sm @error('guardianBirthdate') is-invalid @enderror">
-                            @error('guardianBirthdate')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                            @if ($guardians[$key]['enabled'])
+                                <div class="card-body">
 
-                    <div class="form-row">
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Nacionalidad <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianNationality"
-                                   class="form-control form-control-sm @error('guardianNationality') is-invalid @enderror"
-                                   placeholder="Guatemalteco/a">
-                            @error('guardianNationality')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                CUI / DPI <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianCui"
-                                   class="form-control form-control-sm @error('guardianCui') is-invalid @enderror"
-                                   placeholder="Número de DPI">
-                            @error('guardianCui')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                                    {{-- Radio de autocompletar — solo para encargado --}}
+                                    @if ($key === 'encargado')
+                                        <div class="row mb-3 pb-3 border-bottom">
+                                            <div class="col-12">
+                                                <label class="font-weight-bold d-block mb-2 text-secondary"
+                                                       style="font-size:12px;">
+                                                    <i class="fas fa-magic mr-1"></i>
+                                                    ¿Desea autocompletar la información del encargado?
+                                                </label>
+                                                <div class="custom-control custom-radio custom-control-inline">
+                                                    <input type="radio" id="encargado_estudiante"
+                                                           wire:model.live="encargadoRole"
+                                                           value="estudiante"
+                                                           class="custom-control-input">
+                                                    <label class="custom-control-label"
+                                                           for="encargado_estudiante">El mismo estudiante</label>
+                                                </div>
+                                                <div class="custom-control custom-radio custom-control-inline">
+                                                    <input type="radio" id="encargado_padre"
+                                                           wire:model.live="encargadoRole"
+                                                           value="padre"
+                                                           class="custom-control-input">
+                                                    <label class="custom-control-label"
+                                                           for="encargado_padre">Papá</label>
+                                                </div>
+                                                <div class="custom-control custom-radio custom-control-inline">
+                                                    <input type="radio" id="encargado_madre"
+                                                           wire:model.live="encargadoRole"
+                                                           value="madre"
+                                                           class="custom-control-input">
+                                                    <label class="custom-control-label"
+                                                           for="encargado_madre">Mamá</label>
+                                                </div>
+                                                <div class="custom-control custom-radio custom-control-inline">
+                                                    <input type="radio" id="encargado_otro"
+                                                           wire:model.live="encargadoRole"
+                                                           value="otro"
+                                                           class="custom-control-input">
+                                                    <label class="custom-control-label"
+                                                           for="encargado_otro">Otra persona (Manual)</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
 
-                    <div class="form-row">
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Lugar de extensión del CUI <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianCuiExtendedIn"
-                                   class="form-control form-control-sm @error('guardianCuiExtendedIn') is-invalid @enderror"
-                                   placeholder="Municipio, departamento">
-                            @error('guardianCuiExtendedIn')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="form-group col-sm-6">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Profesión u oficio <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianProfession"
-                                   class="form-control form-control-sm @error('guardianProfession') is-invalid @enderror"
-                                   placeholder="Profesión">
-                            @error('guardianProfession')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Nombres <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.first_name"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.first_name') is-invalid @enderror"
+                                                   placeholder="Nombre completo">
+                                            @error('guardians.' . $key . '.data.first_name')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Apellidos <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.last_name"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.last_name') is-invalid @enderror"
+                                                   placeholder="Apellido completo">
+                                            @error('guardians.' . $key . '.data.last_name')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
 
-                    <div class="form-row">
-                        <div class="form-group col-sm-8">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Dirección de residencia <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianResidenceAddress"
-                                   class="form-control form-control-sm @error('guardianResidenceAddress') is-invalid @enderror"
-                                   placeholder="Dirección completa">
-                            @error('guardianResidenceAddress')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="form-group col-sm-4">
-                            <label class="font-weight-bold" style="font-size:13px;">
-                                Teléfono <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   wire:model="guardianPhone"
-                                   class="form-control form-control-sm @error('guardianPhone') is-invalid @enderror"
-                                   placeholder="5555-1234">
-                            @error('guardianPhone')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Fecha de nacimiento <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="date"
+                                                   wire:model="guardians.{{ $key }}.data.birthdate"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.birthdate') is-invalid @enderror">
+                                            @error('guardians.' . $key . '.data.birthdate')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">Lugar de nacimiento</label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.birthplace"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Ciudad, país">
+                                        </div>
+                                    </div>
 
-                    <div class="form-group">
-                        <label class="font-weight-bold" style="font-size:13px;">Correo electrónico del encargado</label>
-                        <input type="email"
-                               wire:model="guardianEmail"
-                               class="form-control form-control-sm @error('guardianEmail') is-invalid @enderror"
-                               placeholder="correo@ejemplo.com (opcional)">
-                        @error('guardianEmail')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                CUI / DPI <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.cui"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.cui') is-invalid @enderror"
+                                                   placeholder="Número de DPI">
+                                            @error('guardians.' . $key . '.data.cui')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Lugar de extensión del CUI <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.cui_extended_in"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.cui_extended_in') is-invalid @enderror"
+                                                   placeholder="Municipio, departamento">
+                                            @error('guardians.' . $key . '.data.cui_extended_in')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
 
-                    <hr class="my-3">
-                    <h6 class="font-weight-bold text-muted text-uppercase mb-3" style="font-size:11px;letter-spacing:.5px;">
-                        Datos laborales del encargado (opcional)
-                    </h6>
+                                    <div class="form-row">
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Nacionalidad <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.nationality"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.nationality') is-invalid @enderror"
+                                                   placeholder="Guatemalteco/a">
+                                            @error('guardians.' . $key . '.data.nationality')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="form-group col-sm-6">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Profesión u oficio <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.profession"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.profession') is-invalid @enderror"
+                                                   placeholder="Profesión">
+                                            @error('guardians.' . $key . '.data.profession')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
 
-                    <div class="form-row">
-                        <div class="form-group col-sm-5">
-                            <label class="font-weight-bold" style="font-size:13px;">Empresa / Institución</label>
-                            <input type="text"
-                                   wire:model="guardianCompanyName"
-                                   class="form-control form-control-sm"
-                                   placeholder="Nombre de la empresa">
+                                    <div class="form-row">
+                                        <div class="form-group col-sm-8">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Dirección de residencia <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.residence_address"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.residence_address') is-invalid @enderror"
+                                                   placeholder="Dirección completa">
+                                            @error('guardians.' . $key . '.data.residence_address')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="form-group col-sm-4">
+                                            <label class="font-weight-bold" style="font-size:13px;">
+                                                Teléfono <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.phone"
+                                                   class="form-control form-control-sm @error('guardians.' . $key . '.data.phone') is-invalid @enderror"
+                                                   placeholder="5555-1234">
+                                            @error('guardians.' . $key . '.data.phone')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="font-weight-bold" style="font-size:13px;">Correo electrónico</label>
+                                        <input type="email"
+                                               wire:model="guardians.{{ $key }}.data.email"
+                                               class="form-control form-control-sm"
+                                               placeholder="correo@ejemplo.com (opcional)">
+                                    </div>
+
+                                    <hr class="my-2">
+                                    <p class="text-muted text-uppercase font-weight-bold mb-2"
+                                       style="font-size:11px;letter-spacing:.5px;">
+                                        Datos laborales (opcional)
+                                    </p>
+
+                                    <div class="form-row">
+                                        <div class="form-group col-sm-5">
+                                            <label class="font-weight-bold" style="font-size:13px;">Empresa / Institución</label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.company_name"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Nombre de la empresa">
+                                        </div>
+                                        <div class="form-group col-sm-5">
+                                            <label class="font-weight-bold" style="font-size:13px;">Dirección de la empresa</label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.company_address"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Dirección">
+                                        </div>
+                                        <div class="form-group col-sm-2">
+                                            <label class="font-weight-bold" style="font-size:13px;">Tel. empresa</label>
+                                            <input type="text"
+                                                   wire:model="guardians.{{ $key }}.data.company_phone"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Teléfono">
+                                        </div>
+                                    </div>
+
+                                </div>
+                            @endif
                         </div>
-                        <div class="form-group col-sm-5">
-                            <label class="font-weight-bold" style="font-size:13px;">Dirección de la empresa</label>
-                            <input type="text"
-                                   wire:model="guardianCompanyAddress"
-                                   class="form-control form-control-sm"
-                                   placeholder="Dirección">
-                        </div>
-                        <div class="form-group col-sm-2">
-                            <label class="font-weight-bold" style="font-size:13px;">Tel. empresa</label>
-                            <input type="text"
-                                   wire:model="guardianCompanyPhone"
-                                   class="form-control form-control-sm"
-                                   placeholder="Teléfono">
-                        </div>
-                    </div>
+                    @endforeach
 
                     <div class="d-flex justify-content-between mt-3">
                         <button type="button"
