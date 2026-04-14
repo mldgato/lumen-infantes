@@ -129,7 +129,6 @@
                                 <th>Estudiante</th>
                                 <th>Carné</th>
                                 <th>Código</th>
-                                <th>Correo</th>
                                 <th class="text-center">Estado</th>
                                 <th class="text-center" style="width:130px">Acciones</th>
                             </tr>
@@ -150,7 +149,6 @@
                                     <td><small
                                             class="text-muted">{{ $enrollment->student->personal_code ?? '—' }}</small>
                                     </td>
-                                    <td><small class="text-muted">{{ $enrollment->student->user->email }}</small></td>
                                     <td class="text-center">
                                         @if ($enrollment->status === 'Activo')
                                             <span class="badge badge-success">Activo</span>
