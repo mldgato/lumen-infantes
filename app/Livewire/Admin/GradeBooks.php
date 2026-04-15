@@ -3,16 +3,17 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Classroom;
+use App\Models\ClassroomCourseAssignment;
 use App\Models\Grade;
 use App\Models\GradeBook;
-use App\Models\GradeBookActivity;
 use App\Models\Level;
 use App\Models\Section;
 use App\Models\Student;
+use App\Notifications\GradeBookApproved;
+use App\Notifications\GradeBookRejected;
+use App\Services\AuditService;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\ClassroomCourseAssignment;
-use App\Services\AuditService;
 
 class GradeBooks extends Component
 {
@@ -20,38 +21,48 @@ class GradeBooks extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-    public bool $readyToLoad   = false;
-    public string $search      = '';
-    public string $sort        = 'created_at';
-    public string $direction   = 'desc';
-    public string $cant        = '10';
+    public bool $readyToLoad = false;
+
+    public string $search = '';
+
+    public string $sort = 'created_at';
+
+    public string $direction = 'desc';
+
+    public string $cant = '10';
 
     // Filtros en cascada
-    public string $filterYear      = '';
-    public string $filterStatus    = '';
-    public int|string $filterLevel   = '';
-    public int|string $filterGrade   = '';
+    public string $filterYear = '';
+
+    public string $filterStatus = '';
+
+    public int|string $filterLevel = '';
+
+    public int|string $filterGrade = '';
+
     public int|string $filterSection = '';
-    public int|string $filterUnit    = '';
+
+    public int|string $filterUnit = '';
 
     // Vista detalle
     public ?GradeBook $viewingGradeBook = null;
 
     // Rechazo
-    public ?int $rejectingId        = null;
+    public ?int $rejectingId = null;
+
     public string $rejection_reason = '';
 
     protected $queryString = [
-        'cant'          => ['except' => '10'],
-        'sort'          => ['except' => 'created_at'],
-        'direction'     => ['except' => 'desc'],
-        'search'        => ['except' => ''],
-        'filterStatus'  => ['except' => ''],
-        'filterYear'    => ['except' => ''],
-        'filterLevel'   => ['except' => ''],
-        'filterGrade'   => ['except' => ''],
+        'cant' => ['except' => '10'],
+        'sort' => ['except' => 'created_at'],
+        'direction' => ['except' => 'desc'],
+        'search' => ['except' => ''],
+        'filterStatus' => ['except' => ''],
+        'filterYear' => ['except' => ''],
+        'filterLevel' => ['except' => ''],
+        'filterGrade' => ['except' => ''],
         'filterSection' => ['except' => ''],
-        'filterUnit'    => ['except' => ''],
+        'filterUnit' => ['except' => ''],
     ];
 
     public function loadGradeBooks(): void
@@ -63,30 +74,37 @@ class GradeBooks extends Component
     {
         $this->resetPage();
     }
+
     public function updatingCant(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterYear(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterStatus(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterLevel(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterGrade(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterSection(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterUnit(): void
     {
         $this->resetPage();
@@ -95,23 +113,23 @@ class GradeBooks extends Component
     // Cascada: al cambiar año o nivel se limpian los filtros inferiores
     public function updatedFilterYear(): void
     {
-        $this->filterLevel   = '';
-        $this->filterGrade   = '';
+        $this->filterLevel = '';
+        $this->filterGrade = '';
         $this->filterSection = '';
-        $this->filterUnit    = '';
+        $this->filterUnit = '';
     }
 
     public function updatedFilterLevel(): void
     {
-        $this->filterGrade   = '';
+        $this->filterGrade = '';
         $this->filterSection = '';
-        $this->filterUnit    = '';
+        $this->filterUnit = '';
     }
 
     public function updatedFilterGrade(): void
     {
         $this->filterSection = '';
-        $this->filterUnit    = '';
+        $this->filterUnit = '';
     }
 
     public function updatedFilterSection(): void
@@ -124,7 +142,7 @@ class GradeBooks extends Component
         if ($this->sort === $sort) {
             $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
         } else {
-            $this->sort      = $sort;
+            $this->sort = $sort;
             $this->direction = 'asc';
         }
     }
@@ -151,7 +169,7 @@ class GradeBooks extends Component
     public function closeGradeBook(): void
     {
         $this->viewingGradeBook = null;
-        $this->rejectingId      = null;
+        $this->rejectingId = null;
         $this->rejection_reason = '';
         $this->resetValidation();
     }
@@ -188,27 +206,28 @@ class GradeBooks extends Component
         $oldStatus = $gradeBook->status;
 
         $gradeBook->update([
-            'status'           => 'approved',
+            'status' => 'approved',
             'rejection_reason' => null,
         ]);
 
         AuditService::gradeBookStatusChanged($gradeBook, $oldStatus, 'approved');
+
+        $gradeBook->assignment->professor->user->notify(new GradeBookApproved($gradeBook));
 
         if ($this->viewingGradeBook && $this->viewingGradeBook->id === $id) {
             $this->openGradeBook($id);
         }
 
         $this->dispatch('showAlert', [
-            'title'   => '¡Aprobado!',
+            'title' => '¡Aprobado!',
             'message' => 'El cuadro ha sido aprobado exitosamente.',
-            'type'    => 'success',
+            'type' => 'success',
         ]);
     }
 
-
     public function openRejectModal(int $id): void
     {
-        $this->rejectingId      = $id;
+        $this->rejectingId = $id;
         $this->rejection_reason = '';
         $this->resetValidation();
     }
@@ -221,7 +240,7 @@ class GradeBooks extends Component
             'rejection_reason' => 'required|string|min:10',
         ], [
             'rejection_reason.required' => 'El motivo de rechazo es obligatorio.',
-            'rejection_reason.min'      => 'El motivo debe tener al menos 10 caracteres.',
+            'rejection_reason.min' => 'El motivo debe tener al menos 10 caracteres.',
         ]);
 
         $gradeBook = GradeBook::with([
@@ -233,23 +252,25 @@ class GradeBooks extends Component
         $oldStatus = $gradeBook->status;
 
         $gradeBook->update([
-            'status'           => 'rejected',
+            'status' => 'rejected',
             'rejection_reason' => $this->rejection_reason,
         ]);
 
         AuditService::gradeBookStatusChanged($gradeBook, $oldStatus, 'rejected', $this->rejection_reason);
 
+        $gradeBook->assignment->professor->user->notify(new GradeBookRejected($gradeBook, $this->rejection_reason));
+
         if ($this->viewingGradeBook && $this->viewingGradeBook->id === $this->rejectingId) {
             $this->openGradeBook($this->rejectingId);
         }
 
-        $this->rejectingId      = null;
+        $this->rejectingId = null;
         $this->rejection_reason = '';
 
         $this->dispatch('closeModalMessaje', [
-            'title'   => 'Rechazado',
+            'title' => 'Rechazado',
             'message' => 'El cuadro ha sido rechazado.',
-            'type'    => 'warning',
+            'type' => 'warning',
             'modalId' => 'RejectModal',
         ]);
     }
@@ -264,20 +285,20 @@ class GradeBooks extends Component
         $grades = $this->filterLevel
             ? Grade::whereHas('classrooms', function ($q) {
                 $q->where('level_id', $this->filterLevel)
-                    ->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear));
+                    ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear));
             })
-            ->orderBy('grade_name')
-            ->get()
+                ->orderBy('grade_name')
+                ->get()
             : collect();
 
         $sections = $this->filterGrade
             ? Section::whereHas('classrooms', function ($q) {
                 $q->where('grade_id', $this->filterGrade)
                     ->where('level_id', $this->filterLevel)
-                    ->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear));
+                    ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear));
             })
-            ->orderBy('section_name')
-            ->get()
+                ->orderBy('section_name')
+                ->get()
             : collect();
 
         $units = $this->filterSection
@@ -285,12 +306,12 @@ class GradeBooks extends Component
                 $q->where('section_id', $this->filterSection)
                     ->where('grade_id', $this->filterGrade)
                     ->where('level_id', $this->filterLevel)
-                    ->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear));
+                    ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear));
             })
-            ->distinct()
-            ->pluck('unit')
-            ->sort()
-            ->values()
+                ->distinct()
+                ->pluck('unit')
+                ->sort()
+                ->values()
             : collect();
 
         $gradeBooks = collect();
@@ -303,36 +324,32 @@ class GradeBooks extends Component
                 'assignment.professor.user',
                 'academicConfiguration',
             ])
-                ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
-                ->when($this->filterYear, fn($q) => $q->whereHas(
+                ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
+                ->when($this->filterYear, fn ($q) => $q->whereHas(
                     'assignment.classroom',
-                    fn($q) => $q->where('year', $this->filterYear)
+                    fn ($q) => $q->where('year', $this->filterYear)
                 ))
-                ->when($this->filterLevel, fn($q) => $q->whereHas(
+                ->when($this->filterLevel, fn ($q) => $q->whereHas(
                     'assignment.classroom',
-                    fn($q) => $q->where('level_id', $this->filterLevel)
+                    fn ($q) => $q->where('level_id', $this->filterLevel)
                 ))
-                ->when($this->filterGrade, fn($q) => $q->whereHas(
+                ->when($this->filterGrade, fn ($q) => $q->whereHas(
                     'assignment.classroom',
-                    fn($q) => $q->where('grade_id', $this->filterGrade)
+                    fn ($q) => $q->where('grade_id', $this->filterGrade)
                 ))
-                ->when($this->filterSection, fn($q) => $q->whereHas(
+                ->when($this->filterSection, fn ($q) => $q->whereHas(
                     'assignment.classroom',
-                    fn($q) => $q->where('section_id', $this->filterSection)
+                    fn ($q) => $q->where('section_id', $this->filterSection)
                 ))
-                ->when($this->filterUnit, fn($q) => $q->whereHas(
+                ->when($this->filterUnit, fn ($q) => $q->whereHas(
                     'assignment',
-                    fn($q) => $q->where('unit', $this->filterUnit)
+                    fn ($q) => $q->where('unit', $this->filterUnit)
                 ))
                 ->where(function ($q) {
-                    $q->whereHas('assignment.classroom.grade', fn($q) =>
-                    $q->where('grade_name', 'like', '%' . $this->search . '%'))
-                        ->orWhereHas('assignment.classroom.section', fn($q) =>
-                        $q->where('section_name', 'like', '%' . $this->search . '%'))
-                        ->orWhereHas('assignment.pensumCourse.course', fn($q) =>
-                        $q->where('course_name', 'like', '%' . $this->search . '%'))
-                        ->orWhereHas('assignment.professor.user', fn($q) =>
-                        $q->where('name', 'like', '%' . $this->search . '%'));
+                    $q->whereHas('assignment.classroom.grade', fn ($q) => $q->where('grade_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('assignment.classroom.section', fn ($q) => $q->where('section_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('assignment.pensumCourse.course', fn ($q) => $q->where('course_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('assignment.professor.user', fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'));
                 })
                 ->orderBy($this->sort, $this->direction)
                 ->paginate($this->cant);

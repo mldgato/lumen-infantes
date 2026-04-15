@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Profesor;
 
+use App\Exports\ActivityTemplateExport;
+use App\Imports\ActivityScoresImport;
 use App\Models\AcademicConfiguration;
 use App\Models\ActivityType;
 use App\Models\ClassroomCourseAssignment;
@@ -10,41 +12,51 @@ use App\Models\GradeBookActivity;
 use App\Models\GradeBookScore;
 use App\Models\GradeBookTotal;
 use App\Models\Student;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Models\User;
+use App\Notifications\GradeBookLocked;
 use App\Services\AuditService;
-use App\Exports\ActivityTemplateExport;
-use Maatwebsite\Excel\Facades\Excel;
-use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Imports\ActivityScoresImport;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 
 class GradeBooks extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
     public bool $readyToLoad = false;
-    public string $search    = '';
+
+    public string $search = '';
 
     // Cuadro activo
-    public ?GradeBook $gradeBook           = null;
+    public ?GradeBook $gradeBook = null;
+
     public ?ClassroomCourseAssignment $assignment = null;
 
     // Formulario de actividad
-    public bool $showActivityForm      = false;
-    public ?int $editingActivityId     = null;
+    public bool $showActivityForm = false;
+
+    public ?int $editingActivityId = null;
+
     public int|string $activity_type_id = '';
-    public string $activityName         = '';
-    public int|string $max_points       = '';
-    public int|string $ordering         = 0;
+
+    public string $activityName = '';
+
+    public int|string $max_points = '';
+
+    public int|string $ordering = 0;
 
     // Calificaciones
     public bool $showScoresForm = false;
+
     public ?int $scoringActivityId = null;
+
     public array $scores = [];
+
     public array $improvement_scores = [];
 
     public string $configMode = 'free';
@@ -53,7 +65,9 @@ class GradeBooks extends Component
     // EXCEL TEMPLATES (Nuevas Propiedades)
     // ==========================================
     public bool $showExcelModal = false;
+
     public ?int $excelActivityId = null;
+
     public ?string $excelActivityName = '';
 
     public $excelFile;
@@ -88,12 +102,13 @@ class GradeBooks extends Component
 
         $academicConfig = AcademicConfiguration::where('year', $this->assignment->classroom->year)->first();
 
-        if (!$academicConfig) {
+        if (! $academicConfig) {
             $this->dispatch('showAlert', [
-                'title'   => 'Sin configuración',
-                'message' => 'No existe una configuración académica para el año ' . $this->assignment->classroom->year . '.',
-                'type'    => 'warning',
+                'title' => 'Sin configuración',
+                'message' => 'No existe una configuración académica para el año '.$this->assignment->classroom->year.'.',
+                'type' => 'warning',
             ]);
+
             return;
         }
 
@@ -104,7 +119,7 @@ class GradeBooks extends Component
             ['classroom_course_assignment_id' => $assignmentId],
             [
                 'academic_configuration_id' => $academicConfig->id,
-                'status'                    => 'open',
+                'status' => 'open',
             ]
         );
 
@@ -114,7 +129,7 @@ class GradeBooks extends Component
         $this->recalculateAllTotals(); // <-- agrega esta línea
 
         $this->resetActivityForm();
-        $this->showScoresForm    = false;
+        $this->showScoresForm = false;
         $this->scoringActivityId = null;
     }
 
@@ -126,12 +141,12 @@ class GradeBooks extends Component
             GradeBookTotal::firstOrCreate(
                 [
                     'grade_book_id' => $this->gradeBook->id,
-                    'student_id'    => $student->id,
+                    'student_id' => $student->id,
                 ],
                 [
                     'normal_points' => 0,
-                    'extra_points'  => 0,
-                    'total_points'  => 0,
+                    'extra_points' => 0,
+                    'total_points' => 0,
                 ]
             );
         }
@@ -155,12 +170,12 @@ class GradeBooks extends Component
 
     public function closeGradeBook(): void
     {
-        $this->gradeBook    = null;
-        $this->assignment   = null;
+        $this->gradeBook = null;
+        $this->assignment = null;
         $this->resetActivityForm();
-        $this->showScoresForm   = false;
+        $this->showScoresForm = false;
         $this->scoringActivityId = null;
-        $this->scores           = [];
+        $this->scores = [];
     }
 
     // ==========================================
@@ -169,12 +184,12 @@ class GradeBooks extends Component
 
     public function resetActivityForm(): void
     {
-        $this->showActivityForm   = false;
-        $this->editingActivityId  = null;
-        $this->activity_type_id   = '';
-        $this->activityName       = '';
-        $this->max_points         = '';
-        $this->ordering           = $this->gradeBook
+        $this->showActivityForm = false;
+        $this->editingActivityId = null;
+        $this->activity_type_id = '';
+        $this->activityName = '';
+        $this->max_points = '';
+        $this->ordering = $this->gradeBook
             ? $this->gradeBook->activities->count() + 1
             : 0;
         $this->resetValidation();
@@ -191,32 +206,32 @@ class GradeBooks extends Component
         $activity = GradeBookActivity::findOrFail($id);
 
         $this->editingActivityId = $activity->id;
-        $this->activity_type_id  = $activity->activity_type_id;
-        $this->activityName      = $activity->name;
-        $this->max_points        = $activity->max_points;
-        $this->ordering          = $activity->ordering;
-        $this->showActivityForm  = true;
+        $this->activity_type_id = $activity->activity_type_id;
+        $this->activityName = $activity->name;
+        $this->max_points = $activity->max_points;
+        $this->ordering = $activity->ordering;
+        $this->showActivityForm = true;
     }
 
     public function saveActivity(): void
     {
         $this->validate([
             'activity_type_id' => 'required|exists:activity_types,id',
-            'activityName'     => 'required|string|max:255',
-            'max_points'       => 'required|numeric|min:0.01',
-            'ordering'         => 'required|integer|min:0',
+            'activityName' => 'required|string|max:255',
+            'max_points' => 'required|numeric|min:0.01',
+            'ordering' => 'required|integer|min:0',
         ], [
             'activity_type_id.required' => 'El tipo de actividad es obligatorio.',
-            'activityName.required'     => 'El nombre de la actividad es obligatorio.',
-            'max_points.required'       => 'Los puntos máximos son obligatorios.',
-            'max_points.min'            => 'Los puntos deben ser mayor a 0.',
-            'ordering.required'         => 'El orden es obligatorio.',
+            'activityName.required' => 'El nombre de la actividad es obligatorio.',
+            'max_points.required' => 'Los puntos máximos son obligatorios.',
+            'max_points.min' => 'Los puntos deben ser mayor a 0.',
+            'ordering.required' => 'El orden es obligatorio.',
         ]);
 
         // Validación del límite de 100 puntos para actividades normales
         $activityType = ActivityType::find($this->activity_type_id);
 
-        if ($activityType && !$activityType->is_extra) {
+        if ($activityType && ! $activityType->is_extra) {
             $currentNormalPoints = GradeBookActivity::where('grade_book_id', $this->gradeBook->id)
                 ->whereHas('activityType', function ($query) {
                     $query->where('is_extra', false);
@@ -229,12 +244,13 @@ class GradeBooks extends Component
             $projectedTotal = $currentNormalPoints + (float) $this->max_points;
 
             if ($projectedTotal > 100) {
-                $this->addError('max_points', "Excede los 100 puntos permitidos.");
+                $this->addError('max_points', 'Excede los 100 puntos permitidos.');
                 $this->dispatch('showAlert', [
-                    'title'   => 'Límite excedido',
+                    'title' => 'Límite excedido',
                     'message' => "Las actividades normales no pueden sumar más de 100 puntos. Llevas {$currentNormalPoints} pts e intentas agregar {$this->max_points} pts.",
-                    'type'    => 'error',
+                    'type' => 'error',
                 ]);
+
                 return;
             }
         }
@@ -248,11 +264,12 @@ class GradeBooks extends Component
             if ($configActivity) {
                 $existingCount = GradeBookActivity::where('grade_book_id', $this->gradeBook->id)
                     ->where('activity_type_id', $this->activity_type_id)
-                    ->when($this->editingActivityId, fn($q) => $q->where('id', '!=', $this->editingActivityId))
+                    ->when($this->editingActivityId, fn ($q) => $q->where('id', '!=', $this->editingActivityId))
                     ->count();
 
                 if ($existingCount >= $configActivity->quantity) {
                     $this->addError('activity_type_id', "Ya alcanzaste el límite de {$configActivity->quantity} actividad(es) de este tipo.");
+
                     return;
                 }
             }
@@ -261,17 +278,17 @@ class GradeBooks extends Component
         if ($this->editingActivityId) {
             GradeBookActivity::findOrFail($this->editingActivityId)->update([
                 'activity_type_id' => $this->activity_type_id,
-                'name'             => $this->activityName,
-                'max_points'       => $this->max_points,
-                'ordering'         => $this->ordering,
+                'name' => $this->activityName,
+                'max_points' => $this->max_points,
+                'ordering' => $this->ordering,
             ]);
         } else {
             GradeBookActivity::create([
-                'grade_book_id'    => $this->gradeBook->id,
+                'grade_book_id' => $this->gradeBook->id,
                 'activity_type_id' => $this->activity_type_id,
-                'name'             => $this->activityName,
-                'max_points'       => $this->max_points,
-                'ordering'         => $this->ordering,
+                'name' => $this->activityName,
+                'max_points' => $this->max_points,
+                'ordering' => $this->ordering,
             ]);
         }
 
@@ -281,7 +298,7 @@ class GradeBooks extends Component
         $this->resetActivityForm();
 
         $this->dispatch('toastMessage', [
-            'type'    => 'success',
+            'type' => 'success',
             'message' => $this->editingActivityId ? 'Actividad actualizada.' : 'Actividad agregada.',
         ]);
     }
@@ -293,7 +310,7 @@ class GradeBooks extends Component
         $this->recalculateAllTotals();
 
         $this->dispatch('toastMessage', [
-            'type'    => 'info',
+            'type' => 'info',
             'message' => 'Actividad eliminada.',
         ]);
     }
@@ -305,19 +322,19 @@ class GradeBooks extends Component
     public function openScores(int $activityId): void
     {
         $this->scoringActivityId = $activityId;
-        $this->showScoresForm    = true;
-        $this->showActivityForm  = false;
+        $this->showScoresForm = true;
+        $this->showActivityForm = false;
 
         $activity = GradeBookActivity::with('scores')->findOrFail($activityId);
         $students = $this->getStudents();
 
-        $this->scores             = [];
+        $this->scores = [];
         $this->improvement_scores = [];
 
         foreach ($students as $student) {
             $score = $activity->scores->firstWhere('student_id', $student->id);
-            $this->scores[$student->id]             = $score ? (float) $score->score : 0;
-            $this->improvement_scores[$student->id] = $score && !is_null($score->improvement_score)
+            $this->scores[$student->id] = $score ? (float) $score->score : 0;
+            $this->improvement_scores[$student->id] = $score && ! is_null($score->improvement_score)
                 ? (float) $score->improvement_score
                 : null;
         }
@@ -326,7 +343,7 @@ class GradeBooks extends Component
     public function saveScores(): void
     {
         $activity = GradeBookActivity::findOrFail($this->scoringActivityId);
-        $config   = $this->gradeBook->academicConfiguration;
+        $config = $this->gradeBook->academicConfiguration;
         $hasImprovement = $config->improvement_type !== 'none';
 
         $rules = [];
@@ -335,19 +352,19 @@ class GradeBooks extends Component
         // 1. Construir las reglas de validación para todos los estudiantes a la vez
         foreach ($this->scores as $studentId => $score) {
             $rules["scores.{$studentId}"] = "required|numeric|min:0|max:{$activity->max_points}";
-            $messages["scores.{$studentId}.required"] = "La nota es obligatoria.";
+            $messages["scores.{$studentId}.required"] = 'La nota es obligatoria.';
             $messages["scores.{$studentId}.max"] = "La nota no puede superar {$activity->max_points} puntos.";
-            $messages["scores.{$studentId}.min"] = "La nota no puede ser negativa.";
+            $messages["scores.{$studentId}.min"] = 'La nota no puede ser negativa.';
 
             if ($hasImprovement) {
                 $inputImprovement = $this->improvement_scores[$studentId] ?? null;
 
-                if (!is_null($inputImprovement) && $inputImprovement !== '' && $inputImprovement > 0) {
+                if (! is_null($inputImprovement) && $inputImprovement !== '' && $inputImprovement > 0) {
                     $maxImprovement = $config->maxImprovementScore((float) $score, (float) $activity->max_points);
 
                     $rules["improvement_scores.{$studentId}"] = "nullable|numeric|min:0|max:{$maxImprovement}";
                     $messages["improvement_scores.{$studentId}.max"] = "La mejora no puede superar {$maxImprovement} puntos para este estudiante.";
-                    $messages["improvement_scores.{$studentId}.min"] = "La mejora no puede ser negativa.";
+                    $messages["improvement_scores.{$studentId}.min"] = 'La mejora no puede ser negativa.';
                 }
             }
         }
@@ -358,9 +375,9 @@ class GradeBooks extends Component
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Si la validación falla, disparamos el SweetAlert visible
             $this->dispatch('showAlert', [
-                'title'   => 'Error en las notas',
+                'title' => 'Error en las notas',
                 'message' => 'Hay calificaciones o mejoras que superan el máximo permitido o tienen formato incorrecto. Revisa los campos en rojo.',
-                'type'    => 'error',
+                'type' => 'error',
             ]);
 
             // Volvemos a lanzar la excepción para que Livewire pinte los inputs de rojo
@@ -373,7 +390,7 @@ class GradeBooks extends Component
 
             if ($hasImprovement) {
                 $inputImprovement = $this->improvement_scores[$studentId] ?? null;
-                if (!is_null($inputImprovement) && $inputImprovement !== '' && $inputImprovement > 0) {
+                if (! is_null($inputImprovement) && $inputImprovement !== '' && $inputImprovement > 0) {
                     $improvementScore = $inputImprovement;
                 }
             }
@@ -381,10 +398,10 @@ class GradeBooks extends Component
             GradeBookScore::updateOrCreate(
                 [
                     'grade_book_activity_id' => $this->scoringActivityId,
-                    'student_id'             => $studentId,
+                    'student_id' => $studentId,
                 ],
                 [
-                    'score'             => $score,
+                    'score' => $score,
                     'improvement_score' => $improvementScore,
                 ]
             );
@@ -392,22 +409,22 @@ class GradeBooks extends Component
 
         $this->recalculateAllTotals();
 
-        $this->showScoresForm    = false;
+        $this->showScoresForm = false;
         $this->scoringActivityId = null;
-        $this->scores            = [];
+        $this->scores = [];
         $this->improvement_scores = [];
 
         $this->dispatch('toastMessage', [
-            'type'    => 'success',
+            'type' => 'success',
             'message' => 'Calificaciones guardadas correctamente.',
         ]);
     }
 
     public function closeScores(): void
     {
-        $this->showScoresForm     = false;
-        $this->scoringActivityId  = null;
-        $this->scores             = [];
+        $this->showScoresForm = false;
+        $this->scoringActivityId = null;
+        $this->scores = [];
         $this->improvement_scores = [];
     }
 
@@ -417,7 +434,7 @@ class GradeBooks extends Component
 
     protected function recalculateAllTotals(): void
     {
-        $students   = $this->getStudents();
+        $students = $this->getStudents();
         $activities = GradeBookActivity::with(['scores', 'activityType'])
             ->where('grade_book_id', $this->gradeBook->id)
             ->get();
@@ -426,13 +443,13 @@ class GradeBooks extends Component
 
         foreach ($students as $student) {
             $normalPoints = 0;
-            $extraPoints  = 0;
+            $extraPoints = 0;
 
             foreach ($activities as $activity) {
                 $score = $activity->scores->firstWhere('student_id', $student->id);
 
-                $rawScore     = $score ? (float) $score->score : 0;
-                $improvement  = $score ? $score->improvement_score : null;
+                $rawScore = $score ? (float) $score->score : 0;
+                $improvement = $score ? $score->improvement_score : null;
 
                 $effective = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
 
@@ -446,12 +463,12 @@ class GradeBooks extends Component
             GradeBookTotal::updateOrCreate(
                 [
                     'grade_book_id' => $this->gradeBook->id,
-                    'student_id'    => $student->id,
+                    'student_id' => $student->id,
                 ],
                 [
                     'normal_points' => $normalPoints,
-                    'extra_points'  => $extraPoints,
-                    'total_points'  => ceil($normalPoints + $extraPoints), // <-- ceil aquí
+                    'extra_points' => $extraPoints,
+                    'total_points' => ceil($normalPoints + $extraPoints), // <-- ceil aquí
                 ]
             );
         }
@@ -466,37 +483,40 @@ class GradeBooks extends Component
         $this->reloadGradeBook();
 
         $normalMax = $this->gradeBook->activities
-            ->filter(fn($a) => !$a->activityType->is_extra)
+            ->filter(fn ($a) => ! $a->activityType->is_extra)
             ->sum('max_points');
 
         if ($normalMax < 100) {
             $this->dispatch('showAlert', [
-                'title'   => 'No se puede bloquear',
+                'title' => 'No se puede bloquear',
                 'message' => "Las actividades normales suman {$normalMax} puntos. Deben sumar exactamente 100.",
-                'type'    => 'warning',
+                'type' => 'warning',
             ]);
+
             return;
         }
 
         $oldStatus = $this->gradeBook->status;
         $this->gradeBook->update(['status' => 'locked']);
 
-        AuditService::gradeBookStatusChanged(
-            $this->gradeBook->load(
-                'assignment.pensumCourse.course',
-                'assignment.classroom.grade',
-                'assignment.classroom.section'
-            ),
-            $oldStatus,
-            'locked'
+        $this->gradeBook->load(
+            'assignment.professor.user',
+            'assignment.pensumCourse.course',
+            'assignment.classroom.grade',
+            'assignment.classroom.section'
         );
+
+        AuditService::gradeBookStatusChanged($this->gradeBook, $oldStatus, 'locked');
+
+        User::role(['Super Administrador', 'Director'])->get()
+            ->each(fn ($admin) => $admin->notify(new GradeBookLocked($this->gradeBook)));
 
         $this->reloadGradeBook();
 
         $this->dispatch('showAlert', [
-            'title'   => 'Cuadro bloqueado',
+            'title' => 'Cuadro bloqueado',
             'message' => 'El cuadro ha sido bloqueado exitosamente.',
-            'type'    => 'success',
+            'type' => 'success',
         ]);
     }
 
@@ -505,7 +525,7 @@ class GradeBooks extends Component
         $oldStatus = $this->gradeBook->status;
 
         $this->gradeBook->update([
-            'status'           => 'open',
+            'status' => 'open',
             'rejection_reason' => null,
         ]);
 
@@ -522,9 +542,9 @@ class GradeBooks extends Component
         $this->reloadGradeBook();
 
         $this->dispatch('showAlert', [
-            'title'   => 'Cuadro reabierto',
+            'title' => 'Cuadro reabierto',
             'message' => 'El cuadro está nuevamente abierto para edición.',
-            'type'    => 'success',
+            'type' => 'success',
         ]);
     }
 
@@ -577,8 +597,8 @@ class GradeBooks extends Component
             'excelFile' => 'required|mimes:xlsx,xls|max:5120', // Máximo 5MB
         ], [
             'excelFile.required' => 'Debes seleccionar un archivo Excel.',
-            'excelFile.mimes'    => 'El archivo debe ser de tipo xlsx o xls.',
-            'excelFile.max'      => 'El archivo es demasiado grande (máximo 5MB).',
+            'excelFile.mimes' => 'El archivo debe ser de tipo xlsx o xls.',
+            'excelFile.max' => 'El archivo es demasiado grande (máximo 5MB).',
         ]);
 
         $activity = GradeBookActivity::findOrFail($this->excelActivityId);
@@ -595,10 +615,10 @@ class GradeBooks extends Component
             // VALIDADOR DE SEGURIDAD DE LA ACTIVIDAD
             // ==========================================
             $headerRow = $data[0][0] ?? ''; // Leemos la celda A1
-            $expectedTag = '[ACT_ID:' . $activity->id . ']';
+            $expectedTag = '[ACT_ID:'.$activity->id.']';
 
-            if (!str_contains($headerRow, $expectedTag)) {
-                throw new \Exception("El archivo que intentas subir no pertenece a esta actividad. Por favor, verifica que sea la plantilla correcta.");
+            if (! str_contains($headerRow, $expectedTag)) {
+                throw new \Exception('El archivo que intentas subir no pertenece a esta actividad. Por favor, verifica que sea la plantilla correcta.');
             }
 
             // 3. Iniciar Transacción
@@ -610,12 +630,12 @@ class GradeBooks extends Component
                 $studentId = $row[0]; // Columna A: ID Sistema
 
                 // Si la fila está vacía o el ID no es numérico, ignoramos la fila
-                if (empty($studentId) || !is_numeric($studentId)) {
+                if (empty($studentId) || ! is_numeric($studentId)) {
                     continue;
                 }
 
                 // Seguridad: Validar que el estudiante realmente pertenece a esta asignación
-                if (!$students->has($studentId)) {
+                if (! $students->has($studentId)) {
                     continue;
                 }
 
@@ -633,7 +653,7 @@ class GradeBooks extends Component
                 GradeBookScore::updateOrCreate(
                     [
                         'grade_book_activity_id' => $activity->id,
-                        'student_id'             => $studentId,
+                        'student_id' => $studentId,
                     ],
                     [
                         'score' => $score,
@@ -648,18 +668,18 @@ class GradeBooks extends Component
 
             $this->closeExcelModal();
             $this->dispatch('toastMessage', [
-                'type'    => 'success',
+                'type' => 'success',
                 'message' => 'Calificaciones importadas y actualizadas correctamente.',
             ]);
         } catch (\Exception $e) {
             DB::rollBack(); // Si algo falla, revertimos toda la base de datos
-            $this->addError('excelFile', 'Error en el archivo: ' . $e->getMessage());
+            $this->addError('excelFile', 'Error en el archivo: '.$e->getMessage());
         }
     }
 
     public function downloadExcelTemplate()
     {
-        if (!$this->excelActivityId) {
+        if (! $this->excelActivityId) {
             return;
         }
 
@@ -667,12 +687,12 @@ class GradeBooks extends Component
         $students = $this->getStudents(); // Reutilizamos tu método exacto para mantener el orden
 
         $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $activity->name);
-        $fileName = "Plantilla_{$safeName}_" . date('dmY_His') . '.xlsx';
+        $fileName = "Plantilla_{$safeName}_".date('dmY_His').'.xlsx';
 
         $this->closeExcelModal();
 
         $this->dispatch('toastMessage', [
-            'type'    => 'success',
+            'type' => 'success',
             'message' => 'Generando archivo Excel...',
         ]);
 
@@ -695,18 +715,18 @@ class GradeBooks extends Component
                 'gradeBook',
             ])
                 ->where('professor_id', $professor->id)
-                ->whereHas('classroom', fn($q) => $q->where('year', date('Y')))
+                ->whereHas('classroom', fn ($q) => $q->where('year', date('Y')))
                 ->where(function ($q) {
-                    $q->whereHas('classroom.level', fn($q) => $q->where('level_name', 'like', '%' . $this->search . '%'))
-                        ->orWhereHas('classroom.grade', fn($q) => $q->where('grade_name', 'like', '%' . $this->search . '%'))
-                        ->orWhereHas('classroom.section', fn($q) => $q->where('section_name', 'like', '%' . $this->search . '%'))
-                        ->orWhereHas('pensumCourse.course', fn($q) => $q->where('course_name', 'like', '%' . $this->search . '%'));
+                    $q->whereHas('classroom.level', fn ($q) => $q->where('level_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('classroom.grade', fn ($q) => $q->where('grade_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('classroom.section', fn ($q) => $q->where('section_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('pensumCourse.course', fn ($q) => $q->where('course_name', 'like', '%'.$this->search.'%'));
                 })
                 ->orderBy('classroom_id')
                 ->orderBy('pensum_course_id')
                 ->orderBy('unit')
                 ->get()
-                ->groupBy(fn($a) => $a->classroom_id . '-' . $a->pensum_course_id);
+                ->groupBy(fn ($a) => $a->classroom_id.'-'.$a->pensum_course_id);
         } else {
             $assignments = collect();
         }
@@ -718,7 +738,7 @@ class GradeBooks extends Component
             : collect();
 
         $activityTypes = $this->gradeBook && $this->gradeBook->academicConfiguration->mode === 'assigned'
-            ? $configActivities->map(fn($ca) => $ca->activityType)
+            ? $configActivities->map(fn ($ca) => $ca->activityType)
             : ActivityType::orderBy('name')->get();
 
         $students = $this->assignment ? $this->getStudents() : collect();

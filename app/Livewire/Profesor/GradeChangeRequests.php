@@ -2,19 +2,17 @@
 
 namespace App\Livewire\Profesor;
 
-use App\Models\AcademicConfiguration;
 use App\Models\GradeBook;
-use App\Models\GradeBookActivity;
-use App\Models\GradeBookScore;
-use App\Models\GradeBookTotal;
 use App\Models\GradeChangeRequest;
 use App\Models\GradeChangeRequestItem;
 use App\Models\Student;
+use App\Models\User;
+use App\Notifications\GradeChangeRequestCreated;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Services\AuditService;
 
 class GradeChangeRequests extends Component
 {
@@ -23,7 +21,8 @@ class GradeChangeRequests extends Component
     protected $paginationTheme = 'bootstrap';
 
     public bool $readyToLoad = false;
-    public string $search    = '';
+
+    public string $search = '';
 
     // Step 1: select grade book
     public ?GradeBook $selectedGradeBook = null;
@@ -34,23 +33,27 @@ class GradeChangeRequests extends Component
     // Step 3: edit scores
     // scores[student_id][activity_id] = ['score' => x, 'improvement_score' => y]
     public array $scores = [];
+
     public string $reason = '';
 
     // View mode
     public string $view = 'list'; // list | select-students | edit-scores
 
     // Filters
-    public string $filterLevel   = '';
-    public string $filterGrade   = '';
+    public string $filterLevel = '';
+
+    public string $filterGrade = '';
+
     public string $filterSection = '';
-    public string $filterUnit    = '';
+
+    public string $filterUnit = '';
 
     protected $queryString = [
-        'search'        => ['except' => ''],
-        'filterLevel'   => ['except' => ''],
-        'filterGrade'   => ['except' => ''],
+        'search' => ['except' => ''],
+        'filterLevel' => ['except' => ''],
+        'filterGrade' => ['except' => ''],
         'filterSection' => ['except' => ''],
-        'filterUnit'    => ['except' => ''],
+        'filterUnit' => ['except' => ''],
     ];
 
     public function loadRequests(): void
@@ -102,9 +105,9 @@ class GradeChangeRequests extends Component
         ])->findOrFail($gradeBookId);
 
         $this->selectedStudents = [];
-        $this->scores           = [];
-        $this->reason           = '';
-        $this->view             = 'select-students';
+        $this->scores = [];
+        $this->reason = '';
+        $this->view = 'select-students';
         $this->resetValidation();
     }
 
@@ -118,19 +121,19 @@ class GradeChangeRequests extends Component
             'selectedStudents' => 'required|array|min:1',
         ], [
             'selectedStudents.required' => 'Debe seleccionar al menos un estudiante.',
-            'selectedStudents.min'      => 'Debe seleccionar al menos un estudiante.',
+            'selectedStudents.min' => 'Debe seleccionar al menos un estudiante.',
         ]);
 
         // Initialize scores with current values
         $this->scores = [];
-        $activities   = $this->selectedGradeBook->activities;
+        $activities = $this->selectedGradeBook->activities;
         $hasImprovement = $this->selectedGradeBook->academicConfiguration->improvement_type !== 'none';
 
         foreach ($this->selectedStudents as $studentId) {
             foreach ($activities as $activity) {
                 $score = $activity->scores->firstWhere('student_id', $studentId);
                 $this->scores[$studentId][$activity->id] = [
-                    'score'             => $score ? (float) $score->score : 0,
+                    'score' => $score ? (float) $score->score : 0,
                     'improvement_score' => ($hasImprovement && $score) ? $score->improvement_score : null,
                 ];
             }
@@ -152,22 +155,23 @@ class GradeChangeRequests extends Component
             'reason' => 'required|string|min:10|max:1000',
         ], [
             'reason.required' => 'El motivo del cambio es obligatorio.',
-            'reason.min'      => 'El motivo debe tener al menos 10 caracteres.',
+            'reason.min' => 'El motivo debe tener al menos 10 caracteres.',
         ]);
 
         // Validar que los scores no superen el máximo de cada actividad
         $activities = $this->selectedGradeBook->activities;
-        $config     = $this->selectedGradeBook->academicConfiguration;
+        $config = $this->selectedGradeBook->academicConfiguration;
         $hasImprovement = $config->improvement_type !== 'none';
 
         foreach ($this->selectedStudents as $studentId) {
             foreach ($activities as $activity) {
-                $newScore       = (float) ($this->scores[$studentId][$activity->id]['score'] ?? 0);
-                $maxPoints      = (float) $activity->max_points;
+                $newScore = (float) ($this->scores[$studentId][$activity->id]['score'] ?? 0);
+                $maxPoints = (float) $activity->max_points;
 
                 if ($newScore < 0 || $newScore > $maxPoints) {
                     $studentName = Student::with('user')->find($studentId)?->user->name ?? "Estudiante #{$studentId}";
                     $this->addError('reason', "La nota de \"{$activity->name}\" para {$studentName} debe estar entre 0 y {$maxPoints}.");
+
                     return;
                 }
 
@@ -180,6 +184,7 @@ class GradeChangeRequests extends Component
                         if ($newImprovement < 0 || $newImprovement > $maxImprovement) {
                             $studentName = Student::with('user')->find($studentId)?->user->name ?? "Estudiante #{$studentId}";
                             $this->addError('reason', "La mejora de \"{$activity->name}\" para {$studentName} no puede superar {$maxImprovement} puntos.");
+
                             return;
                         }
                     }
@@ -187,7 +192,7 @@ class GradeChangeRequests extends Component
             }
         }
 
-        $professor  = Auth::user()->professor;
+        $professor = Auth::user()->professor;
         $activities = $this->selectedGradeBook->activities;
 
         // Build items — only include changed scores
@@ -196,9 +201,9 @@ class GradeChangeRequests extends Component
             foreach ($activities as $activity) {
                 $current = $activity->scores->firstWhere('student_id', $studentId);
 
-                $oldScore       = $current ? (float) $current->score : 0;
+                $oldScore = $current ? (float) $current->score : 0;
                 $oldImprovement = $current ? $current->improvement_score : null;
-                $newScore       = (float) ($this->scores[$studentId][$activity->id]['score'] ?? 0);
+                $newScore = (float) ($this->scores[$studentId][$activity->id]['score'] ?? 0);
 
                 if ($hasImprovement) {
                     $newImprovement = $this->scores[$studentId][$activity->id]['improvement_score'] ?? null;
@@ -207,17 +212,17 @@ class GradeChangeRequests extends Component
                     $newImprovement = null; // Forzamos a null si no hay mejoras
                 }
 
-                $scoreChanged       = round($oldScore, 2) !== round($newScore, 2);
+                $scoreChanged = round($oldScore, 2) !== round($newScore, 2);
                 $improvementChanged = round((float) $oldImprovement, 2) !== round((float) $newImprovement, 2);
 
                 if ($scoreChanged || $improvementChanged) {
                     $items[] = [
-                        'student_id'             => $studentId,
+                        'student_id' => $studentId,
                         'grade_book_activity_id' => $activity->id,
-                        'old_score'              => $oldScore,
-                        'new_score'              => $newScore,
-                        'old_improvement_score'  => $oldImprovement,
-                        'new_improvement_score'  => $newImprovement,
+                        'old_score' => $oldScore,
+                        'new_score' => $newScore,
+                        'old_improvement_score' => $oldImprovement,
+                        'new_improvement_score' => $newImprovement,
                     ];
                 }
             }
@@ -225,15 +230,16 @@ class GradeChangeRequests extends Component
 
         if (empty($items)) {
             $this->addError('reason', 'No se detectaron cambios en las calificaciones.');
+
             return;
         }
 
         DB::transaction(function () use ($professor, $items) {
             $request = GradeChangeRequest::create([
                 'grade_book_id' => $this->selectedGradeBook->id,
-                'professor_id'  => $professor->id,
-                'reason'        => $this->reason,
-                'status'        => 'pending',
+                'professor_id' => $professor->id,
+                'reason' => $this->reason,
+                'status' => 'pending',
             ]);
 
             AuditService::gradeChangeRequestCreated($request);
@@ -244,15 +250,25 @@ class GradeChangeRequests extends Component
                     $item
                 ));
             }
+
+            $request->load(
+                'professor.user',
+                'gradeBook.assignment.pensumCourse.course',
+                'gradeBook.assignment.classroom.grade',
+                'gradeBook.assignment.classroom.section'
+            );
+
+            User::role(['Super Administrador', 'Director'])->get()
+                ->each(fn ($admin) => $admin->notify(new GradeChangeRequestCreated($request)));
         });
 
         $this->reset(['selectedGradeBook', 'selectedStudents', 'scores', 'reason']);
         $this->view = 'list';
 
         $this->dispatch('showAlert', [
-            'title'   => '¡Solicitud enviada!',
+            'title' => '¡Solicitud enviada!',
             'message' => 'La solicitud de cambio de notas fue enviada para revisión.',
-            'type'    => 'success',
+            'type' => 'success',
         ]);
     }
 
@@ -275,12 +291,13 @@ class GradeChangeRequests extends Component
 
     public function getStudents()
     {
-        if (! $this->selectedGradeBook) return collect();
+        if (! $this->selectedGradeBook) {
+            return collect();
+        }
 
         return Student::whereHas(
             'enrollments',
-            fn($q) =>
-            $q->where('classroom_id', $this->selectedGradeBook->assignment->classroom_id)
+            fn ($q) => $q->where('classroom_id', $this->selectedGradeBook->assignment->classroom_id)
                 ->where('status', 'Activo')
         )
             ->join('users', 'students.user_id', '=', 'users.id')
@@ -296,12 +313,13 @@ class GradeChangeRequests extends Component
     // Students blocked because they have a pending request for this grade book
     public function getBlockedStudentIds(): array
     {
-        if (! $this->selectedGradeBook) return [];
+        if (! $this->selectedGradeBook) {
+            return [];
+        }
 
         $pendingItems = GradeChangeRequestItem::whereHas(
             'request',
-            fn($q) =>
-            $q->where('grade_book_id', $this->selectedGradeBook->id)
+            fn ($q) => $q->where('grade_book_id', $this->selectedGradeBook->id)
                 ->where('status', 'pending')
         )->pluck('student_id')->unique()->toArray();
 
@@ -313,21 +331,19 @@ class GradeChangeRequests extends Component
         $professor = Auth::user()->professor;
 
         $assignedClassroomIds = \App\Models\ClassroomCourseAssignment::where('professor_id', $professor->id)
-            ->whereHas('classroom', fn($q) => $q->where('year', date('Y')))
+            ->whereHas('classroom', fn ($q) => $q->where('year', date('Y')))
             ->pluck('classroom_id')
             ->unique();
 
         $levels = \App\Models\Level::whereHas(
             'classrooms',
-            fn($q) =>
-            $q->whereIn('id', $assignedClassroomIds)
+            fn ($q) => $q->whereIn('id', $assignedClassroomIds)
         )->orderBy('level_name')->get();
 
         $grades = $this->filterLevel
             ? \App\Models\Grade::whereHas(
                 'classrooms',
-                fn($q) =>
-                $q->whereIn('id', $assignedClassroomIds)
+                fn ($q) => $q->whereIn('id', $assignedClassroomIds)
                     ->where('level_id', $this->filterLevel)
             )->orderBy('ordering')->get()
             : collect();
@@ -335,8 +351,7 @@ class GradeChangeRequests extends Component
         $sections = $this->filterGrade
             ? \App\Models\Section::whereHas(
                 'classrooms',
-                fn($q) =>
-                $q->whereIn('id', $assignedClassroomIds)
+                fn ($q) => $q->whereIn('id', $assignedClassroomIds)
                     ->where('grade_id', $this->filterGrade)
                     ->where('level_id', $this->filterLevel)
             )->orderBy('section_name')->get()
@@ -344,18 +359,17 @@ class GradeChangeRequests extends Component
 
         $units = $this->filterSection
             ? \App\Models\ClassroomCourseAssignment::where('professor_id', $professor->id)
-            ->whereHas(
-                'classroom',
-                fn($q) =>
-                $q->where('year', date('Y'))
-                    ->where('section_id', $this->filterSection)
-                    ->where('grade_id', $this->filterGrade)
-                    ->where('level_id', $this->filterLevel)
-            )
-            ->distinct()
-            ->pluck('unit')
-            ->sort()
-            ->values()
+                ->whereHas(
+                    'classroom',
+                    fn ($q) => $q->where('year', date('Y'))
+                        ->where('section_id', $this->filterSection)
+                        ->where('grade_id', $this->filterGrade)
+                        ->where('level_id', $this->filterLevel)
+                )
+                ->distinct()
+                ->pluck('unit')
+                ->sort()
+                ->values()
             : collect();
 
         $gradeBooks = $this->readyToLoad
@@ -365,43 +379,38 @@ class GradeChangeRequests extends Component
                 'assignment.classroom.section',
                 'assignment.pensumCourse.course',
             ])
-            ->where('status', 'approved')
-            ->whereHas(
-                'assignment',
-                fn($q) =>
-                $q->where('professor_id', $professor->id)
-                    ->whereHas(
-                        'classroom',
-                        fn($q) =>
-                        $q->where('year', date('Y'))
-                            ->when($this->filterLevel,   fn($q) => $q->where('level_id',   $this->filterLevel))
-                            ->when($this->filterGrade,   fn($q) => $q->where('grade_id',   $this->filterGrade))
-                            ->when($this->filterSection, fn($q) => $q->where('section_id', $this->filterSection))
-                    )
-                    ->when($this->filterUnit, fn($q) => $q->where('unit', $this->filterUnit))
-            )
-            ->where(function ($q) {
-                $q->whereHas('assignment.classroom.grade', fn($q) =>
-                $q->where('grade_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('assignment.pensumCourse.course', fn($q) =>
-                    $q->where('course_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('assignment.classroom.section', fn($q) =>
-                    $q->where('section_name', 'like', '%' . $this->search . '%'));
-            })
-            ->join('classroom_course_assignments', 'grade_books.classroom_course_assignment_id', '=', 'classroom_course_assignments.id')
-            ->join('classrooms', 'classroom_course_assignments.classroom_id', '=', 'classrooms.id')
-            ->join('levels', 'classrooms.level_id', '=', 'levels.id')
-            ->join('grades', 'classrooms.grade_id', '=', 'grades.id')
-            ->join('sections', 'classrooms.section_id', '=', 'sections.id')
-            ->join('pensum_courses', 'classroom_course_assignments.pensum_course_id', '=', 'pensum_courses.id')
-            ->join('courses', 'pensum_courses.course_id', '=', 'courses.id')
-            ->orderBy('levels.level_name')
-            ->orderBy('grades.ordering')
-            ->orderBy('sections.section_name')
-            ->orderBy('courses.course_name')
-            ->orderBy('classroom_course_assignments.unit')
-            ->select('grade_books.*')
-            ->paginate(10)
+                ->where('status', 'approved')
+                ->whereHas(
+                    'assignment',
+                    fn ($q) => $q->where('professor_id', $professor->id)
+                        ->whereHas(
+                            'classroom',
+                            fn ($q) => $q->where('year', date('Y'))
+                                ->when($this->filterLevel, fn ($q) => $q->where('level_id', $this->filterLevel))
+                                ->when($this->filterGrade, fn ($q) => $q->where('grade_id', $this->filterGrade))
+                                ->when($this->filterSection, fn ($q) => $q->where('section_id', $this->filterSection))
+                        )
+                        ->when($this->filterUnit, fn ($q) => $q->where('unit', $this->filterUnit))
+                )
+                ->where(function ($q) {
+                    $q->whereHas('assignment.classroom.grade', fn ($q) => $q->where('grade_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('assignment.pensumCourse.course', fn ($q) => $q->where('course_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('assignment.classroom.section', fn ($q) => $q->where('section_name', 'like', '%'.$this->search.'%'));
+                })
+                ->join('classroom_course_assignments', 'grade_books.classroom_course_assignment_id', '=', 'classroom_course_assignments.id')
+                ->join('classrooms', 'classroom_course_assignments.classroom_id', '=', 'classrooms.id')
+                ->join('levels', 'classrooms.level_id', '=', 'levels.id')
+                ->join('grades', 'classrooms.grade_id', '=', 'grades.id')
+                ->join('sections', 'classrooms.section_id', '=', 'sections.id')
+                ->join('pensum_courses', 'classroom_course_assignments.pensum_course_id', '=', 'pensum_courses.id')
+                ->join('courses', 'pensum_courses.course_id', '=', 'courses.id')
+                ->orderBy('levels.level_name')
+                ->orderBy('grades.ordering')
+                ->orderBy('sections.section_name')
+                ->orderBy('courses.course_name')
+                ->orderBy('classroom_course_assignments.unit')
+                ->select('grade_books.*')
+                ->paginate(10)
             : [];
 
         // My submitted requests
@@ -414,15 +423,15 @@ class GradeChangeRequests extends Component
                 'items.activity',
                 'reviewer',
             ])
-            ->where('professor_id', $professor->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(5)
+                ->where('professor_id', $professor->id)
+                ->orderBy('created_at', 'desc')
+                ->paginate(5)
             : [];
 
-        $students       = $this->getStudents();
-        $blockedIds     = $this->getBlockedStudentIds();
-        $activities     = $this->selectedGradeBook?->activities ?? collect();
-        $config         = $this->selectedGradeBook?->academicConfiguration;
+        $students = $this->getStudents();
+        $blockedIds = $this->getBlockedStudentIds();
+        $activities = $this->selectedGradeBook?->activities ?? collect();
+        $config = $this->selectedGradeBook?->academicConfiguration;
 
         return view('livewire.profesor.grade-change-requests', compact(
             'gradeBooks',

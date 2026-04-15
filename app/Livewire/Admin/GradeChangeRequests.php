@@ -3,17 +3,16 @@
 namespace App\Livewire\Admin;
 
 use App\Models\GradeBook;
+use App\Models\GradeBookActivity;
 use App\Models\GradeBookScore;
 use App\Models\GradeBookTotal;
-use App\Models\GradeBookActivity;
 use App\Models\GradeChangeRequest;
-use App\Models\GradeChangeRequestItem;
 use App\Models\Student;
-use Illuminate\Support\Facades\Auth;
+use App\Notifications\GradeChangeRequestResolved;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Services\AuditService;
 
 class GradeChangeRequests extends Component
 {
@@ -21,22 +20,26 @@ class GradeChangeRequests extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-    public bool $readyToLoad    = false;
+    public bool $readyToLoad = false;
+
     public string $filterStatus = 'pending';
-    public string $search       = '';
-    public string $cant         = '10';
+
+    public string $search = '';
+
+    public string $cant = '10';
 
     // Detail view
     public ?GradeChangeRequest $viewingRequest = null;
 
     // Rejection
-    public ?int $rejectingId        = null;
-    public string $rejectionReason  = '';
+    public ?int $rejectingId = null;
+
+    public string $rejectionReason = '';
 
     protected $queryString = [
         'filterStatus' => ['except' => 'pending'],
-        'search'       => ['except' => ''],
-        'cant'         => ['except' => '10'],
+        'search' => ['except' => ''],
+        'cant' => ['except' => '10'],
     ];
 
     public function loadRequests(): void
@@ -75,8 +78,8 @@ class GradeChangeRequests extends Component
 
     public function closeRequest(): void
     {
-        $this->viewingRequest  = null;
-        $this->rejectingId     = null;
+        $this->viewingRequest = null;
+        $this->rejectingId = null;
         $this->rejectionReason = '';
         $this->resetValidation();
     }
@@ -118,12 +121,21 @@ class GradeChangeRequests extends Component
             $request->update(['status' => 'approved']);
 
             AuditService::gradeChangeRequestResolved($request, 'approved');
+
+            $request->load(
+                'professor.user',
+                'gradeBook.assignment.pensumCourse.course',
+                'gradeBook.assignment.classroom.grade',
+                'gradeBook.assignment.classroom.section'
+            );
+
+            $request->professor->user->notify(new GradeChangeRequestResolved($request, 'approved'));
         });
 
         $this->dispatch('closeModalMessaje', [
-            'title'   => '¡Aprobado!',
+            'title' => '¡Aprobado!',
             'message' => 'La solicitud fue aprobada y las notas actualizadas.',
-            'type'    => 'success',
+            'type' => 'success',
             'modalId' => 'GradeChangeModal',
         ]);
     }
@@ -134,7 +146,7 @@ class GradeChangeRequests extends Component
 
     public function openRejectModal(int $id): void
     {
-        $this->rejectingId     = $id;
+        $this->rejectingId = $id;
         $this->rejectionReason = '';
         $this->resetValidation();
     }
@@ -145,24 +157,32 @@ class GradeChangeRequests extends Component
             'rejectionReason' => 'required|string|min:5',
         ], [
             'rejectionReason.required' => 'El motivo de rechazo es obligatorio.',
-            'rejectionReason.min'      => 'El motivo debe tener al menos 5 caracteres.',
+            'rejectionReason.min' => 'El motivo debe tener al menos 5 caracteres.',
         ]);
 
-        $request = GradeChangeRequest::findOrFail($this->rejectingId);
+        $request = GradeChangeRequest::with([
+            'professor.user',
+            'gradeBook.assignment.pensumCourse.course',
+            'gradeBook.assignment.classroom.grade',
+            'gradeBook.assignment.classroom.section',
+        ])->findOrFail($this->rejectingId);
+
         $request->update([
-            'status'           => 'rejected',
+            'status' => 'rejected',
             'rejection_reason' => $this->rejectionReason,
         ]);
 
         AuditService::gradeChangeRequestResolved($request, 'rejected', $this->rejectionReason);
 
+        $request->professor->user->notify(new GradeChangeRequestResolved($request, 'rejected', $this->rejectionReason));
+
         $this->rejectionReason = '';
-        $this->rejectingId     = null;
+        $this->rejectingId = null;
 
         $this->dispatch('closeModalMessaje', [
-            'title'   => 'Rechazado',
+            'title' => 'Rechazado',
             'message' => 'La solicitud fue rechazada.',
-            'type'    => 'warning',
+            'type' => 'warning',
             'modalId' => 'RejectModal',
         ]);
     }
@@ -173,14 +193,14 @@ class GradeChangeRequests extends Component
             ->where('grade_book_id', $gradeBook->id)
             ->get();
 
-        $config       = $gradeBook->academicConfiguration;
+        $config = $gradeBook->academicConfiguration;
         $normalPoints = 0;
-        $extraPoints  = 0;
+        $extraPoints = 0;
 
         foreach ($activities as $activity) {
             $score = $activity->scores->firstWhere('student_id', $studentId);
 
-            $rawScore    = $score ? (float) $score->score : 0;
+            $rawScore = $score ? (float) $score->score : 0;
             $improvement = $score ? $score->improvement_score : null;
 
             $effective = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
@@ -195,12 +215,12 @@ class GradeChangeRequests extends Component
         GradeBookTotal::updateOrCreate(
             [
                 'grade_book_id' => $gradeBook->id,
-                'student_id'    => $studentId,
+                'student_id' => $studentId,
             ],
             [
                 'normal_points' => $normalPoints,
-                'extra_points'  => $extraPoints,
-                'total_points'  => ceil($normalPoints + $extraPoints),
+                'extra_points' => $extraPoints,
+                'total_points' => ceil($normalPoints + $extraPoints),
             ]
         );
     }
@@ -216,34 +236,30 @@ class GradeChangeRequests extends Component
                 'reviewer',
                 'items',
             ])
-            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
-            ->where(function ($q) {
-                $q->whereHas('gradeBook.assignment.classroom.grade', fn($q) =>
-                $q->where('grade_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('gradeBook.assignment.pensumCourse.course', fn($q) =>
-                    $q->where('course_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('professor.user', fn($q) =>
-                    $q->where('name', 'like', '%' . $this->search . '%'));
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate($this->cant)
+                ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
+                ->where(function ($q) {
+                    $q->whereHas('gradeBook.assignment.classroom.grade', fn ($q) => $q->where('grade_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('gradeBook.assignment.pensumCourse.course', fn ($q) => $q->where('course_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('professor.user', fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'));
+                })
+                ->orderBy('created_at', 'desc')
+                ->paginate($this->cant)
             : [];
 
         $students = $this->viewingRequest
             ? Student::whereHas(
                 'enrollments',
-                fn($q) =>
-                $q->where('classroom_id', $this->viewingRequest->gradeBook->assignment->classroom_id)
+                fn ($q) => $q->where('classroom_id', $this->viewingRequest->gradeBook->assignment->classroom_id)
                     ->where('status', 'Activo')
             )
-            ->join('users', 'students.user_id', '=', 'users.id')
-            ->orderBy('users.surname')
-            ->orderBy('users.second_surname')
-            ->orderBy('users.first_name')
-            ->orderBy('users.middle_name')
-            ->select('students.*')
-            ->with('user')
-            ->get()
+                ->join('users', 'students.user_id', '=', 'users.id')
+                ->orderBy('users.surname')
+                ->orderBy('users.second_surname')
+                ->orderBy('users.first_name')
+                ->orderBy('users.middle_name')
+                ->select('students.*')
+                ->with('user')
+                ->get()
             : collect();
 
         return view('livewire.admin.grade-change-requests', compact('requests', 'students'));
