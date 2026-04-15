@@ -1,5 +1,11 @@
 <div wire:init="loadRequests">
 
+    {{-- Señuelo: evita que Chrome autorrellene el buscador con credenciales guardadas --}}
+    <div style="position:fixed;top:-200px;left:-200px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+        <input type="text" autocomplete="username" tabindex="-1">
+        <input type="password" autocomplete="current-password" tabindex="-1">
+    </div>
+
     @if ($view === 'list')
 
         {{-- LISTA DE CUADROS APROBADOS --}}

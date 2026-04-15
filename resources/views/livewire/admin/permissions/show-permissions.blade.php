@@ -1,5 +1,11 @@
 <div wire:init="loadPermissions">
 
+    {{-- Señuelo: evita que Chrome autorrellene el buscador con credenciales guardadas --}}
+    <div style="position:fixed;top:-200px;left:-200px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+        <input type="text" autocomplete="username" tabindex="-1">
+        <input type="password" autocomplete="current-password" tabindex="-1">
+    </div>
+
     {{-- Modal Crear Permiso --}}
     <div wire:ignore.self class="modal fade" id="CreatePermissionModal" tabindex="-1" role="dialog" data-backdrop="static">
         <div class="modal-dialog modal-lg" role="document">
