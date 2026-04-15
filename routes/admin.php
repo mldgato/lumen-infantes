@@ -180,3 +180,7 @@ Route::get('/reports/attendance/', fn() => view('admin.reports.attendance.index'
 Route::get('/reports/attendance/pdf', [AttendancePdfController::class, 'adminGenerate'])
     ->name('admin.reports.attendance.pdf')
     ->middleware('can:admin.reports.attendance');
+
+Route::get('/reports/grade-progress/index', fn() => view('admin.reports.grade-progress.index'))
+    ->name('admin.reports.grade-progress.index')
+    ->middleware('can:admin.reports.grade-progress');

@@ -558,6 +558,12 @@ return [
                     'icon'  => 'fas fa-fw fa-user-check',
                     'can'   => 'admin.reports.attendance',
                 ],
+                [
+                    'text'  => 'Avance de Notas',
+                    'route' => 'admin.reports.grade-progress.index',
+                    'icon'  => 'fas fa-fw fa-chart-line',
+                    'can'   => 'admin.reports.grade-progress',
+                ],
             ],
         ],
 

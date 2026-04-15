@@ -293,5 +293,7 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'profesor.attendance.index',  'description' => 'Profesor - Tomar Asistencia'])->assignRole($role4);
 
         Permission::create(['name' => 'admin.reports.attendance',     'description' => 'Administración - Reporte de Asistencia'])->syncRoles([$role1, $role2]);
+
+        Permission::create(['name' => 'admin.reports.grade-progress', 'description' => 'Administración - Reporte de avance de ingreso de calificaciones'])->syncRoles([$role1, $role2]);
     }
 }
