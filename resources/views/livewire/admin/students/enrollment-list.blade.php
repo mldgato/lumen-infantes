@@ -217,7 +217,7 @@
                                     <div class="input-group-prepend"><span class="input-group-text"><i
                                                 class="fas fa-search"></i></span></div>
                                     <input type="text" wire:model.live.debounce.300ms="searchStudent"
-                                        class="form-control" placeholder="Escriba al menos 2 caracteres..." autocomplete="new-password">
+                                        class="form-control" name="buscar" id="buscador" placeholder="Escriba al menos 2 caracteres..." autocomplete="search">
                                 </div>
                                 @if (count($searchResults) > 0)
                                     <div class="list-group shadow position-absolute w-100"
