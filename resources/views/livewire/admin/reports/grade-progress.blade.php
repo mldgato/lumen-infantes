@@ -17,7 +17,7 @@
         <div class="card-body">
             <div class="row align-items-end">
 
-                <div class="col-md-2 form-group mb-3">
+                <div class="col-md-2 form-group mb-2">
                     <label class="text-sm mb-1">Año <span class="text-danger">*</span></label>
                     <div class="input-group input-group-sm">
                         <div class="input-group-prepend">
@@ -30,13 +30,29 @@
                                 <option value="{{ $year }}">{{ $year }}</option>
                             @endforeach
                         </select>
-                        @error('filterYear')
-                            <span class="invalid-feedback d-block">{{ $message }}</span>
-                        @enderror
+                    </div>
+                    @error('filterYear')
+                        <span class="text-danger text-xs">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="col-md-2 form-group mb-2">
+                    <label class="text-sm mb-1">Unidad <span class="text-muted">(opcional)</span></label>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-list-ol"></i></span>
+                        </div>
+                        <select wire:model.live="filterUnit" class="form-control"
+                            {{ !$filterYear ? 'disabled' : '' }}>
+                            <option value="">-- Todas --</option>
+                            @foreach ($units as $unit)
+                                <option value="{{ $unit }}">Unidad {{ $unit }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 
-                <div class="col-md-2 form-group mb-3">
+                <div class="col-md-2 form-group mb-2">
                     <label class="text-sm mb-1">Nivel <span class="text-muted">(opcional)</span></label>
                     <div class="input-group input-group-sm">
                         <div class="input-group-prepend">
@@ -52,7 +68,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-2 form-group mb-3">
+                <div class="col-md-2 form-group mb-2">
                     <label class="text-sm mb-1">Grado <span class="text-muted">(opcional)</span></label>
                     <div class="input-group input-group-sm">
                         <div class="input-group-prepend">
@@ -68,7 +84,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-2 form-group mb-3">
+                <div class="col-md-2 form-group mb-2">
                     <label class="text-sm mb-1">Sección <span class="text-muted">(opcional)</span></label>
                     <div class="input-group input-group-sm">
                         <div class="input-group-prepend">
@@ -84,13 +100,13 @@
                     </div>
                 </div>
 
-                <div class="col-md-4 form-group mb-3 d-flex align-items-end">
+                <div class="col-md-2 form-group mb-2 d-flex align-items-end">
                     <button wire:click="generateReport"
                         wire:loading.attr="disabled"
                         wire:target="generateReport"
-                        class="btn btn-primary btn-sm shadow-sm">
+                        class="btn btn-primary btn-sm shadow-sm w-100">
                         <span wire:loading.remove wire:target="generateReport">
-                            <i class="fas fa-chart-line mr-1"></i> Generar Reporte
+                            <i class="fas fa-chart-line mr-1"></i> Generar
                         </span>
                         <span wire:loading wire:target="generateReport">
                             <i class="fas fa-spinner fa-pulse mr-1"></i> Generando...
@@ -107,8 +123,6 @@
          ============================================================ --}}
     @if ($generated)
         @if (count($reportData) > 0)
-
-            {{-- Resumen general --}}
             @php
                 $totalProfs    = count($reportData);
                 $totalBooks    = array_sum(array_column($reportData, 'total'));
@@ -123,24 +137,38 @@
                 $globalPct     = $totalExpected > 0
                     ? round(($totalActual / $totalExpected) * 100, 1)
                     : 0;
+                $globalColor   = match(true) {
+                    $globalPct >= 100 => 'success',
+                    $globalPct >= 75  => 'info',
+                    $globalPct >= 50  => 'warning',
+                    default           => 'danger',
+                };
             @endphp
 
+            {{-- Info boxes de resumen --}}
             <div class="row mb-3">
                 <div class="col-sm-6 col-md-3">
                     <div class="info-box shadow-sm">
                         <span class="info-box-icon bg-primary"><i class="fas fa-chalkboard-teacher"></i></span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Profesores</span>
+                            <span class="info-box-text">Docentes</span>
                             <span class="info-box-number">{{ $totalProfs }}</span>
                         </div>
                     </div>
                 </div>
                 <div class="col-sm-6 col-md-3">
                     <div class="info-box shadow-sm">
-                        <span class="info-box-icon bg-warning"><i class="fas fa-book-open"></i></span>
+                        <span class="info-box-icon {{ $totalPending > 0 ? 'bg-warning' : 'bg-success' }}">
+                            <i class="fas fa-book-open"></i>
+                        </span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Cuadros sin crear</span>
-                            <span class="info-box-number">{{ $totalPending }} / {{ $totalBooks }}</span>
+                            <span class="info-box-text">Cuadros creados</span>
+                            <span class="info-box-number">{{ $totalCreated }} / {{ $totalBooks }}</span>
+                            @if ($totalPending > 0)
+                                <span class="progress-description text-danger">
+                                    {{ $totalPending }} sin crear
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -155,23 +183,30 @@
                 </div>
                 <div class="col-sm-6 col-md-3">
                     <div class="info-box shadow-sm">
-                        <span class="info-box-icon {{ $globalPct >= 100 ? 'bg-success' : ($globalPct >= 50 ? 'bg-warning' : 'bg-danger') }}">
+                        <span class="info-box-icon bg-{{ $globalColor }}">
                             <i class="fas fa-percent"></i>
                         </span>
                         <div class="info-box-content">
                             <span class="info-box-text">Notas ingresadas</span>
                             <span class="info-box-number">{{ $globalPct }}%</span>
+                            <div class="progress">
+                                <div class="progress-bar bg-{{ $globalColor }}"
+                                    style="width: {{ min($globalPct, 100) }}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Tabla por profesor --}}
+            {{-- Tabla por docente --}}
             <div class="card card-outline card-primary">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="m-0 text-bold text-secondary">
                         <i class="fas fa-table mr-1"></i> Detalle por Docente
-                        <span class="badge badge-secondary ml-2">{{ $totalProfs }} docente(s)</span>
+                        <span class="badge badge-secondary ml-1">{{ $totalProfs }} docente(s)</span>
+                        @if ($filterUnit)
+                            <span class="badge badge-primary ml-1">Unidad {{ $filterUnit }}</span>
+                        @endif
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -180,25 +215,18 @@
                             <thead class="thead-light">
                                 <tr>
                                     <th style="min-width:200px;">Docente</th>
-                                    <th class="text-center">Cuadros<br><small class="text-muted">Creados / Total</small></th>
-                                    <th class="text-center">
-                                        <span class="badge badge-secondary">Sin crear</span>
+                                    <th class="text-center" style="min-width:110px;">
+                                        Cuadros<br>
+                                        <small class="text-muted font-weight-normal">creados / asignados</small>
                                     </th>
-                                    <th class="text-center">
-                                        <span class="badge badge-info">Abiertos</span>
-                                    </th>
-                                    <th class="text-center">
-                                        <span class="badge badge-warning">Bloqueados</span>
-                                    </th>
-                                    <th class="text-center">
-                                        <span class="badge badge-success">Aprobados</span>
-                                    </th>
-                                    <th class="text-center">
-                                        <span class="badge badge-danger">Rechazados</span>
-                                    </th>
-                                    <th style="min-width:180px;">
+                                    <th class="text-center"><span class="badge badge-secondary">Sin crear</span></th>
+                                    <th class="text-center"><span class="badge badge-info">Abiertos</span></th>
+                                    <th class="text-center"><span class="badge badge-warning">Bloqueados</span></th>
+                                    <th class="text-center"><span class="badge badge-success">Aprobados</span></th>
+                                    <th class="text-center"><span class="badge badge-danger">Rechazados</span></th>
+                                    <th style="min-width:200px;">
                                         Notas ingresadas
-                                        <small class="text-muted d-block">calificaciones / esperadas</small>
+                                        <small class="text-muted d-block font-weight-normal">ingresadas / esperadas</small>
                                     </th>
                                 </tr>
                             </thead>
@@ -225,7 +253,7 @@
                                             @if ($row['pending'] > 0)
                                                 <span class="badge badge-secondary">{{ $row['pending'] }}</span>
                                             @else
-                                                <span class="text-success"><i class="fas fa-check"></i></span>
+                                                <i class="fas fa-check text-success"></i>
                                             @endif
                                         </td>
                                         <td class="text-center">
@@ -259,13 +287,10 @@
                                         <td>
                                             @if ($row['expected'] > 0)
                                                 <div class="d-flex align-items-center">
-                                                    <div class="progress flex-grow-1 mr-2" style="height:12px;">
+                                                    <div class="progress flex-grow-1 mr-2" style="height:10px;">
                                                         <div class="progress-bar bg-{{ $barColor }}"
                                                             role="progressbar"
-                                                            style="width: {{ min($row['pct'], 100) }}%"
-                                                            aria-valuenow="{{ $row['pct'] }}"
-                                                            aria-valuemin="0"
-                                                            aria-valuemax="100">
+                                                            style="width: {{ min($row['pct'], 100) }}%">
                                                         </div>
                                                     </div>
                                                     <small class="text-nowrap font-weight-bold text-{{ $barColor }}">
@@ -275,22 +300,26 @@
                                                 <small class="text-muted">
                                                     {{ number_format($row['actual']) }} / {{ number_format($row['expected']) }}
                                                 </small>
+                                            @elseif ($row['created'] > 0)
+                                                <span class="text-muted text-xs">Sin actividades creadas</span>
                                             @else
-                                                <span class="text-muted text-sm">Sin actividades creadas</span>
+                                                <span class="text-muted text-xs">Sin cuadros creados</span>
                                             @endif
                                         </td>
                                     </tr>
                                 @endforeach
                             </tbody>
-                            <tfoot class="bg-light font-weight-bold">
+                            <tfoot class="bg-light font-weight-bold text-sm">
                                 <tr>
-                                    <td>Total</td>
-                                    <td class="text-center">{{ $totalCreated }} / {{ $totalBooks }}</td>
+                                    <td>Total general</td>
+                                    <td class="text-center">
+                                        {{ $totalCreated }} / {{ $totalBooks }}
+                                    </td>
                                     <td class="text-center">
                                         @if ($totalPending > 0)
                                             <span class="badge badge-secondary">{{ $totalPending }}</span>
                                         @else
-                                            <span class="text-success"><i class="fas fa-check"></i></span>
+                                            <i class="fas fa-check text-success"></i>
                                         @endif
                                     </td>
                                     <td class="text-center">
@@ -319,21 +348,13 @@
                                     </td>
                                     <td>
                                         @if ($totalExpected > 0)
-                                            @php
-                                                $footerColor = match(true) {
-                                                    $globalPct >= 100 => 'success',
-                                                    $globalPct >= 75  => 'info',
-                                                    $globalPct >= 50  => 'warning',
-                                                    default           => 'danger',
-                                                };
-                                            @endphp
                                             <div class="d-flex align-items-center">
-                                                <div class="progress flex-grow-1 mr-2" style="height:12px;">
-                                                    <div class="progress-bar bg-{{ $footerColor }}"
+                                                <div class="progress flex-grow-1 mr-2" style="height:10px;">
+                                                    <div class="progress-bar bg-{{ $globalColor }}"
                                                         style="width: {{ min($globalPct, 100) }}%">
                                                     </div>
                                                 </div>
-                                                <small class="font-weight-bold text-{{ $footerColor }}">
+                                                <small class="font-weight-bold text-{{ $globalColor }}">
                                                     {{ $globalPct }}%
                                                 </small>
                                             </div>
@@ -341,7 +362,7 @@
                                                 {{ number_format($totalActual) }} / {{ number_format($totalExpected) }}
                                             </small>
                                         @else
-                                            <span class="text-muted text-sm">—</span>
+                                            <span class="text-muted">—</span>
                                         @endif
                                     </td>
                                 </tr>

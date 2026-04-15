@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Reports;
 use App\Models\Classroom;
 use App\Models\ClassroomCourseAssignment;
 use App\Models\Grade;
+use App\Models\GradeBookActivity;
 use App\Models\Level;
 use App\Models\Section;
 use App\Models\StudentEnrollment;
@@ -13,24 +14,18 @@ use Livewire\Component;
 
 class GradeProgress extends Component
 {
-    public bool $readyToLoad = false;
-
     public string $filterYear    = '';
     public string $filterLevel   = '';
     public string $filterGrade   = '';
     public string $filterSection = '';
+    public string $filterUnit    = '';
 
     public array $reportData = [];
     public bool  $generated  = false;
 
-    public function loadData(): void
-    {
-        $this->readyToLoad = true;
-    }
-
     public function updatedFilterYear(): void
     {
-        $this->filterLevel = $this->filterGrade = $this->filterSection = '';
+        $this->filterLevel = $this->filterGrade = $this->filterSection = $this->filterUnit = '';
         $this->resetReport();
     }
 
@@ -51,6 +46,11 @@ class GradeProgress extends Component
         $this->resetReport();
     }
 
+    public function updatedFilterUnit(): void
+    {
+        $this->resetReport();
+    }
+
     public function generateReport(): void
     {
         $this->validate(
@@ -58,10 +58,11 @@ class GradeProgress extends Component
             ['filterYear.required' => 'Seleccione un año.'],
         );
 
+        // 1. Cargar asignaciones con los filtros seleccionados
         $assignments = ClassroomCourseAssignment::with([
             'professor.user',
             'classroom',
-            'gradeBook' => fn($q) => $q->withCount('activities as actual_activities'),
+            'gradeBook',
         ])
         ->whereHas('classroom', function ($q) {
             $q->where('year', $this->filterYear);
@@ -75,22 +76,36 @@ class GradeProgress extends Component
                 $q->where('section_id', $this->filterSection);
             }
         })
+        ->when($this->filterUnit !== '', fn($q) => $q->where('unit', $this->filterUnit))
         ->get();
 
-        // Alumnos activos inscritos por aula
-        $classroomIds      = $assignments->pluck('classroom_id')->unique();
+        if ($assignments->isEmpty()) {
+            $this->reportData = [];
+            $this->generated  = true;
+            return;
+        }
+
+        // 2. Alumnos activos por aula
+        $classroomIds        = $assignments->pluck('classroom_id')->unique()->values();
         $enrolledByClassroom = StudentEnrollment::where('status', 'Activo')
             ->whereIn('classroom_id', $classroomIds)
             ->groupBy('classroom_id')
             ->selectRaw('classroom_id, COUNT(*) as cnt')
             ->pluck('cnt', 'classroom_id');
 
-        // Calificaciones ingresadas (score NOT NULL) por cuadro
-        $gradeBookIds = $assignments->pluck('gradeBook')->filter()->pluck('id');
-        $scoresByBook = collect();
+        // 3. Actividades creadas por cuadro
+        $gradeBookIds        = $assignments->pluck('gradeBook')->filter()->pluck('id')->unique()->values();
+        $activityCountsByBook = collect();
+        $scoreCountsByBook    = collect();
 
         if ($gradeBookIds->isNotEmpty()) {
-            $scoresByBook = DB::table('grade_book_scores')
+            $activityCountsByBook = GradeBookActivity::whereIn('grade_book_id', $gradeBookIds)
+                ->groupBy('grade_book_id')
+                ->selectRaw('grade_book_id, COUNT(*) as cnt')
+                ->pluck('cnt', 'grade_book_id');
+
+            // 4. Calificaciones ingresadas (score NOT NULL) por cuadro
+            $scoreCountsByBook = DB::table('grade_book_scores')
                 ->join(
                     'grade_book_activities',
                     'grade_book_scores.grade_book_activity_id',
@@ -104,10 +119,10 @@ class GradeProgress extends Component
                 ->pluck('cnt', 'grade_book_activities.grade_book_id');
         }
 
-        // Agrupar por profesor y calcular métricas
+        // 5. Agrupar por profesor y calcular métricas
         $this->reportData = $assignments
             ->groupBy('professor_id')
-            ->map(function ($profAssignments) use ($enrolledByClassroom, $scoresByBook) {
+            ->map(function ($profAssignments) use ($enrolledByClassroom, $activityCountsByBook, $scoreCountsByBook) {
                 $professor = $profAssignments->first()->professor;
 
                 if (!$professor) {
@@ -132,9 +147,9 @@ class GradeProgress extends Component
                     $statusCounts[$gb->status] = ($statusCounts[$gb->status] ?? 0) + 1;
 
                     $enrolled       = (int) $enrolledByClassroom->get($assignment->classroom_id, 0);
-                    $activities     = (int) ($gb->actual_activities ?? 0);
+                    $activities     = (int) $activityCountsByBook->get($gb->id, 0);
                     $totalExpected += $activities * $enrolled;
-                    $totalActual   += (int) $scoresByBook->get($gb->id, 0);
+                    $totalActual   += (int) $scoreCountsByBook->get($gb->id, 0);
                 }
 
                 $scoresPct = $totalExpected > 0
@@ -196,11 +211,22 @@ class GradeProgress extends Component
                 ->get()
             : collect();
 
+        $units = $this->filterYear
+            ? ClassroomCourseAssignment::whereHas(
+                'classroom',
+                fn($q) => $q->where('year', $this->filterYear)
+            )
+            ->distinct()
+            ->orderBy('unit')
+            ->pluck('unit')
+            : collect();
+
         return view('livewire.admin.reports.grade-progress', compact(
             'years',
             'levels',
             'grades',
             'sections',
+            'units',
         ));
     }
 }
