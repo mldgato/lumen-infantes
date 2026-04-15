@@ -14,7 +14,7 @@
                     </div>
                     <div class="col-md-8 d-flex justify-content-end align-items-center">
                         <div class="input-group input-group-sm" style="width: 280px;">
-                            <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
+                            <input type="search" wire:model.live.debounce.300ms="search" class="form-control"
                                 name="buscar" id="buscador" placeholder="Buscar curso o aula..." autocomplete="search">
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-default">

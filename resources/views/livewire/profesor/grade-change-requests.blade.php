@@ -73,7 +73,7 @@
                     <div class="col-md-4 form-group mb-2">
                         <label class="text-sm mb-1">Buscar</label>
                         <div class="input-group input-group-sm">
-                            <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
+                            <input type="search" wire:model.live.debounce.300ms="search" class="form-control"
                                 name="buscar" id="buscador" placeholder="Buscar grado, curso, sección..." autocomplete="search">
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-default">
