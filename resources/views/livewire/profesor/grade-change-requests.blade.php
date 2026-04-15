@@ -74,7 +74,7 @@
                         <label class="text-sm mb-1">Buscar</label>
                         <div class="input-group input-group-sm">
                             <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
-                                placeholder="Buscar grado, curso, sección..." autocomplete="off">
+                                placeholder="Buscar grado, curso, sección..." autocomplete="new-password">
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-default">
                                     <i class="fas fa-search"></i>

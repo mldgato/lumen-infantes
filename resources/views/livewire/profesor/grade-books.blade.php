@@ -15,7 +15,7 @@
                     <div class="col-md-8 d-flex justify-content-end align-items-center">
                         <div class="input-group input-group-sm" style="width: 280px;">
                             <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
-                                placeholder="Buscar curso o aula..." autocomplete="off">
+                                placeholder="Buscar curso o aula..." autocomplete="new-password">
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-default">
                                     <i class="fas fa-search"></i>

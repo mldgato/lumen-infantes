@@ -70,7 +70,7 @@
                     <div class="col-md-4">
                         <div class="input-group input-group-sm">
                             <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
-                                placeholder="Buscar profesor, curso, grado..." autocomplete="off">
+                                placeholder="Buscar profesor, curso, grado..." autocomplete="new-password">
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-default">
                                     <i class="fas fa-search"></i>
