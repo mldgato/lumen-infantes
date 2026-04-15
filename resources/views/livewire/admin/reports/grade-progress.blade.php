@@ -153,6 +153,7 @@
                         <div class="info-box-content">
                             <span class="info-box-text">Docentes</span>
                             <span class="info-box-number">{{ $totalProfs }}</span>
+                            <span class="progress-description">con asignaciones</span>
                         </div>
                     </div>
                 </div>
@@ -164,11 +165,9 @@
                         <div class="info-box-content">
                             <span class="info-box-text">Cuadros creados</span>
                             <span class="info-box-number">{{ $totalCreated }} / {{ $totalBooks }}</span>
-                            @if ($totalPending > 0)
-                                <span class="progress-description text-danger">
-                                    {{ $totalPending }} sin crear
-                                </span>
-                            @endif
+                            <span class="progress-description {{ $totalPending > 0 ? 'text-danger' : 'text-success' }}">
+                                {{ $totalPending > 0 ? $totalPending . ' sin crear' : 'todos creados' }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -178,6 +177,9 @@
                         <div class="info-box-content">
                             <span class="info-box-text">Cuadros aprobados</span>
                             <span class="info-box-number">{{ $totalApproved }} / {{ $totalCreated }}</span>
+                            <span class="progress-description">
+                                {{ $totalCreated - $totalApproved > 0 ? ($totalCreated - $totalApproved) . ' pendientes' : 'todos aprobados' }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -189,10 +191,9 @@
                         <div class="info-box-content">
                             <span class="info-box-text">Notas ingresadas</span>
                             <span class="info-box-number">{{ $globalPct }}%</span>
-                            <div class="progress">
-                                <div class="progress-bar bg-{{ $globalColor }}"
-                                    style="width: {{ min($globalPct, 100) }}%"></div>
-                            </div>
+                            <span class="progress-description">
+                                {{ number_format($totalActual) }} de {{ number_format($totalExpected) }} notas
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -298,7 +299,7 @@
                                                     </small>
                                                 </div>
                                                 <small class="text-muted">
-                                                    {{ number_format($row['actual']) }} / {{ number_format($row['expected']) }}
+                                                    {{ number_format($row['actual']) }} ingresadas / {{ number_format($row['expected']) }} esperadas
                                                 </small>
                                             @elseif ($row['created'] > 0)
                                                 <span class="text-muted text-xs">Sin actividades creadas</span>
@@ -359,7 +360,7 @@
                                                 </small>
                                             </div>
                                             <small class="text-muted">
-                                                {{ number_format($totalActual) }} / {{ number_format($totalExpected) }}
+                                                {{ number_format($totalActual) }} ingresadas / {{ number_format($totalExpected) }} esperadas
                                             </small>
                                         @else
                                             <span class="text-muted">—</span>
