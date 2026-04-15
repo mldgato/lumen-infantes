@@ -123,7 +123,7 @@
                     </select>
                     <div class="input-group input-group-sm" style="width: 250px;">
                         <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
-                            placeholder="Buscar nivel, grado, sección, año...">
+                            placeholder="Buscar nivel, grado, sección, año..." autocomplete="off">
                         <div class="input-group-append">
                             <button type="button" class="btn btn-default"><i class="fas fa-search"></i></button>
                         </div>
