@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.6.0
+v1.6.1
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -253,6 +253,18 @@ DB::transaction(function () {
 });
 ```
 
+### Inputs de búsqueda (buscadores)
+Todos los `<input>` usados como buscador deben llevar `autocomplete="new-password"`.
+`autocomplete="off"` es ignorado por Chrome; `new-password` le indica al navegador que
+no debe rellenar el campo con credenciales guardadas.
+
+Contexto: en componentes sin `type="email"` + `type="password"` en el mismo DOM,
+Chrome rellena el primer `<input type="text">` con el correo del usuario logueado.
+```html
+<input type="text" wire:model.live.debounce.300ms="search" class="form-control"
+    placeholder="Buscar..." autocomplete="new-password">
+```
+
 ## Eventos de Livewire usados
 - `closeModalMessaje` — cierra modal y muestra SweetAlert
 - `showAlert` — SweetAlert top-end sin modal
@@ -422,3 +434,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.4.3 — Optimización integral de procesos académicos, reportes y auditoría
 - v1.5.0 — Modal de re-autenticación por sesión expirada, asistencia y cambio forzado de contraseña
 - v1.6.0 — Audit logging en componentes de perfil (UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo) + sistema de actualización de datos para estudiantes via QR (formulario público, notificación por correo, token con expiración, registro único por año)
+- v1.6.1 — Fix autorrelleno del navegador en buscadores: `autocomplete="new-password"` en los 19 inputs de búsqueda
