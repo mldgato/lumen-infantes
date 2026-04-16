@@ -421,7 +421,30 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - `.public-card-wide` (max-width: 760px) — para el formulario de 3 tabs
 
 ## Pendientes
+
+### Bug / Deuda técnica
 - Resolver codificación UTF-8 en correos (workaround actual: editar `.env` directamente en servidor con UTF-8)
+
+### Prioridad alta
+- **Componente `Admin/Professors`** — No existe gestión especializada de profesores. Crear componente con: listado filtrable, edición de datos docentes, vista de cursos asignados por año e historial de asignaciones. Actualmente los profesores solo se gestionan a través del componente genérico de usuarios.
+- **Componente `Admin/Guardians`** — Los guardianes solo se administran dentro del flujo de inscripción. Crear componente independiente con búsqueda, edición y vista de todos los estudiantes relacionados con cada guardián (relación M:M con pivot `relationship_type`).
+- **Campo `supervised_practice` en `Grade` — sin usar** — La columna existe en la BD y el modelo pero no se referencia en ningún componente ni vista. Implementar lógica para prácticas supervisadas o eliminar el campo.
+- **Exportación del módulo de Auditoría** — `Admin/AuditLog` tiene filtros completos pero no permite exportar a Excel/PDF. Agregar exportación para reportes a directivos.
+
+### Prioridad media
+- **Campo `is_official` en `PensumCourse` — sin usar** — Existe en migración y modelo pero no aparece en ninguna vista ni filtro. Implementar badge/filtro en el componente `Admin/Pensums` o eliminar el campo.
+- **Dashboard de Secretaria incompleto** — Solo cuenta con un componente básico. Ampliar con: estudiantes pendientes de actualizar datos, inscripciones recientes por estado, y accesos rápidos a inscripción.
+- **CRUD de `ActivityType` sin interfaz** — Los tipos de actividad solo se crean vía seed/tinker. Crear componente `Admin/ActivityTypes` con CRUD básico para gestionar tipos y el flag `is_extra`.
+- **Notificación: cuadro en `locked` sin revisar** — Notificar al admin cuando un cuadro lleva N días bloqueado sin ser aprobado/rechazado.
+- **Notificación: cambio de rol asignado a usuario** — Notificar al usuario cuando se le asigna o revoca un rol.
+- **Reporte: Estudiantes en riesgo de reprobación** — Con los datos de `GradeBookTotal` calcular qué estudiantes tienen nota < 60 en alguna unidad y generar reporte de alerta temprana para admin y profesor.
+- **Reporte de asistencia con porcentaje acumulado** — El `AttendanceReport` existe pero no calcula el % de asistencia por estudiante. Agregar columna de porcentaje y umbral configurable de inasistencias.
+
+### Prioridad baja (mejoras y reportes adicionales)
+- **Servicio `GradeBookCalculationService`** — La lógica de cálculo de totales, puntos extra y mejoras está dispersa en varios componentes Livewire. Centralizar en un servicio para facilitar mantenimiento y consistencia.
+- **Reporte: comparativo de rendimiento entre unidades** — Mostrar evolución de promedios de un aula unidad por unidad usando los datos de `GradeBookTotal`.
+- **Reporte: historial de calificaciones por estudiante** — Resumen de rendimiento del estudiante a lo largo de ciclos escolares (requiere datos de múltiples años).
+- **Reporte: carga docente por profesor** — Cuántos cursos, aulas y estudiantes tiene asignados cada profesor en el ciclo activo.
 
 ## Historial de versiones
 - v1.0.0 — Base del sistema
