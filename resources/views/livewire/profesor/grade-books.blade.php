@@ -21,7 +21,8 @@
                     <div class="col-md-8 d-flex justify-content-end align-items-center">
                         <div class="input-group input-group-sm" style="width: 280px;">
                             <input type="search" wire:model.live.debounce.300ms="search" class="form-control"
-                                name="buscar" id="buscador" placeholder="Buscar curso o aula..." autocomplete="search">
+                                name="buscar" id="buscador" placeholder="Buscar curso o aula..."
+                                autocomplete="search">
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-default">
                                     <i class="fas fa-search"></i>
@@ -115,6 +116,7 @@
                             {{ $assignment->classroom->section->section_name }} —
                             {{ $assignment->pensumCourse->course->course_name }}
                             <span class="badge badge-secondary ml-1">U{{ $assignment->unit }}</span>
+                            <small class="text-muted">id: {{ $gradeBook->id }}</small>
                         </strong>
                     </div>
                     <div class="d-flex align-items-center">
