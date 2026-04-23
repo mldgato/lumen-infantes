@@ -1,4 +1,4 @@
-<div wire:init="loadData">
+<div wire:init="loadData" style="display: contents;">
     @if (!$readyToLoad)
         <div class="col-12">
             <div class="text-center py-4">

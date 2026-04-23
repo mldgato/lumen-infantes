@@ -1,4 +1,4 @@
-<div wire:init="loadData">
+<div wire:init="loadData" style="display: contents;">
     @if (!$readyToLoad)
         <div class="col-12">
             <div class="text-center py-4">
@@ -16,6 +16,7 @@
                 </div>
             </div>
         </div>
+
         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
             <div class="info-box shadow-sm">
                 <span class="info-box-icon bg-success"><i class="fas fa-chalkboard-teacher"></i></span>
@@ -26,6 +27,7 @@
                 </div>
             </div>
         </div>
+
         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
             <div class="info-box shadow-sm">
                 <span class="info-box-icon bg-warning"><i class="fas fa-chalkboard"></i></span>

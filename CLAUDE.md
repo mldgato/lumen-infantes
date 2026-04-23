@@ -182,6 +182,15 @@ Cada panel es un componente independiente protegido por su propio permiso `dashb
 Seeder de permisos: `database/seeders/DashboardPanelPermissionsSeeder.php` (usa `firstOrCreate`, seguro de re-ejecutar).
 Los paneles info-box (`StatsGeneral`, `GradeBooksPending`, `ProfesorStats`) renderizan col-divs sin `<div class="row">` propio; el row lo provee `dashboard.blade.php`.
 
+**Patrón obligatorio para nuevos paneles:** el `<div>` raíz de cada vista de panel debe llevar `style="display: contents;"` para que el wrapper de Livewire sea transparente al layout flexbox de Bootstrap, permitiendo que los `col-*` internos participen directamente en el `<div class="row">` del `dashboard.blade.php`.
+```html
+<div wire:init="loadData" style="display: contents;">
+    <div class="col-lg-6 mb-3">
+        ...
+    </div>
+</div>
+```
+
 ### Admin (app/Livewire/Admin/)
 | Componente | Responsabilidad |
 |---|---|

@@ -1,4 +1,4 @@
-<div wire:init="loadData">
+<div wire:init="loadData" style="display: contents;">
     @if ($readyToLoad)
         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
             <div class="info-box shadow-sm">

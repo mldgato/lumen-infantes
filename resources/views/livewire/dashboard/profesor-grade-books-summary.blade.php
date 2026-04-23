@@ -1,4 +1,4 @@
-<div wire:init="loadData">
+<div wire:init="loadData" style="display: contents;">
     @if ($readyToLoad)
         @php
             $grandTotal = $totalOpen + $totalLocked + $totalApproved + $totalRejected;

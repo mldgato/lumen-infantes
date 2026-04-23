@@ -1,4 +1,4 @@
-<div wire:init="loadData">
+<div wire:init="loadData" style="display: contents;">
     @if ($readyToLoad && count($actionableGradeBooks) > 0)
         <div class="col-12 mb-3">
             <div class="card card-outline card-warning shadow-sm">

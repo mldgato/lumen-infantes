@@ -1,4 +1,4 @@
-<div wire:init="loadData">
+<div wire:init="loadData" style="display: contents;">
     @if ($readyToLoad)
         <div class="col-lg-8 col-md-12 mb-3 mb-lg-0">
             <div class="card card-outline card-warning shadow-sm h-100">

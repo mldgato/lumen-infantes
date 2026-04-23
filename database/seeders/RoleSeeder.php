@@ -295,5 +295,19 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'admin.reports.attendance',     'description' => 'Administración - Reporte de Asistencia'])->syncRoles([$role1, $role2]);
 
         Permission::create(['name' => 'admin.reports.grade-progress', 'description' => 'Administración - Reporte de avance de ingreso de calificaciones'])->syncRoles([$role1, $role2]);
+
+        // Dashboard panels
+        Permission::create(['name' => 'dashboard.panel.stats-general',                'description' => 'Dashboard - KPI: estudiantes, profesores, aulas'])->syncRoles([$role1, $role2, $role5]);
+        Permission::create(['name' => 'dashboard.panel.grade-books-pending',          'description' => 'Dashboard - KPI: cuadros pendientes de revisión'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'dashboard.panel.students-by-grade',            'description' => 'Dashboard - Gráfico: estudiantes por grado'])->syncRoles([$role1, $role2, $role5]);
+        Permission::create(['name' => 'dashboard.panel.grade-books-status',           'description' => 'Dashboard - Gráfico: estado de cuadros (dona)'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'dashboard.panel.pending-change-requests',      'description' => 'Dashboard - Tabla: solicitudes de cambio pendientes'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'dashboard.panel.locked-grade-books',           'description' => 'Dashboard - Tabla: cuadros enviados a revisión'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'dashboard.panel.profesor-stats',               'description' => 'Dashboard - KPI: estadísticas del profesor'])->syncRoles([$role1, $role4]);
+        Permission::create(['name' => 'dashboard.panel.profesor-grade-books-chart',   'description' => 'Dashboard - Gráfico: cuadros por aula del profesor'])->syncRoles([$role1, $role4]);
+        Permission::create(['name' => 'dashboard.panel.profesor-grade-books-summary', 'description' => 'Dashboard - Resumen: estado de cuadros del profesor'])->syncRoles([$role1, $role4]);
+        Permission::create(['name' => 'dashboard.panel.actionable-grade-books',       'description' => 'Dashboard - Tabla: cuadros que requieren atención'])->syncRoles([$role1, $role4]);
+        Permission::create(['name' => 'dashboard.panel.birthday-students',            'description' => 'Dashboard - Panel: cumpleañeros del mes (estudiantes)'])->syncRoles([$role1, $role5]);
+        Permission::create(['name' => 'dashboard.panel.upcoming-birthdays',           'description' => 'Dashboard - Panel: próximos cumpleaños del personal'])->syncRoles([$role1, $role5]);
     }
 }
