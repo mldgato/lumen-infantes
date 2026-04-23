@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.6.1
+v1.7.0
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -48,12 +48,12 @@ v1.6.1
 
 ## Roles del sistema
 1. Super Administrador (`$role1`)
-2. Administrador (`$role2`)
-3. Secretaria (`$role3`)
+2. Director (`$role2`)
+3. Estudiante (`$role3`)
 4. Profesor (`$role4`)
-5. Estudiante (`$role5`)
+5. Secretaria (`$role5`)
 
-Permisos con convención `admin.recurso.accion` y `profesor.recurso.accion`.
+Permisos con convención `admin.recurso.accion`, `profesor.recurso.accion` y `dashboard.panel.nombre`.
 Livewire components validan con `$this->authorize('permiso')`.
 
 ## Autenticación
@@ -160,10 +160,31 @@ Livewire components validan con `$this->authorize('permiso')`.
 
 ## Componentes Livewire (app/Livewire/)
 
+### Dashboard (app/Livewire/Dashboard/)
+Cada panel es un componente independiente protegido por su propio permiso `dashboard.panel.*`.
+`dashboard.blade.php` los ensambla con `@can`/`@canany`; no hay lógica en la vista principal.
+
+| Componente | Permiso | Roles por defecto |
+|---|---|---|
+| `StatsGeneral` | `dashboard.panel.stats-general` | Director, Secretaria |
+| `GradeBooksPending` | `dashboard.panel.grade-books-pending` | Director |
+| `StudentsByGradeChart` | `dashboard.panel.students-by-grade` | Director, Secretaria |
+| `GradeBooksStatusChart` | `dashboard.panel.grade-books-status` | Director |
+| `PendingChangeRequests` | `dashboard.panel.pending-change-requests` | Director |
+| `LockedGradeBooks` | `dashboard.panel.locked-grade-books` | Director |
+| `ProfesorStats` | `dashboard.panel.profesor-stats` | Profesor |
+| `ProfesorGradeBooksChart` | `dashboard.panel.profesor-grade-books-chart` | Profesor |
+| `ProfesorGradeBooksSummary` | `dashboard.panel.profesor-grade-books-summary` | Profesor |
+| `ActionableGradeBooks` | `dashboard.panel.actionable-grade-books` | Profesor |
+| `BirthdayStudents` | `dashboard.panel.birthday-students` | Secretaria |
+| `UpcomingBirthdays` | `dashboard.panel.upcoming-birthdays` | Secretaria |
+
+Seeder de permisos: `database/seeders/DashboardPanelPermissionsSeeder.php` (usa `firstOrCreate`, seguro de re-ejecutar).
+Los paneles info-box (`StatsGeneral`, `GradeBooksPending`, `ProfesorStats`) renderizan col-divs sin `<div class="row">` propio; el row lo provee `dashboard.blade.php`.
+
 ### Admin (app/Livewire/Admin/)
 | Componente | Responsabilidad |
 |---|---|
-| `Dashboard` | Estadísticas + gráficos Chart.js |
 | `Levels`, `Grades`, `Sections` | CRUD con paginación y búsqueda |
 | `Classrooms` | CRUD de aulas |
 | `Courses`, `Pensums` | Gestión de cursos y planes |
@@ -189,7 +210,6 @@ Livewire components validan con `$this->authorize('permiso')`.
 ### Profesor (app/Livewire/Profesor/)
 | Componente | Responsabilidad |
 |---|---|
-| `Dashboard` | Estadísticas + cuadros accionables |
 | `GradeBooks` | Edición completa de cuadros |
 | `GradeChangeRequests` | Crear solicitudes de cambio |
 | `TakeAttendance` | Asistencia diaria + historial |
@@ -327,8 +347,9 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
 ## Estructura de vistas (resources/views/)
 ```
 livewire/
-├── admin/          Vistas de los 23 componentes admin
+├── admin/          Vistas de los componentes admin
 ├── profesor/       Vistas de los componentes de profesor
+├── dashboard/      Vistas de los 12 paneles del dashboard (un archivo por panel)
 ├── auth/           Login, register, 2FA, reset-password
 ├── settings/       Perfil, contraseña, apariencia, 2FA
 ├── profile/        UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo
@@ -433,7 +454,7 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 
 ### Prioridad media
 - **Campo `is_official` en `PensumCourse` — sin usar** — Existe en migración y modelo pero no aparece en ninguna vista ni filtro. Implementar badge/filtro en el componente `Admin/Pensums` o eliminar el campo.
-- **Dashboard de Secretaria incompleto** — Solo cuenta con un componente básico. Ampliar con: estudiantes pendientes de actualizar datos, inscripciones recientes por estado, y accesos rápidos a inscripción.
+- **Dashboard de Secretaria — accesos rápidos** — Los paneles de cumpleaños y estadísticas ya están. Agregar paneles: inscripciones recientes por estado y acceso rápido a inscripción de estudiante.
 - **CRUD de `ActivityType` sin interfaz** — Los tipos de actividad solo se crean vía seed/tinker. Crear componente `Admin/ActivityTypes` con CRUD básico para gestionar tipos y el flag `is_extra`.
 - **Notificación: cuadro en `locked` sin revisar** — Notificar al admin cuando un cuadro lleva N días bloqueado sin ser aprobado/rechazado.
 - **Notificación: cambio de rol asignado a usuario** — Notificar al usuario cuando se le asigna o revoca un rol.
@@ -458,3 +479,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.5.0 — Modal de re-autenticación por sesión expirada, asistencia y cambio forzado de contraseña
 - v1.6.0 — Audit logging en componentes de perfil (UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo) + sistema de actualización de datos para estudiantes via QR (formulario público, notificación por correo, token con expiración, registro único por año)
 - v1.6.1 — Fix autorrelleno del navegador en buscadores: `autocomplete="new-password"` en los 19 inputs de búsqueda
+- v1.7.0 — Refactorización del dashboard: los 3 componentes monolíticos (Admin/Dashboard, Profesor/Dashboard, Secretary/Dashboard) se reemplazaron por 12 paneles independientes en `app/Livewire/Dashboard/`, cada uno con su propio permiso `dashboard.panel.*`. `dashboard.blade.php` los ensambla con `@can`; los paneles se asignan por rol desde el módulo de permisos

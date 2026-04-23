@@ -116,8 +116,10 @@
                             {{ $assignment->classroom->section->section_name }} —
                             {{ $assignment->pensumCourse->course->course_name }}
                             <span class="badge badge-secondary ml-1">U{{ $assignment->unit }}</span>
-                            <small class="text-muted">id: {{ $gradeBook->id }}</small>
                         </strong>
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">
+                            Cuadro #{{ $gradeBook->id }}
+                        </small>
                     </div>
                     <div class="d-flex align-items-center">
                         @if ($gradeBook->status === 'open')
