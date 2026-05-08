@@ -224,6 +224,27 @@
                                         <span class="text-danger small">{{ $message }}</span>
                                     @enderror
                                 </div>
+
+                                <div class="col-12 mt-3">
+                                    <label class="text-sm bg-light px-2 py-1 rounded border w-100">
+                                        <i class="fas fa-layer-group mr-1"></i> Niveles Asignados
+                                    </label>
+                                    <div class="row px-2">
+                                        @foreach ($levels as $level)
+                                            <div class="col-md-3">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" wire:model="selected_levels"
+                                                        value="{{ $level->id }}" class="custom-control-input"
+                                                        id="level_{{ $level->id }}">
+                                                    <label class="custom-control-label font-weight-normal text-sm"
+                                                        for="level_{{ $level->id }}">
+                                                        {{ $level->level_name }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

@@ -9,6 +9,7 @@ use Spatie\Permission\Models\Role;
 use App\Livewire\Forms\UserForm;
 use App\Livewire\Forms\MedicalForm;
 use App\Livewire\Forms\ProfessorForm;
+use App\Models\Level;
 use App\Services\AuditService;
 
 class UserList extends Component
@@ -30,6 +31,7 @@ class UserList extends Component
     // Control de pestañas de UI
     public $activeTab = 'general';
     public $selected_roles = [];
+    public array $selected_levels = [];
 
     protected $queryString = [
         'cant' => ['except' => '10'],
@@ -67,19 +69,21 @@ class UserList extends Component
         $this->medicalForm->resetForm();
         $this->professorForm->resetForm();
         $this->selected_roles = [];
-        $this->activeTab = 'general'; // Siempre vuelve a la pestaña 1
+        $this->selected_levels = [];
+        $this->activeTab = 'general';
         $this->resetValidation();
     }
 
     public function edit($id)
     {
         $this->resetFields();
-        $user = User::with(['medicalRecord', 'professor', 'roles'])->findOrFail($id);
+        $user = User::with(['medicalRecord', 'professor', 'roles', 'levels'])->findOrFail($id);
 
         $this->userForm->setUser($user);
         $this->medicalForm->setMedicalRecord($user->medicalRecord);
         $this->professorForm->setProfessor($user->professor);
         $this->selected_roles = $user->roles->pluck('name')->toArray();
+        $this->selected_levels = $user->levels->pluck('id')->toArray();
     }
 
     public function save()
@@ -137,6 +141,7 @@ class UserList extends Component
         }
 
         $user->syncRoles($this->selected_roles);
+        $user->levels()->sync($this->selected_levels);
         $this->medicalForm->save($user->id);
 
         if (in_array('Profesor', $this->selected_roles)) {
@@ -188,6 +193,8 @@ class UserList extends Component
             $users = [];
         }
 
-        return view('livewire.users.user-list', compact('users', 'roles'));
+        $levels = Level::orderBy('ordering')->get();
+
+        return view('livewire.users.user-list', compact('users', 'roles', 'levels'));
     }
 }

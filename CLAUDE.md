@@ -466,6 +466,18 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - Resolver codificación UTF-8 en correos (workaround actual: editar `.env` directamente en servidor con UTF-8)
 
 ### Prioridad alta
+- **Filtrado de niveles por usuario en componentes Admin** — Se implementó la relación M:M `User ↔ Level` (tabla pivote `level_user`) y se aplicó en `EnrollmentList` (`auth()->user()->levels()->orderBy('ordering')->get()`). Falta aplicar el mismo patrón en los siguientes componentes que aún usan `Level::orderBy(...)->get()` directamente:
+  - `Admin/GradeBooks.php`
+  - `Admin/Classrooms.php`
+  - `Admin/Reports/MissingActivities.php`
+  - `Admin/Reports/CuadrosClassroom.php`
+  - `Admin/Reports/StudentListExcel.php`
+  - `Admin/Reports/SabanaPromedio.php`
+  - `Admin/Reports/StudentList.php`
+  - `Admin/Reports/ReportCards.php`
+  - `Admin/Reports/SabanaGeneral.php`
+  - `Admin/Reports/SabanaUnidad.php`
+  - **Nota:** `Users/UserList.php` usa `Level::orderBy` para los checkboxes de asignación — ese NO debe filtrarse, debe mostrar todos los niveles.
 - **Componente `Admin/Professors`** — No existe gestión especializada de profesores. Crear componente con: listado filtrable, edición de datos docentes, vista de cursos asignados por año e historial de asignaciones. Actualmente los profesores solo se gestionan a través del componente genérico de usuarios.
 - **Componente `Admin/Guardians`** — Los guardianes solo se administran dentro del flujo de inscripción. Crear componente independiente con búsqueda, edición y vista de todos los estudiantes relacionados con cada guardián (relación M:M con pivot `relationship_type`).
 - **Campo `supervised_practice` en `Grade` — sin usar** — La columna existe en la BD y el modelo pero no se referencia en ningún componente ni vista. Implementar lógica para prácticas supervisadas o eliminar el campo.
@@ -500,3 +512,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.6.1 — Fix autorrelleno del navegador en buscadores: `autocomplete="new-password"` en los 19 inputs de búsqueda
 - v1.7.0 — Refactorización del dashboard: los 3 componentes monolíticos (Admin/Dashboard, Profesor/Dashboard, Secretary/Dashboard) se reemplazaron por 12 paneles independientes en `app/Livewire/Dashboard/`, cada uno con su propio permiso `dashboard.panel.*`. `dashboard.blade.php` los ensambla con `@can`; los paneles se asignan por rol desde el módulo de permisos
 - v1.7.1 — Fix dashboard Profesor: null-check defensivo en `ActionableGradeBooks`, `ProfesorGradeBooksChart` y `ProfesorGradeBooksSummary` para usuarios sin registro en `professors`; fix `RoleSeeder` para no asignar paneles exclusivos de Profesor al SuperAdmin; fix `ProfessorSeeder` para crear profesores (IDs 1–13) antes que el Director y preservar el orden de IDs que otros seeders esperan
+- v1.7.2 — Funcionalidad de clonar GradeBook con actividades a otros cuadros del profesor (mismo o distinto curso/unidad); relación M:M `User ↔ Level` con tabla pivote `level_user`; asignación de niveles por usuario desde `Admin/UserList`; filtrado de niveles por usuario en `EnrollmentList`

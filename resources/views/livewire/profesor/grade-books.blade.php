@@ -132,6 +132,13 @@
                             <span class="badge badge-primary mr-2">Aprobado</span>
                         @endif
 
+                        @if ($gradeBook->activities->count() > 0)
+                            <button wire:click="openCloneModal" class="btn btn-sm btn-outline-info mr-2 shadow-sm"
+                                title="Copiar actividades a otra sección">
+                                <i class="fas fa-copy mr-1"></i> Clonar a otra sección
+                            </button>
+                        @endif
+
                         @if ($gradeBook->isApproved())
                             <a href="{{ route('profesor.grade-books.pdf', $gradeBook->id) }}" target="_blank"
                                 class="btn btn-sm btn-danger shadow-sm">
@@ -605,6 +612,117 @@
             </div>
         </div>
 
+    @endif
+
+    {{-- Modal: Clonar actividades a otra sección --}}
+    @if ($showCloneModal)
+        <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document"
+                x-data="{
+                    search: '',
+                    matches(label) {
+                        return this.search === '' || label.toLowerCase().includes(this.search.toLowerCase());
+                    }
+                }">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-copy mr-2"></i>Clonar actividades a otro cuadro
+                        </h5>
+                        <button type="button" class="close text-white" wire:click="closeCloneModal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body pb-0">
+                        <p class="text-sm text-muted mb-3">
+                            Se copiarán <strong>{{ $gradeBook->activities->count() }}</strong>
+                            actividad(es). No se copian calificaciones. Selecciona los cuadros destino:
+                        </p>
+
+                        @error('selectedCloneTargets')
+                            <div class="alert alert-danger py-2 text-sm">
+                                <i class="fas fa-exclamation-circle mr-1"></i> {{ $message }}
+                            </div>
+                        @enderror
+
+                        {{-- Buscador --}}
+                        <div class="input-group input-group-sm mb-2">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="text" x-model="search" class="form-control"
+                                placeholder="Filtrar por sección, curso..." autocomplete="new-password">
+                            <div class="input-group-append" x-show="search !== ''">
+                                <button type="button" class="btn btn-outline-secondary" @click="search = ''">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Lista scrollable --}}
+                        <ul class="list-group mb-0" style="max-height: 340px; overflow-y: auto;">
+                            @foreach ($cloneTargets as $target)
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2
+                                    {{ !$target['can_clone'] ? 'list-group-item-light' : '' }}"
+                                    x-show="matches('{{ addslashes($target['label']) }}')"
+                                    x-cloak>
+                                    <div class="d-flex align-items-center" style="min-width: 0;">
+                                        @if ($target['can_clone'])
+                                            <input type="checkbox" class="mr-2 flex-shrink-0"
+                                                wire:model="selectedCloneTargets"
+                                                value="{{ $target['assignment_id'] }}"
+                                                id="clone_target_{{ $target['assignment_id'] }}">
+                                        @else
+                                            <input type="checkbox" class="mr-2 flex-shrink-0" disabled>
+                                        @endif
+                                        <label class="mb-0 text-sm {{ !$target['can_clone'] ? 'text-muted' : '' }}"
+                                            for="clone_target_{{ $target['assignment_id'] }}"
+                                            style="cursor: pointer; line-height: 1.3;">
+                                            {{ $target['label'] }}
+                                        </label>
+                                    </div>
+                                    <div class="ml-2 flex-shrink-0">
+                                        @if (!$target['can_clone'])
+                                            <span class="badge badge-warning text-dark"
+                                                title="Este cuadro ya tiene actividades">
+                                                <i class="fas fa-ban mr-1"></i>Ya tiene actividades
+                                            </span>
+                                        @elseif ($target['grade_book_status'])
+                                            <span class="badge badge-success">Abierto</span>
+                                        @else
+                                            <span class="badge badge-secondary">Sin cuadro</span>
+                                        @endif
+                                    </div>
+                                </li>
+                            @endforeach
+
+                            {{-- Mensaje si no hay resultados del filtro --}}
+                            <li class="list-group-item text-center text-muted text-sm py-3"
+                                x-show="{{ collect($cloneTargets)->map(fn($t) => "!matches('".addslashes($t['label'])."')")->join(' && ') ?: 'false' }}">
+                                <i class="fas fa-search mr-1"></i> Sin resultados para "<span x-text="search"></span>"
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer bg-light justify-content-between mt-3">
+                        <button type="button" class="btn btn-secondary" wire:click="closeCloneModal">
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-info shadow-sm"
+                            wire:click="cloneActivities"
+                            wire:loading.attr="disabled"
+                            wire:target="cloneActivities"
+                            {{ collect($cloneTargets)->where('can_clone', true)->isEmpty() ? 'disabled' : '' }}>
+                            <span wire:loading.remove wire:target="cloneActivities">
+                                <i class="fas fa-copy mr-1"></i> Copiar actividades
+                            </span>
+                            <span wire:loading wire:target="cloneActivities">
+                                <i class="fas fa-spinner fa-spin mr-1"></i> Copiando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 
     {{-- Modal para Excel (Descarga e Importación) --}}

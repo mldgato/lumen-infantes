@@ -34,6 +34,7 @@ class ProfessorSeeder extends Seeder
                 'email' => $email,
                 'personal_email' => $email,
                 'cellphone' => $faker->numerify('########'),
+                'must_change_password' => false,
             ]);
 
             // Esto asegura que el ID en la tabla 'professors' coincida con el orden de creación

@@ -62,6 +62,15 @@ class GradeBooks extends Component
     public string $configMode = 'free';
 
     // ==========================================
+    // CLONAR CUADRO
+    // ==========================================
+    public bool $showCloneModal = false;
+
+    public array $cloneTargets = [];
+
+    public array $selectedCloneTargets = [];
+
+    // ==========================================
     // EXCEL TEMPLATES (Nuevas Propiedades)
     // ==========================================
     public bool $showExcelModal = false;
@@ -567,6 +576,137 @@ class GradeBooks extends Component
                 $this->max_points = $configActivity->points_each;
             }
         }
+    }
+
+    // ==========================================
+    // CLONAR CUADRO
+    // ==========================================
+
+    public function openCloneModal(): void
+    {
+        $this->selectedCloneTargets = [];
+
+        $compatibleAssignments = ClassroomCourseAssignment::with([
+            'classroom.grade',
+            'classroom.section',
+            'classroom.level',
+            'pensumCourse.course',
+            'gradeBook.activities',
+        ])
+            ->where('professor_id', $this->assignment->professor_id)
+            ->where('id', '!=', $this->assignment->id)
+            ->whereHas('classroom', fn ($q) => $q->where('year', $this->assignment->classroom->year))
+            ->get();
+
+        if ($compatibleAssignments->isEmpty()) {
+            $this->dispatch('showAlert', [
+                'title' => 'Sin destinos disponibles',
+                'message' => 'No tienes otras asignaciones para el mismo curso y unidad en este año.',
+                'type' => 'info',
+            ]);
+
+            return;
+        }
+
+        $this->cloneTargets = $compatibleAssignments->map(function ($target) {
+            $hasActivities = $target->gradeBook && $target->gradeBook->activities->isNotEmpty();
+
+            return [
+                'assignment_id' => $target->id,
+                'label' => $target->classroom->level->level_name.' — '.
+                    $target->classroom->grade->grade_name.' '.
+                    $target->classroom->section->section_name.' — '.
+                    $target->pensumCourse->course->course_name.
+                    ' (U'.$target->unit.')',
+                'has_activities' => $hasActivities,
+                'grade_book_status' => $target->gradeBook?->status,
+                'can_clone' => ! $hasActivities,
+            ];
+        })->values()->toArray();
+
+        $this->showCloneModal = true;
+    }
+
+    public function closeCloneModal(): void
+    {
+        $this->showCloneModal = false;
+        $this->cloneTargets = [];
+        $this->selectedCloneTargets = [];
+    }
+
+    public function cloneActivities(): void
+    {
+        if (empty($this->selectedCloneTargets)) {
+            $this->addError('selectedCloneTargets', 'Debes seleccionar al menos un destino.');
+
+            return;
+        }
+
+        $sourceActivities = $this->gradeBook->activities;
+        $clonedCount = 0;
+
+        DB::transaction(function () use ($sourceActivities, &$clonedCount) {
+            foreach ($this->selectedCloneTargets as $targetAssignmentId) {
+                $targetAssignment = ClassroomCourseAssignment::with('classroom')->findOrFail($targetAssignmentId);
+
+                $academicConfig = AcademicConfiguration::where('year', $targetAssignment->classroom->year)->first();
+
+                if (! $academicConfig) {
+                    continue;
+                }
+
+                $targetGradeBook = GradeBook::firstOrCreate(
+                    ['classroom_course_assignment_id' => $targetAssignmentId],
+                    [
+                        'academic_configuration_id' => $academicConfig->id,
+                        'status' => 'open',
+                    ]
+                );
+
+                // Seguridad: omitir si ya tiene actividades
+                if ($targetGradeBook->activities()->exists()) {
+                    continue;
+                }
+
+                foreach ($sourceActivities as $activity) {
+                    GradeBookActivity::create([
+                        'grade_book_id' => $targetGradeBook->id,
+                        'activity_type_id' => $activity->activity_type_id,
+                        'name' => $activity->name,
+                        'max_points' => $activity->max_points,
+                        'ordering' => $activity->ordering,
+                    ]);
+                }
+
+                $targetStudents = Student::whereHas('enrollments', function ($q) use ($targetAssignment) {
+                    $q->where('classroom_id', $targetAssignment->classroom_id)
+                        ->where('status', 'Activo');
+                })->get();
+
+                foreach ($targetStudents as $student) {
+                    GradeBookTotal::firstOrCreate(
+                        [
+                            'grade_book_id' => $targetGradeBook->id,
+                            'student_id' => $student->id,
+                        ],
+                        [
+                            'normal_points' => 0,
+                            'extra_points' => 0,
+                            'total_points' => 0,
+                        ]
+                    );
+                }
+
+                $clonedCount++;
+            }
+        });
+
+        $this->closeCloneModal();
+
+        $this->dispatch('toastMessage', [
+            'type' => 'success',
+            'message' => "Actividades copiadas a {$clonedCount} cuadro(s) exitosamente.",
+        ]);
     }
 
     // ==========================================

@@ -11,6 +11,9 @@ use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 use App\Notifications\ResetPasswordNotification;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -161,6 +164,11 @@ class User extends Authenticatable
     public function auditLogs()
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    public function levels(): BelongsToMany
+    {
+        return $this->belongsToMany(Level::class);
     }
 
     public function sendPasswordResetNotification($token): void

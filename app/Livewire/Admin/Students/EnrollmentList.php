@@ -643,7 +643,7 @@ class EnrollmentList extends Component
     public function render()
     {
         $years    = Classroom::select('year')->distinct()->orderByDesc('year')->pluck('year');
-        $levels   = Level::orderBy('level_name')->get();
+        $levels   = auth()->user()->levels()->orderBy('ordering')->get();
         $grades   = $this->filterLevel
             ? Grade::whereHas('classrooms', fn($q) => $q->where('level_id', $this->filterLevel)->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear)))->orderBy('ordering')->get()
             : collect();
