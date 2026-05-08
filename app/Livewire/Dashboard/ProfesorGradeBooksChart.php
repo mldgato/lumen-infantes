@@ -19,6 +19,12 @@ class ProfesorGradeBooksChart extends Component
         $year = date('Y');
         $professor = Auth::user()->professor;
 
+        if (! $professor) {
+            $this->readyToLoad = true;
+
+            return;
+        }
+
         $classroomIds = ClassroomCourseAssignment::where('professor_id', $professor->id)
             ->whereHas('classroom', fn ($q) => $q->where('year', $year))
             ->pluck('classroom_id')

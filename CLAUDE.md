@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.7.0
+v1.7.1
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -189,6 +189,16 @@ Los paneles info-box (`StatsGeneral`, `GradeBooksPending`, `ProfesorStats`) rend
         ...
     </div>
 </div>
+```
+
+**Paneles de Profesor — null-check obligatorio:** los paneles `ProfesorGradeBooksChart`, `ProfesorGradeBooksSummary` y `ActionableGradeBooks` dependen de `Auth::user()->professor`. Siempre verificar que la relación existe antes de usarla, porque un SuperAdmin (u otro usuario sin registro en `professors`) puede tener el permiso y llegar al panel:
+```php
+$professor = Auth::user()->professor;
+
+if (! $professor) {
+    $this->readyToLoad = true;
+    return;
+}
 ```
 
 ### Admin (app/Livewire/Admin/)
@@ -489,3 +499,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.6.0 — Audit logging en componentes de perfil (UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo) + sistema de actualización de datos para estudiantes via QR (formulario público, notificación por correo, token con expiración, registro único por año)
 - v1.6.1 — Fix autorrelleno del navegador en buscadores: `autocomplete="new-password"` en los 19 inputs de búsqueda
 - v1.7.0 — Refactorización del dashboard: los 3 componentes monolíticos (Admin/Dashboard, Profesor/Dashboard, Secretary/Dashboard) se reemplazaron por 12 paneles independientes en `app/Livewire/Dashboard/`, cada uno con su propio permiso `dashboard.panel.*`. `dashboard.blade.php` los ensambla con `@can`; los paneles se asignan por rol desde el módulo de permisos
+- v1.7.1 — Fix dashboard Profesor: null-check defensivo en `ActionableGradeBooks`, `ProfesorGradeBooksChart` y `ProfesorGradeBooksSummary` para usuarios sin registro en `professors`; fix `RoleSeeder` para no asignar paneles exclusivos de Profesor al SuperAdmin; fix `ProfessorSeeder` para crear profesores (IDs 1–13) antes que el Director y preservar el orden de IDs que otros seeders esperan

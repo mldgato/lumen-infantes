@@ -17,6 +17,12 @@ class ActionableGradeBooks extends Component
         $year = date('Y');
         $professor = Auth::user()->professor;
 
+        if (! $professor) {
+            $this->readyToLoad = true;
+
+            return;
+        }
+
         $this->actionableGradeBooks = GradeBook::with([
             'assignment.classroom.grade',
             'assignment.classroom.section',
