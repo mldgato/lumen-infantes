@@ -1,27 +1,27 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\AcademicConfigurationController;
+use App\Http\Controllers\Admin\ActivityTypeController;
+use App\Http\Controllers\Admin\ClassroomController;
+use App\Http\Controllers\Admin\ClassroomCourseAssignmentController;
+use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\GradeBookController;
+use App\Http\Controllers\Admin\GradeBookPdfController;
+use App\Http\Controllers\Admin\GradeController;
+use App\Http\Controllers\Admin\LevelController;
+use App\Http\Controllers\Admin\PensumController;
+use App\Http\Controllers\Admin\ReportCardController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\SectionController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentPdfController;
-use App\Http\Controllers\Admin\LevelController;
-use App\Http\Controllers\Admin\GradeController;
-use App\Http\Controllers\Admin\SectionController;
-use App\Http\Controllers\Admin\ClassroomController;
-use App\Http\Controllers\Admin\CourseController;
-use App\Http\Controllers\Admin\PensumController;
-use App\Http\Controllers\Admin\ClassroomCourseAssignmentController;
-use App\Http\Controllers\Admin\AcademicConfigurationController;
-use App\Http\Controllers\Admin\GradeBookController;
-use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\GradeBookPdfController;
-use App\Http\Controllers\Admin\ReportCardController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Profesor\AttendancePdfController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
 Route::get('students/{student}/pdf', [StudentPdfController::class, 'generate'])->name('admin.students.pdf');
-
 
 // Niveles
 Route::get('levels', [LevelController::class, 'index'])
@@ -58,10 +58,13 @@ Route::get('/academic-configurations', [AcademicConfigurationController::class, 
     ->name('admin.academic-configurations.index')
     ->middleware('can:admin.academic-configurations.index');
 
+Route::get('/activity-types', [ActivityTypeController::class, 'index'])
+    ->name('admin.activity-types.index')
+    ->middleware('can:admin.activity-types.index');
+
 Route::get('/grade-books', [GradeBookController::class, 'index'])
     ->name('admin.grade-books.index')
     ->middleware('can:admin.grade-books.index');
-
 
 Route::get('/reports/sabana-unidad', [ReportController::class, 'sabanaUnidad'])
     ->name('admin.reports.sabana-unidad.index')
@@ -71,14 +74,13 @@ Route::get('/reports/sabana-unidad/export', [ReportController::class, 'exportSab
     ->name('admin.reports.sabana-unidad.export')
     ->middleware('can:admin.reports.sabana-unidad');
 
-Route::get('/roles', fn() => view('admin.roles.index'))
+Route::get('/roles', fn () => view('admin.roles.index'))
     ->name('admin.roles.index')
     ->middleware('can:admin.roles.index');
 
-Route::get('/permissions', fn() => view('admin.permissions.index'))
+Route::get('/permissions', fn () => view('admin.permissions.index'))
     ->name('admin.permissions.index')
     ->middleware('can:admin.permissions.index');
-
 
 Route::get('/reports/sabana-general', [ReportController::class, 'sabanaGeneral'])
     ->name('admin.reports.sabana-general.index')
@@ -100,7 +102,7 @@ Route::get('/reports/cuadros-classroom', [GradeBookPdfController::class, 'downlo
     ->name('admin.reports.cuadros-classroom.download')
     ->middleware('can:admin.reports.cuadros-classroom');
 
-Route::get('/reports/cuadros-classroom/index', fn() => view('admin.reports.cuadros-classroom.index'))
+Route::get('/reports/cuadros-classroom/index', fn () => view('admin.reports.cuadros-classroom.index'))
     ->name('admin.reports.cuadros-classroom.index')
     ->middleware('can:admin.reports.cuadros-classroom');
 
@@ -116,7 +118,7 @@ Route::get('/reports/student-list', [ReportController::class, 'studentList'])
     ->name('admin.reports.student-list')
     ->middleware('can:admin.reports.student-list');
 
-Route::get('/reports/student-list/index', fn() => view('admin.reports.student-list.index'))
+Route::get('/reports/student-list/index', fn () => view('admin.reports.student-list.index'))
     ->name('admin.reports.student-list.index')
     ->middleware('can:admin.reports.student-list');
 
@@ -124,15 +126,15 @@ Route::get('/reports/student-list-excel', [ReportController::class, 'studentList
     ->name('admin.reports.student-list-excel')
     ->middleware('can:admin.reports.student-list-excel');
 
-Route::get('/reports/student-list-excel/index', fn() => view('admin.reports.student-list-excel.index'))
+Route::get('/reports/student-list-excel/index', fn () => view('admin.reports.student-list-excel.index'))
     ->name('admin.reports.student-list-excel.index')
     ->middleware('can:admin.reports.student-list-excel');
 
-Route::get('/grade-change-requests', fn() => view('admin.grade-change-requests.index'))
+Route::get('/grade-change-requests', fn () => view('admin.grade-change-requests.index'))
     ->name('admin.grade-change-requests.index')
     ->middleware('can:admin.grade-change-requests.index');
 
-Route::get('/reports/report-cards', fn() => view('admin.reports.report-cards.index'))
+Route::get('/reports/report-cards', fn () => view('admin.reports.report-cards.index'))
     ->name('admin.reports.report-cards.index')
     ->middleware('can:admin.reports.report-cards');
 
@@ -144,7 +146,7 @@ Route::get('/reports/report-cards/student', [ReportCardController::class, 'stude
     ->name('admin.reports.report-cards.student')
     ->middleware('can:admin.reports.report-cards');
 
-Route::get('/reports/missing-activities', fn() => view('admin.reports.missing-activities.index'))
+Route::get('/reports/missing-activities', fn () => view('admin.reports.missing-activities.index'))
     ->name('admin.reports.missing-activities.index')
     ->middleware('can:admin.reports.missing-activities');
 
@@ -152,19 +154,18 @@ Route::get('/reports/missing-activities/export', [ReportController::class, 'miss
     ->name('admin.reports.missing-activities.export')
     ->middleware('can:admin.reports.missing-activities');
 
-Route::get('/students/enrollments', fn() => view('admin.students.registrations'))
+Route::get('/students/enrollments', fn () => view('admin.students.registrations'))
     ->name('admin.students.enrollments.index')
     ->middleware('can:admin.students.enrollments.index');
 
-Route::get('/audit', fn() => view('admin.audit.index'))
+Route::get('/audit', fn () => view('admin.audit.index'))
     ->name('admin.audit.index')
     ->middleware('can:admin.audit.index');
 
 Route::post('user/loginUser', [UserController::class, 'loginUser'])
     ->name('admin.user.loginUser');
 
-
-Route::get('/reports/professor-courses/index', fn() => view('admin.reports.professor-courses.index'))
+Route::get('/reports/professor-courses/index', fn () => view('admin.reports.professor-courses.index'))
     ->name('admin.reports.professor-courses.index')
     ->middleware('can:admin.reports.professor-courses');
 
@@ -172,8 +173,7 @@ Route::get('/reports/professor-courses/download', [ReportController::class, 'pro
     ->name('admin.reports.professor-courses.download')
     ->middleware('can:admin.reports.professor-courses');
 
-
-Route::get('/reports/attendance/', fn() => view('admin.reports.attendance.index'))
+Route::get('/reports/attendance/', fn () => view('admin.reports.attendance.index'))
     ->name('admin.reports.attendance.index')
     ->middleware('can:admin.reports.attendance');
 
@@ -181,6 +181,6 @@ Route::get('/reports/attendance/pdf', [AttendancePdfController::class, 'adminGen
     ->name('admin.reports.attendance.pdf')
     ->middleware('can:admin.reports.attendance');
 
-Route::get('/reports/grade-progress/index', fn() => view('admin.reports.grade-progress.index'))
+Route::get('/reports/grade-progress/index', fn () => view('admin.reports.grade-progress.index'))
     ->name('admin.reports.grade-progress.index')
     ->middleware('can:admin.reports.grade-progress');

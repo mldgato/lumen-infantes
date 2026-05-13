@@ -15,6 +15,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Notifications\GradeBookLocked;
 use App\Services\AuditService;
+use App\Services\GradeBookCalculationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -443,44 +444,7 @@ class GradeBooks extends Component
 
     protected function recalculateAllTotals(): void
     {
-        $students = $this->getStudents();
-        $activities = GradeBookActivity::with(['scores', 'activityType'])
-            ->where('grade_book_id', $this->gradeBook->id)
-            ->get();
-
-        $config = $this->gradeBook->academicConfiguration;
-
-        foreach ($students as $student) {
-            $normalPoints = 0;
-            $extraPoints = 0;
-
-            foreach ($activities as $activity) {
-                $score = $activity->scores->firstWhere('student_id', $student->id);
-
-                $rawScore = $score ? (float) $score->score : 0;
-                $improvement = $score ? $score->improvement_score : null;
-
-                $effective = $config->effectiveScore($rawScore, $improvement, (float) $activity->max_points);
-
-                if ($activity->activityType->is_extra) {
-                    $extraPoints += $effective;
-                } else {
-                    $normalPoints += $effective;
-                }
-            }
-
-            GradeBookTotal::updateOrCreate(
-                [
-                    'grade_book_id' => $this->gradeBook->id,
-                    'student_id' => $student->id,
-                ],
-                [
-                    'normal_points' => $normalPoints,
-                    'extra_points' => $extraPoints,
-                    'total_points' => ceil($normalPoints + $extraPoints), // <-- ceil aquí
-                ]
-            );
-        }
+        GradeBookCalculationService::recalculateAll($this->gradeBook, $this->getStudents());
     }
 
     // ==========================================

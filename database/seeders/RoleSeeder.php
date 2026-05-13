@@ -202,6 +202,27 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar configuración académica',
         ])->syncRoles([$role1, $role2]);
 
+        // Tipos de Actividad
+        Permission::create([
+            'name' => 'admin.activity-types.index',
+            'description' => 'Administración - Listado de tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.activity-types.create',
+            'description' => 'Administración - Crear tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.activity-types.edit',
+            'description' => 'Administración - Editar tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.activity-types.delete',
+            'description' => 'Administración - Eliminar tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
         // Cuadros de Calificaciones - Admin
         Permission::create([
             'name' => 'admin.grade-books.index',
