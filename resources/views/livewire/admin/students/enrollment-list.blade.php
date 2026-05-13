@@ -76,12 +76,24 @@
                 </div>
                 <div class="col-md-2 form-group mb-0">
                     @if ($classroom)
-                        <button wire:click="openModal('existing')" class="btn btn-success btn-sm shadow-sm mr-1">
-                            <i class="fas fa-user-check"></i> Existente
-                        </button>
-                        <button wire:click="openModal('new')" class="btn btn-primary btn-sm shadow-sm">
-                            <i class="fas fa-user-plus"></i> Nuevo
-                        </button>
+                        @if ($enrollmentPeriodActive)
+                            <button wire:click="openModal('existing')" class="btn btn-success btn-sm shadow-sm mr-1">
+                                <i class="fas fa-user-check"></i> Existente
+                            </button>
+                            <button wire:click="openModal('new')" class="btn btn-primary btn-sm shadow-sm">
+                                <i class="fas fa-user-plus"></i> Nuevo
+                            </button>
+                        @else
+                            <button class="btn btn-success btn-sm shadow-sm mr-1" disabled title="No hay período de inscripciones activo">
+                                <i class="fas fa-user-check"></i> Existente
+                            </button>
+                            <button class="btn btn-primary btn-sm shadow-sm" disabled title="No hay período de inscripciones activo">
+                                <i class="fas fa-user-plus"></i> Nuevo
+                            </button>
+                            <div class="mt-1">
+                                <small class="text-danger"><i class="fas fa-lock mr-1"></i>Sin período activo</small>
+                            </div>
+                        @endif
                     @endif
                 </div>
             </div>

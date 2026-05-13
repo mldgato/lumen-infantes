@@ -7,8 +7,16 @@
 
     <div class="public-body">
 
+        {{-- 🔒 Período cerrado --}}
+        @if (! $periodActive)
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-lock fa-2x mb-2 d-block"></i>
+                <strong>Actualización de datos no disponible.</strong><br>
+                <small class="text-muted">El período de actualización de datos está cerrado en este momento.</small>
+            </div>
+
         {{-- ✅ Ya actualizado este año --}}
-        @if ($alreadyUpdated)
+        @elseif ($alreadyUpdated)
             <div class="alert alert-warning text-center">
                 <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
                 <strong>Ya actualizaste tu información.</strong><br>

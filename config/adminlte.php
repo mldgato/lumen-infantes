@@ -378,6 +378,12 @@ return [
                     'can' => 'admin.students.enrollments.index',
                 ],
                 [
+                    'text' => 'Períodos de Inscripción',
+                    'route' => 'admin.enrollment-periods.index',
+                    'icon' => 'fas fa-fw fa-calendar-alt',
+                    'can' => 'admin.enrollment-periods.index',
+                ],
+                [
                     'text' => 'Estudiantes',
                     'route' => 'admin.students.index',
                     'icon' => 'fas fa-fw fa-users',

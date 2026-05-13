@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\EnrollmentPeriod;
 use App\Models\Student;
 use App\Models\StudentDataUpdate;
 use App\Notifications\StudentDataUpdateNotification;
@@ -20,10 +21,21 @@ class StudentDataRequest extends Component
 
     public bool $alreadyUpdated = false;
 
+    public bool $periodActive = true;
+
     public ?string $updatedAtLabel = null;
+
+    public function mount(): void
+    {
+        $this->periodActive = EnrollmentPeriod::activeForDataUpdates();
+    }
 
     public function submit(): void
     {
+        if (! $this->periodActive) {
+            return;
+        }
+
         $this->validate([
             'code' => ['required', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:255'],

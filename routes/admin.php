@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ActivityTypeController;
 use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\ClassroomCourseAssignmentController;
 use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\EnrollmentPeriodController;
 use App\Http\Controllers\Admin\GradeBookController;
 use App\Http\Controllers\Admin\GradeBookPdfController;
 use App\Http\Controllers\Admin\GradeController;
@@ -157,6 +158,10 @@ Route::get('/reports/missing-activities/export', [ReportController::class, 'miss
 Route::get('/students/enrollments', fn () => view('admin.students.registrations'))
     ->name('admin.students.enrollments.index')
     ->middleware('can:admin.students.enrollments.index');
+
+Route::get('/enrollment-periods', [EnrollmentPeriodController::class, 'index'])
+    ->name('admin.enrollment-periods.index')
+    ->middleware('can:admin.enrollment-periods.index');
 
 Route::get('/audit', fn () => view('admin.audit.index'))
     ->name('admin.audit.index')

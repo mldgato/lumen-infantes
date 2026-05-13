@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.7.7
+v1.7.8
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -135,6 +135,13 @@ Livewire components validan con `$this->authorize('permiso')`.
 - `GradeChangeRequest` — status (pending/approved/rejected), reviewed_by, reviewed_at
   - Métodos: `isPending()`, `isApproved()`, `isRejected()`
 - `GradeChangeRequestItem` — old_score, new_score, old_improvement_score, new_improvement_score
+
+### Períodos de inscripción y actualización
+- `EnrollmentPeriod` — year, start_date, end_date, allow_enrollments:boolean, allow_data_updates:boolean
+  - Métodos estáticos: `activeForEnrollments(): bool`, `activeForDataUpdates(): bool`, `hasOverlap(string $flag, string $startDate, string $endDate, ?int $excludeId): bool`
+  - Regla de negocio: solo puede existir un período con `allow_enrollments=true` y un período con `allow_data_updates=true` activos simultáneamente (validado por `hasOverlap` antes de guardar).
+  - Cuando `activeForEnrollments()` es false, los botones "Existente" y "Nuevo" en `EnrollmentList` quedan deshabilitados con mensaje explicativo; `enrollExisting()` y `enrollNew()` también verifican al inicio.
+  - Cuando `activeForDataUpdates()` es false, `StudentDataRequest` muestra pantalla de período cerrado y bloquea `submit()`.
 
 ### Asistencia y auditoría
 - `AttendanceRecord` — classroom_course_assignment_id, date (1 registro = 1 día de clase)
@@ -512,3 +519,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.7.5 — Filtrado por nivel de usuario extendido a `AttendanceReport` (años, niveles; abort(403) en downloadPdf) y `GradeProgress` (años, niveles, unidades; whereIn en generateReport para restringir aunque no se seleccione nivel explícito)
 - v1.7.6 — CRUD `Admin/ActivityTypes`: búsqueda, paginación, modal create/edit, protección de eliminación, 4 permisos en RoleSeeder, ruta `/admin/activity-types`, entrada en menú Gestión Académica
 - v1.7.7 — `GradeBookCalculationService`: centraliza cálculo de totales de cuadros; `Profesor\GradeBooks` y `Admin\GradeChangeRequests` eliminan código duplicado y delegan al servicio; footer actualizado a v1.7.7
+- v1.7.8 — `EnrollmentPeriod`: modelo + migración + CRUD (`Admin/EnrollmentPeriods`) para gestionar períodos de inscripción y actualización de datos; integrado en `EnrollmentList` (botones deshabilitados + guard en `enrollExisting`/`enrollNew`) y `StudentDataRequest` (pantalla de período cerrado + guard en `submit`); menú bajo Gestión Estudiantil; 4 permisos `admin.enrollment-periods.*` asignados a SuperAdmin y Director
