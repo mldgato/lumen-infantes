@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.7.5
+v1.7.7
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -150,6 +150,10 @@ Livewire components validan con `$this->authorize('permiso')`.
 6. Si rechazado, profesor puede reabrir (status = **open**) y editar
 
 ## Servicios
+- `app/Services/GradeBookCalculationService.php` — cálculo y persistencia de totales de cuadros:
+  - `recalculateAll(GradeBook, iterable $students)` — recalcula para todos los alumnos (acepta modelos o IDs)
+  - `recalculateForStudents(GradeBook, iterable $studentIds)` — recalcula para IDs específicos
+  - Fórmula única: `total_points = ceil(normal_points + extra_points)`
 - `app/Services/AuditService.php` — métodos estáticos para registrar eventos:
   - `gradeBookStatusChanged`, `scoreChanged`
   - `enrollmentCreated`, `enrollmentStatusChanged`
@@ -476,14 +480,14 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 ### Prioridad media
 - **Campo `is_official` en `PensumCourse` — sin usar** — Existe en migración y modelo pero no aparece en ninguna vista ni filtro. Implementar badge/filtro en el componente `Admin/Pensums` o eliminar el campo.
 - **Dashboard de Secretaria — accesos rápidos** — Los paneles de cumpleaños y estadísticas ya están. Agregar paneles: inscripciones recientes por estado y acceso rápido a inscripción de estudiante.
-- **CRUD de `ActivityType` sin interfaz** — Los tipos de actividad solo se crean vía seed/tinker. Crear componente `Admin/ActivityTypes` con CRUD básico para gestionar tipos y el flag `is_extra`.
+- **CRUD de `ActivityType`** — ✅ Completado en v1.7.6. Componente `Admin/ActivityTypes` con búsqueda, paginación, modal create/edit, protección de eliminación (si está en uso en config o cuadros), permiso `admin.activity-types.*`, ruta `/admin/activity-types`, menú bajo Gestión Académica.
 - **Notificación: cuadro en `locked` sin revisar** — Notificar al admin cuando un cuadro lleva N días bloqueado sin ser aprobado/rechazado.
 - **Notificación: cambio de rol asignado a usuario** — Notificar al usuario cuando se le asigna o revoca un rol.
 - **Reporte: Estudiantes en riesgo de reprobación** — Con los datos de `GradeBookTotal` calcular qué estudiantes tienen nota < 60 en alguna unidad y generar reporte de alerta temprana para admin y profesor.
 - **Reporte de asistencia con porcentaje acumulado** — El `AttendanceReport` existe pero no calcula el % de asistencia por estudiante. Agregar columna de porcentaje y umbral configurable de inasistencias.
 
 ### Prioridad baja (mejoras y reportes adicionales)
-- **Servicio `GradeBookCalculationService`** — La lógica de cálculo de totales, puntos extra y mejoras está dispersa en varios componentes Livewire. Centralizar en un servicio para facilitar mantenimiento y consistencia.
+- **Servicio `GradeBookCalculationService`** — ✅ Completado en v1.7.7. `app/Services/GradeBookCalculationService.php` con `recalculateAll()` (todos los alumnos) y `recalculateForStudents()` (IDs específicos). `Profesor\GradeBooks` y `Admin\GradeChangeRequests` ya delegan al servicio.
 - **Reporte: comparativo de rendimiento entre unidades** — Mostrar evolución de promedios de un aula unidad por unidad usando los datos de `GradeBookTotal`.
 - **Reporte: historial de calificaciones por estudiante** — Resumen de rendimiento del estudiante a lo largo de ciclos escolares (requiere datos de múltiples años).
 - **Reporte: carga docente por profesor** — Cuántos cursos, aulas y estudiantes tiene asignados cada profesor en el ciclo activo.
@@ -506,3 +510,5 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.7.3 — Filtrado por nivel de usuario extendido a `Classrooms`, `GradeBooks`, `ClassroomCourseAssignments` y `Students/StudentList`: restricción de listados, cascadas y `abort(403)` en operaciones de escritura (edit/save/delete/approve/reject/manage)
 - v1.7.4 — Filtrado por nivel de usuario completado en `GradeChangeRequests` (listado, openRequest/approve/reject con abort(403)) y todos los componentes de reportes admin: `MissingActivities`, `CuadrosClassroom`, `StudentListExcel`, `SabanaPromedio`, `StudentList`, `ReportCards`, `SabanaGeneral`, `SabanaUnidad` (años y niveles filtrados; abort(403) en métodos de acción)
 - v1.7.5 — Filtrado por nivel de usuario extendido a `AttendanceReport` (años, niveles; abort(403) en downloadPdf) y `GradeProgress` (años, niveles, unidades; whereIn en generateReport para restringir aunque no se seleccione nivel explícito)
+- v1.7.6 — CRUD `Admin/ActivityTypes`: búsqueda, paginación, modal create/edit, protección de eliminación, 4 permisos en RoleSeeder, ruta `/admin/activity-types`, entrada en menú Gestión Académica
+- v1.7.7 — `GradeBookCalculationService`: centraliza cálculo de totales de cuadros; `Profesor\GradeBooks` y `Admin\GradeChangeRequests` eliminan código duplicado y delegan al servicio; footer actualizado a v1.7.7
