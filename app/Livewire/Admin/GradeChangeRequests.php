@@ -10,6 +10,7 @@ use App\Models\GradeChangeRequest;
 use App\Models\Student;
 use App\Notifications\GradeChangeRequestResolved;
 use App\Services\AuditService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -63,7 +64,7 @@ class GradeChangeRequests extends Component
 
     public function openRequest(int $id): void
     {
-        $this->viewingRequest = GradeChangeRequest::with([
+        $request = GradeChangeRequest::with([
             'gradeBook.assignment.classroom.level',
             'gradeBook.assignment.classroom.grade',
             'gradeBook.assignment.classroom.section',
@@ -74,6 +75,13 @@ class GradeChangeRequests extends Component
             'items.activity.activityType',
             'reviewer',
         ])->findOrFail($id);
+
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($request->gradeBook->assignment->classroom->level_id)) {
+            abort(403);
+        }
+
+        $this->viewingRequest = $request;
     }
 
     public function closeRequest(): void
@@ -93,7 +101,13 @@ class GradeChangeRequests extends Component
         $request = GradeChangeRequest::with([
             'items',
             'gradeBook.activities',
+            'gradeBook.assignment.classroom',
         ])->findOrFail($requestId);
+
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($request->gradeBook->assignment->classroom->level_id)) {
+            abort(403);
+        }
 
         DB::transaction(function () use ($request) {
             foreach ($request->items as $item) {
@@ -163,9 +177,15 @@ class GradeChangeRequests extends Component
         $request = GradeChangeRequest::with([
             'professor.user',
             'gradeBook.assignment.pensumCourse.course',
+            'gradeBook.assignment.classroom.level',
             'gradeBook.assignment.classroom.grade',
             'gradeBook.assignment.classroom.section',
         ])->findOrFail($this->rejectingId);
+
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($request->gradeBook->assignment->classroom->level_id)) {
+            abort(403);
+        }
 
         $request->update([
             'status' => 'rejected',
@@ -227,6 +247,8 @@ class GradeChangeRequests extends Component
 
     public function render()
     {
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+
         $requests = $this->readyToLoad
             ? GradeChangeRequest::with([
                 'gradeBook.assignment.classroom.grade',
@@ -236,6 +258,7 @@ class GradeChangeRequests extends Component
                 'reviewer',
                 'items',
             ])
+                ->whereHas('gradeBook.assignment.classroom', fn ($q) => $q->whereIn('level_id', $userLevelIds))
                 ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
                 ->where(function ($q) {
                     $q->whereHas('gradeBook.assignment.classroom.grade', fn ($q) => $q->where('grade_name', 'like', '%'.$this->search.'%'))

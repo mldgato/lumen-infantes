@@ -8,15 +8,20 @@ use App\Models\Grade;
 use App\Models\GradeBook;
 use App\Models\Level;
 use App\Models\Section;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class CuadrosClassroom extends Component
 {
-    public string $filterYear    = '';
-    public string $filterLevel   = '';
-    public string $filterGrade   = '';
+    public string $filterYear = '';
+
+    public string $filterLevel = '';
+
+    public string $filterGrade = '';
+
     public string $filterSection = '';
-    public string $filterUnit    = '';
+
+    public string $filterUnit = '';
 
     public array $approvedGradeBooks = [];
 
@@ -60,6 +65,7 @@ class CuadrosClassroom extends Component
     {
         if (! $this->filterYear || ! $this->filterLevel || ! $this->filterGrade || ! $this->filterSection || ! $this->filterUnit) {
             $this->approvedCount = 0;
+
             return;
         }
 
@@ -71,14 +77,14 @@ class CuadrosClassroom extends Component
 
         if (! $classroom) {
             $this->approvedCount = 0;
+
             return;
         }
 
         $this->approvedCount = GradeBook::where('status', 'approved')
             ->whereHas(
                 'assignment',
-                fn($q) =>
-                $q->where('classroom_id', $classroom->id)
+                fn ($q) => $q->where('classroom_id', $classroom->id)
                     ->where('unit', $this->filterUnit)
             )
             ->count();
@@ -86,27 +92,32 @@ class CuadrosClassroom extends Component
 
     public function download(): void
     {
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains((int) $this->filterLevel)) {
+            abort(403);
+        }
+
         $this->validate([
-            'filterYear'    => 'required',
-            'filterLevel'   => 'required',
-            'filterGrade'   => 'required',
+            'filterYear' => 'required',
+            'filterLevel' => 'required',
+            'filterGrade' => 'required',
             'filterSection' => 'required',
-            'filterUnit'    => 'required',
+            'filterUnit' => 'required',
         ], [
-            'filterYear.required'    => 'Seleccione un año.',
-            'filterLevel.required'   => 'Seleccione un nivel.',
-            'filterGrade.required'   => 'Seleccione un grado.',
+            'filterYear.required' => 'Seleccione un año.',
+            'filterLevel.required' => 'Seleccione un nivel.',
+            'filterGrade.required' => 'Seleccione un grado.',
             'filterSection.required' => 'Seleccione una sección.',
-            'filterUnit.required'    => 'Seleccione una unidad.',
+            'filterUnit.required' => 'Seleccione una unidad.',
         ]);
 
         $this->dispatch('downloadCuadros', [
             'url' => route('admin.reports.cuadros-classroom.download', [
-                'year'    => $this->filterYear,
-                'level'   => $this->filterLevel,
-                'grade'   => $this->filterGrade,
+                'year' => $this->filterYear,
+                'level' => $this->filterLevel,
+                'grade' => $this->filterGrade,
                 'section' => $this->filterSection,
-                'unit'    => $this->filterUnit,
+                'unit' => $this->filterUnit,
             ]),
         ]);
     }
@@ -115,6 +126,7 @@ class CuadrosClassroom extends Component
     {
         if (! $this->filterYear || ! $this->filterLevel || ! $this->filterGrade || ! $this->filterSection || ! $this->filterUnit) {
             $this->approvedGradeBooks = [];
+
             return;
         }
 
@@ -126,6 +138,7 @@ class CuadrosClassroom extends Component
 
         if (! $classroom) {
             $this->approvedGradeBooks = [];
+
             return;
         }
 
@@ -136,14 +149,13 @@ class CuadrosClassroom extends Component
             ->where('status', 'approved')
             ->whereHas(
                 'assignment',
-                fn($q) =>
-                $q->where('classroom_id', $classroom->id)
+                fn ($q) => $q->where('classroom_id', $classroom->id)
                     ->where('unit', $this->filterUnit)
             )
             ->get()
-            ->map(fn($gb) => [
-                'id'       => $gb->id,
-                'curso'    => $gb->assignment->pensumCourse->course->course_name,
+            ->map(fn ($gb) => [
+                'id' => $gb->id,
+                'curso' => $gb->assignment->pensumCourse->course->course_name,
                 'profesor' => $gb->assignment->professor->user->name,
                 'view_url' => route('admin.reports.cuadros-classroom.view', $gb->id),
             ])
@@ -152,63 +164,67 @@ class CuadrosClassroom extends Component
 
     public function viewAll(): void
     {
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains((int) $this->filterLevel)) {
+            abort(403);
+        }
+
         $this->validate([
-            'filterYear'    => 'required',
-            'filterLevel'   => 'required',
-            'filterGrade'   => 'required',
+            'filterYear' => 'required',
+            'filterLevel' => 'required',
+            'filterGrade' => 'required',
             'filterSection' => 'required',
-            'filterUnit'    => 'required',
+            'filterUnit' => 'required',
         ], [
-            'filterYear.required'    => 'Seleccione un año.',
-            'filterLevel.required'   => 'Seleccione un nivel.',
-            'filterGrade.required'   => 'Seleccione un grado.',
+            'filterYear.required' => 'Seleccione un año.',
+            'filterLevel.required' => 'Seleccione un nivel.',
+            'filterGrade.required' => 'Seleccione un grado.',
             'filterSection.required' => 'Seleccione una sección.',
-            'filterUnit.required'    => 'Seleccione una unidad.',
+            'filterUnit.required' => 'Seleccione una unidad.',
         ]);
 
         $this->dispatch('viewAllCuadros', [
             'url' => route('admin.reports.cuadros-classroom.view-all', [
-                'year'    => $this->filterYear,
-                'level'   => $this->filterLevel,
-                'grade'   => $this->filterGrade,
+                'year' => $this->filterYear,
+                'level' => $this->filterLevel,
+                'grade' => $this->filterGrade,
                 'section' => $this->filterSection,
-                'unit'    => $this->filterUnit,
+                'unit' => $this->filterUnit,
             ]),
         ]);
     }
 
     public function render()
     {
-        $years  = Classroom::select('year')->distinct()->orderByDesc('year')->pluck('year');
-        $levels = Level::orderBy('level_name')->get();
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+
+        $years = Classroom::select('year')->whereIn('level_id', $userLevelIds)->distinct()->orderByDesc('year')->pluck('year');
+        $levels = Level::whereIn('id', $userLevelIds)->orderBy('level_name')->get();
 
         $grades = $this->filterLevel
             ? Grade::whereHas(
                 'classrooms',
-                fn($q) =>
-                $q->where('level_id', $this->filterLevel)
-                    ->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear))
+                fn ($q) => $q->where('level_id', $this->filterLevel)
+                    ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             )->orderBy('grade_name')->get()
             : collect();
 
         $sections = $this->filterGrade
             ? Section::whereHas(
                 'classrooms',
-                fn($q) =>
-                $q->where('grade_id', $this->filterGrade)
+                fn ($q) => $q->where('grade_id', $this->filterGrade)
                     ->where('level_id', $this->filterLevel)
-                    ->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear))
+                    ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             )->orderBy('section_name')->get()
             : collect();
 
         $units = $this->filterSection
             ? ClassroomCourseAssignment::whereHas(
                 'classroom',
-                fn($q) =>
-                $q->where('section_id', $this->filterSection)
+                fn ($q) => $q->where('section_id', $this->filterSection)
                     ->where('grade_id', $this->filterGrade)
                     ->where('level_id', $this->filterLevel)
-                    ->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear))
+                    ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             )->distinct()->pluck('unit')->sort()->values()
             : collect();
 
