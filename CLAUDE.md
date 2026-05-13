@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.7.1
+v1.7.3
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -466,9 +466,7 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - Resolver codificación UTF-8 en correos (workaround actual: editar `.env` directamente en servidor con UTF-8)
 
 ### Prioridad alta
-- **Filtrado de niveles por usuario en componentes Admin** — Se implementó la relación M:M `User ↔ Level` (tabla pivote `level_user`) y se aplicó en `EnrollmentList` (`auth()->user()->levels()->orderBy('ordering')->get()`). Falta aplicar el mismo patrón en los siguientes componentes que aún usan `Level::orderBy(...)->get()` directamente:
-  - `Admin/GradeBooks.php`
-  - `Admin/Classrooms.php`
+- **Filtrado de niveles por usuario en componentes Admin** — Se implementó la relación M:M `User ↔ Level` (tabla pivote `level_user`) y se aplicó en `EnrollmentList`, `Classrooms`, `GradeBooks`, `ClassroomCourseAssignments` y `Students/StudentList`. Falta aplicar el mismo patrón en los siguientes componentes de reportes que aún usan `Level::orderBy(...)->get()` directamente:
   - `Admin/Reports/MissingActivities.php`
   - `Admin/Reports/CuadrosClassroom.php`
   - `Admin/Reports/StudentListExcel.php`
@@ -513,3 +511,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.7.0 — Refactorización del dashboard: los 3 componentes monolíticos (Admin/Dashboard, Profesor/Dashboard, Secretary/Dashboard) se reemplazaron por 12 paneles independientes en `app/Livewire/Dashboard/`, cada uno con su propio permiso `dashboard.panel.*`. `dashboard.blade.php` los ensambla con `@can`; los paneles se asignan por rol desde el módulo de permisos
 - v1.7.1 — Fix dashboard Profesor: null-check defensivo en `ActionableGradeBooks`, `ProfesorGradeBooksChart` y `ProfesorGradeBooksSummary` para usuarios sin registro en `professors`; fix `RoleSeeder` para no asignar paneles exclusivos de Profesor al SuperAdmin; fix `ProfessorSeeder` para crear profesores (IDs 1–13) antes que el Director y preservar el orden de IDs que otros seeders esperan
 - v1.7.2 — Funcionalidad de clonar GradeBook con actividades a otros cuadros del profesor (mismo o distinto curso/unidad); relación M:M `User ↔ Level` con tabla pivote `level_user`; asignación de niveles por usuario desde `Admin/UserList`; filtrado de niveles por usuario en `EnrollmentList`
+- v1.7.3 — Filtrado por nivel de usuario extendido a `Classrooms`, `GradeBooks`, `ClassroomCourseAssignments` y `Students/StudentList`: restricción de listados, cascadas y `abort(403)` en operaciones de escritura (edit/save/delete/approve/reject/manage)
