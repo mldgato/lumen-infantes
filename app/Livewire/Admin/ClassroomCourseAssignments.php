@@ -2,15 +2,14 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\AuditLog;
 use App\Models\Classroom;
 use App\Models\ClassroomCourseAssignment;
 use App\Models\Pensum;
 use App\Models\Professor;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB;
-use App\Models\AuditLog;
-use Illuminate\Support\Facades\Auth;
 
 class ClassroomCourseAssignments extends Component
 {
@@ -18,23 +17,31 @@ class ClassroomCourseAssignments extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-    public string $search    = '';
-    public string $sort      = 'year';
+    public string $search = '';
+
+    public string $sort = 'year';
+
     public string $direction = 'desc';
-    public string $cant      = '10';
+
+    public string $cant = '10';
+
     public bool $readyToLoad = false;
+
     public string $filterYear = '';
 
     // Gestión de asignaciones
-    public ?int $managingClassroomId  = null;
+    public ?int $managingClassroomId = null;
+
     public ?Classroom $managingClassroom = null;
-    public ?Pensum $pensum            = null;
+
+    public ?Pensum $pensum = null;
 
     // assignments[pensum_course_id][unit] = professor_id
     public array $assignments = [];
 
     // Classrooms del mismo grado para asignación en bloque
     public array $selectedClassrooms = [];
+
     public array $sameGradeClassrooms = [];
 
     // Guarda el estado de bloqueo de las asignaciones: lockedAssignments[pensum_course_id][unit] = true
@@ -44,10 +51,10 @@ class ClassroomCourseAssignments extends Component
     public array $originalAssignments = [];
 
     protected $queryString = [
-        'cant'       => ['except' => '10'],
-        'sort'       => ['except' => 'year'],
-        'direction'  => ['except' => 'desc'],
-        'search'     => ['except' => ''],
+        'cant' => ['except' => '10'],
+        'sort' => ['except' => 'year'],
+        'direction' => ['except' => 'desc'],
+        'search' => ['except' => ''],
         'filterYear' => ['except' => ''],
     ];
 
@@ -71,7 +78,7 @@ class ClassroomCourseAssignments extends Component
         if ($this->sort === $sort) {
             $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
         } else {
-            $this->sort      = $sort;
+            $this->sort = $sort;
             $this->direction = 'asc';
         }
     }
@@ -86,6 +93,11 @@ class ClassroomCourseAssignments extends Component
             'section',
         ])->findOrFail($classroomId);
 
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($this->managingClassroom->level_id)) {
+            abort(403);
+        }
+
         // Buscar el pénsum que coincida con el grado y año del classroom
         $this->pensum = Pensum::with([
             'mainCourses.course',
@@ -96,8 +108,8 @@ class ClassroomCourseAssignments extends Component
             ->first();
 
         // Cargar asignaciones existentes y verificar bloqueos
-        $this->assignments         = [];
-        $this->lockedAssignments   = [];
+        $this->assignments = [];
+        $this->lockedAssignments = [];
         $this->originalAssignments = [];
 
         if ($this->pensum) {
@@ -117,11 +129,13 @@ class ClassroomCourseAssignments extends Component
             }
         }
 
-        // Otros classrooms del mismo grado y año para asignación en bloque
+        // Otros classrooms del mismo grado y año para asignación en bloque,
+        // restringidos a los niveles que el usuario puede administrar
         $this->sameGradeClassrooms = Classroom::with(['section'])
             ->where('grade_id', $this->managingClassroom->grade_id)
             ->where('year', $this->managingClassroom->year)
             ->where('id', '!=', $classroomId)
+            ->whereIn('level_id', $userLevelIds)
             ->get()
             ->toArray();
 
@@ -130,48 +144,59 @@ class ClassroomCourseAssignments extends Component
 
     public function resetManaging(): void
     {
-        $this->managingClassroomId  = null;
-        $this->managingClassroom    = null;
-        $this->pensum               = null;
-        $this->assignments          = [];
-        $this->lockedAssignments    = [];
-        $this->originalAssignments  = [];
-        $this->selectedClassrooms   = [];
-        $this->sameGradeClassrooms  = [];
+        $this->managingClassroomId = null;
+        $this->managingClassroom = null;
+        $this->pensum = null;
+        $this->assignments = [];
+        $this->lockedAssignments = [];
+        $this->originalAssignments = [];
+        $this->selectedClassrooms = [];
+        $this->sameGradeClassrooms = [];
     }
 
     public function saveAssignments(): void
     {
         $this->authorize('admin.classroom-course-assignments.create');
 
-        if (!$this->pensum) {
-            $this->dispatch('showAlert', [
-                'title'   => 'Sin pénsum',
-                'message' => 'No existe un pénsum para este grado y año.',
-                'type'    => 'warning',
-            ]);
-            return;
-        }
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
 
         $classroomIds = array_merge(
             [$this->managingClassroomId],
             $this->selectedClassrooms
         );
 
+        $unauthorizedClassroom = Classroom::whereIn('id', $classroomIds)
+            ->whereNotIn('level_id', $userLevelIds)
+            ->exists();
+
+        if ($unauthorizedClassroom) {
+            abort(403);
+        }
+
+        if (! $this->pensum) {
+            $this->dispatch('showAlert', [
+                'title' => 'Sin pénsum',
+                'message' => 'No existe un pénsum para este grado y año.',
+                'type' => 'warning',
+            ]);
+
+            return;
+        }
+
         foreach ($classroomIds as $classroomId) {
             $existingAssignments = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
                 ->where('classroom_id', $classroomId)
                 ->get()
                 ->keyBy(function ($item) {
-                    return $item->pensum_course_id . '_' . $item->unit;
+                    return $item->pensum_course_id.'_'.$item->unit;
                 });
 
             foreach ($this->assignments as $pensumCourseId => $units) {
                 foreach ($units as $unit => $professorId) {
-                    $key      = $pensumCourseId . '_' . $unit;
+                    $key = $pensumCourseId.'_'.$unit;
                     $existing = $existingAssignments->get($key);
 
-                    if (!$professorId) {
+                    if (! $professorId) {
                         // Si no hay profesor y la asignación existe pero tiene GradeBook, no se puede borrar
                         if ($existing) {
                             if ($existing->gradeBook) {
@@ -181,6 +206,7 @@ class ClassroomCourseAssignments extends Component
                             $existing->delete();
                             $this->logAudit('deleted', $existing, ['professor_id' => $oldProfId], null, 'Asignación eliminada');
                         }
+
                         continue;
                     }
 
@@ -197,10 +223,10 @@ class ClassroomCourseAssignments extends Component
                         }
                     } else {
                         $newAssignment = ClassroomCourseAssignment::create([
-                            'classroom_id'     => $classroomId,
+                            'classroom_id' => $classroomId,
                             'pensum_course_id' => $pensumCourseId,
-                            'unit'             => $unit,
-                            'professor_id'     => $professorId,
+                            'unit' => $unit,
+                            'professor_id' => $professorId,
                         ]);
 
                         $this->logAudit('created', $newAssignment, null, ['professor_id' => $professorId], 'Nueva asignación de profesor');
@@ -210,14 +236,14 @@ class ClassroomCourseAssignments extends Component
         }
 
         $total = count($classroomIds);
-        $msg   = $total > 1
+        $msg = $total > 1
             ? "Asignaciones guardadas en {$total} aulas."
             : 'Asignaciones guardadas correctamente.';
 
         $this->dispatch('showAlert', [
-            'title'   => '¡Éxito!',
+            'title' => '¡Éxito!',
             'message' => $msg,
-            'type'    => 'success',
+            'type' => 'success',
         ]);
 
         $this->dispatch('closeModal', ['modalId' => 'AssignmentsModal']);
@@ -229,6 +255,12 @@ class ClassroomCourseAssignments extends Component
     {
         $this->authorize('admin.classroom-course-assignments.delete');
 
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        $classroom = Classroom::findOrFail($this->managingClassroomId);
+        if (! $userLevelIds->contains($classroom->level_id)) {
+            abort(403);
+        }
+
         $assignment = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
             ->where('classroom_id', $this->managingClassroomId)
             ->where('pensum_course_id', $pensumCourseId)
@@ -239,10 +271,11 @@ class ClassroomCourseAssignments extends Component
             // Protección adicional de eliminación directa
             if ($assignment->gradeBook) {
                 $this->dispatch('showAlert', [
-                    'title'   => '¡Acción denegada!',
+                    'title' => '¡Acción denegada!',
                     'message' => 'No se puede eliminar esta asignación porque ya tiene un cuadro de calificaciones.',
-                    'type'    => 'error',
+                    'type' => 'error',
                 ]);
+
                 return;
             }
 
@@ -258,7 +291,7 @@ class ClassroomCourseAssignments extends Component
         unset($this->lockedAssignments[$pensumCourseId][$unit]);
 
         $this->dispatch('toastMessage', [
-            'type'    => 'info',
+            'type' => 'info',
             'message' => 'Asignación eliminada.',
         ]);
     }
@@ -266,41 +299,48 @@ class ClassroomCourseAssignments extends Component
     private function logAudit(string $event, ClassroomCourseAssignment $assignment, ?array $oldValues, ?array $newValues, string $description): void
     {
         AuditLog::create([
-            'user_id'        => Auth::id(),
-            'event'          => $event,
+            'user_id' => Auth::id(),
+            'event' => $event,
             'auditable_type' => ClassroomCourseAssignment::class,
-            'auditable_id'   => $assignment->id,
-            'module'         => 'Asignaciones',
-            'description'    => "{$description} (Aula: {$assignment->classroom_id}, Curso: {$assignment->pensum_course_id}, Unidad: {$assignment->unit})",
-            'old_values'     => $oldValues,
-            'new_values'     => $newValues,
-            'ip_address'     => request()->ip(),
+            'auditable_id' => $assignment->id,
+            'module' => 'Asignaciones',
+            'description' => "{$description} (Aula: {$assignment->classroom_id}, Curso: {$assignment->pensum_course_id}, Unidad: {$assignment->unit})",
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'ip_address' => request()->ip(),
         ]);
     }
 
     public function render()
     {
-        $years = Classroom::select('year')->distinct()->orderByDesc('year')->pluck('year');
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+
+        $years = Classroom::select('year')
+            ->whereIn('level_id', $userLevelIds)
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year');
 
         $classrooms = $this->readyToLoad
             ? Classroom::with(['level', 'grade', 'section'])
-            ->withCount('courseAssignments')
-            ->withExists([
-                'pensum as has_pensum'
-            ])
-            ->when($this->filterYear, fn($q) => $q->where('year', $this->filterYear))
-            ->where(function ($query) {
-                $query->whereHas('level', fn($q) => $q->where('level_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('grade', fn($q) => $q->where('grade_name', 'like', '%' . $this->search . '%'))
-                    ->orWhereHas('section', fn($q) => $q->where('section_name', 'like', '%' . $this->search . '%'))
-                    ->orWhere('year', 'like', '%' . $this->search . '%');
-            })
-            ->orderBy($this->sort, $this->direction)
-            ->paginate($this->cant)
+                ->whereIn('level_id', $userLevelIds)
+                ->withCount('courseAssignments')
+                ->withExists([
+                    'pensum as has_pensum',
+                ])
+                ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
+                ->where(function ($query) {
+                    $query->whereHas('level', fn ($q) => $q->where('level_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('grade', fn ($q) => $q->where('grade_name', 'like', '%'.$this->search.'%'))
+                        ->orWhereHas('section', fn ($q) => $q->where('section_name', 'like', '%'.$this->search.'%'))
+                        ->orWhere('year', 'like', '%'.$this->search.'%');
+                })
+                ->orderBy($this->sort, $this->direction)
+                ->paginate($this->cant)
             : [];
 
         $professors = Professor::with('user')
-            ->whereHas('user', fn($q) => $q->where('is_active', true))
+            ->whereHas('user', fn ($q) => $q->where('is_active', true))
             ->get()
             ->sortBy('user.name');
 

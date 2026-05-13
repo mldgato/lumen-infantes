@@ -2,23 +2,23 @@
 
 namespace App\Livewire\Students;
 
-use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\User;
-use App\Models\Guardian;
-use App\Livewire\Forms\UserForm;
-use App\Livewire\Forms\StudentForm;
-use App\Livewire\Forms\MedicalForm;
 use App\Livewire\Forms\GuardianForm;
+use App\Livewire\Forms\MedicalForm;
+use App\Livewire\Forms\StudentForm;
+use App\Livewire\Forms\UserForm;
+use App\Models\AuditLog;
 use App\Models\Classroom;
-use App\Models\StudentEnrollment;
 use App\Models\GradeBook;
 use App\Models\GradeBookScore;
 use App\Models\GradeBookTotal;
+use App\Models\Guardian;
+use App\Models\StudentEnrollment;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
-use App\Models\AuditLog;
-use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class StudentList extends Component
 {
@@ -27,44 +27,58 @@ class StudentList extends Component
     protected $paginationTheme = 'bootstrap';
 
     public UserForm $userForm;
+
     public StudentForm $studentForm;
+
     public MedicalForm $medicalForm;
+
     public GuardianForm $guardianForm;
 
     public $search = '';
+
     public $sort = 'surname';
+
     public $direction = 'asc';
+
     public $cant = '10';
+
     public $readyToLoad = false;
 
     public $activeTab = 'general';
 
     // Variables para el Panel Familiar
     public $managingStudent = null;
+
     public $relationship_type = '';
+
     public $showGuardianForm = false; // Alterna entre ver la lista y ver el formulario
 
     // Inscripción
     public $enrollment_classroom_id = '';
-    public $enrollment_status       = 'Activo';
-    public $currentEnrollment       = null;
-    public $enrollmentHistory       = [];
+
+    public $enrollment_status = 'Activo';
+
+    public $currentEnrollment = null;
+
+    public $enrollmentHistory = [];
 
     protected $queryString = [
         'cant' => ['except' => '10'],
         'sort' => ['except' => 'surname'],
         'direction' => ['except' => 'asc'],
-        'search' => ['except' => '']
+        'search' => ['except' => ''],
     ];
 
     public function loadStudents()
     {
         $this->readyToLoad = true;
     }
+
     public function updatingSearch()
     {
         $this->resetPage();
     }
+
     public function updatingCant()
     {
         $this->resetPage();
@@ -85,11 +99,11 @@ class StudentList extends Component
         $this->userForm->resetForm();
         $this->studentForm->resetForm();
         $this->medicalForm->resetForm();
-        $this->activeTab              = 'general';
+        $this->activeTab = 'general';
         $this->enrollment_classroom_id = '';
-        $this->enrollment_status      = 'Activo';
-        $this->currentEnrollment      = null;
-        $this->enrollmentHistory      = [];
+        $this->enrollment_status = 'Activo';
+        $this->currentEnrollment = null;
+        $this->enrollmentHistory = [];
         $this->resetValidation();
     }
 
@@ -106,17 +120,17 @@ class StudentList extends Component
             $currentYear = date('Y');
 
             $this->currentEnrollment = $user->student->enrollments
-                ->filter(fn($e) => $e->classroom->year == $currentYear)
+                ->filter(fn ($e) => $e->classroom->year == $currentYear)
                 ->first();
 
             if ($this->currentEnrollment) {
                 $this->enrollment_classroom_id = $this->currentEnrollment->classroom_id;
-                $this->enrollment_status       = $this->currentEnrollment->status;
+                $this->enrollment_status = $this->currentEnrollment->status;
             }
 
             $this->enrollmentHistory = $user->student->enrollments
-                ->filter(fn($e) => $e->classroom->year != $currentYear)
-                ->sortByDesc(fn($e) => $e->classroom->year)
+                ->filter(fn ($e) => $e->classroom->year != $currentYear)
+                ->sortByDesc(fn ($e) => $e->classroom->year)
                 ->values();
         }
     }
@@ -133,7 +147,7 @@ class StudentList extends Component
             'title' => '¡Éxito!',
             'message' => 'Información del estudiante actualizada.',
             'type' => 'success',
-            'modalId' => 'StudentModal'
+            'modalId' => 'StudentModal',
         ]);
     }
 
@@ -149,6 +163,7 @@ class StudentList extends Component
         if ($user->student && $user->student->guardians) {
             $sortedGuardians = $user->student->guardians->sortBy(function ($guardian) {
                 $order = ['Papá' => 1, 'Mamá' => 2, 'Encargado' => 3];
+
                 return $order[$guardian->pivot->relationship_type] ?? 4;
             })->values();
 
@@ -162,7 +177,7 @@ class StudentList extends Component
     {
         $all = ['Papá', 'Mamá', 'Encargado'];
 
-        if (!$this->managingStudent || !$this->managingStudent->student) {
+        if (! $this->managingStudent || ! $this->managingStudent->student) {
             return $all;
         }
 
@@ -224,7 +239,7 @@ class StudentList extends Component
         $this->validate([
             'relationship_type' => 'required|string|max:255',
         ], [
-            'relationship_type.required' => 'Debe especificar el parentesco (Papá, Mamá, Encargado).'
+            'relationship_type.required' => 'Debe especificar el parentesco (Papá, Mamá, Encargado).',
         ]);
 
         if ($this->guardianForm->guardian) {
@@ -233,7 +248,7 @@ class StudentList extends Component
 
             // Actualizar parentesco en la tabla pivote
             $this->managingStudent->student->guardians()->updateExistingPivot($guardian->id, [
-                'relationship_type' => $this->relationship_type
+                'relationship_type' => $this->relationship_type,
             ]);
             $mensaje = 'Datos del familiar actualizados correctamente.';
         } else {
@@ -242,7 +257,7 @@ class StudentList extends Component
 
             // Vincular al estudiante
             $this->managingStudent->student->guardians()->attach($guardian->id, [
-                'relationship_type' => $this->relationship_type
+                'relationship_type' => $this->relationship_type,
             ]);
             $mensaje = 'Nuevo familiar registrado y asignado.';
         }
@@ -253,7 +268,7 @@ class StudentList extends Component
 
         $this->dispatch('toastMessage', [
             'type' => 'success',
-            'message' => $mensaje
+            'message' => $mensaje,
         ]);
     }
 
@@ -265,8 +280,9 @@ class StudentList extends Component
         if ($guardian && $guardian->pivot->relationship_type === 'Encargado') {
             $this->dispatch('toastMessage', [
                 'type' => 'error',
-                'message' => 'El Encargado principal no puede ser retirado, solo modificado.'
+                'message' => 'El Encargado principal no puede ser retirado, solo modificado.',
             ]);
+
             return;
         }
 
@@ -275,7 +291,7 @@ class StudentList extends Component
 
         $this->dispatch('toastMessage', [
             'type' => 'info',
-            'message' => 'Familiar retirado del perfil del estudiante.'
+            'message' => 'Familiar retirado del perfil del estudiante.',
         ]);
     }
 
@@ -283,11 +299,11 @@ class StudentList extends Component
     {
         $this->validate([
             'enrollment_classroom_id' => 'required|exists:classrooms,id',
-            'enrollment_status'       => 'required|in:Activo,Retirado',
+            'enrollment_status' => 'required|in:Activo,Retirado',
         ], [
             'enrollment_classroom_id.required' => 'Debe seleccionar un aula.',
-            'enrollment_classroom_id.exists'   => 'El aula seleccionada no es válida.',
-            'enrollment_status.required'       => 'El estado es obligatorio.',
+            'enrollment_classroom_id.exists' => 'El aula seleccionada no es válida.',
+            'enrollment_status.required' => 'El estado es obligatorio.',
         ]);
 
         $student = $this->userForm->user->student;
@@ -296,6 +312,14 @@ class StudentList extends Component
 
         if ($classroom->year != $currentYear) {
             $this->addError('enrollment_classroom_id', 'Solo puede asignar aulas del año actual.');
+
+            return;
+        }
+
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($classroom->level_id)) {
+            $this->addError('enrollment_classroom_id', 'No tiene permiso para asignar aulas de ese nivel.');
+
             return;
         }
 
@@ -312,8 +336,9 @@ class StudentList extends Component
                 // Lanzamos la alerta a la vista para pedir confirmación
                 $this->dispatch('confirmClassroomChange', [
                     'title' => '¡Atención! Cambio de Aula',
-                    'text'  => 'El estudiante ya está asignado a cuadros de notas en su aula actual. Si lo cambia de aula, se eliminarán permanentemente todas sus notas registradas en el aula anterior y se reiniciarán en 0 para el nuevo aula. ¿Desea proceder?',
+                    'text' => 'El estudiante ya está asignado a cuadros de notas en su aula actual. Si lo cambia de aula, se eliminarán permanentemente todas sus notas registradas en el aula anterior y se reiniciarán en 0 para el nuevo aula. ¿Desea proceder?',
                 ]);
+
                 return; // Detenemos la ejecución hasta que el usuario confirme en el modal
             }
         }
@@ -340,7 +365,7 @@ class StudentList extends Component
 
                 $oldClassroomModel = Classroom::with(['level', 'grade', 'section'])->find($oldClassroomId);
                 if ($oldClassroomModel) {
-                    $oldClassroomName = $oldClassroomModel->grade->grade_name . ' ' . $oldClassroomModel->section->section_name . ' ' . $oldClassroomModel->year;
+                    $oldClassroomName = $oldClassroomModel->grade->grade_name.' '.$oldClassroomModel->section->section_name.' '.$oldClassroomModel->year;
                 }
 
                 // Verificar si realmente había notas antes de borrar (para el log)
@@ -369,56 +394,56 @@ class StudentList extends Component
             if ($this->currentEnrollment) {
                 $this->currentEnrollment->update([
                     'classroom_id' => $this->enrollment_classroom_id,
-                    'status'       => $this->enrollment_status,
+                    'status' => $this->enrollment_status,
                 ]);
             } else {
                 StudentEnrollment::create([
-                    'student_id'   => $student->id,
+                    'student_id' => $student->id,
                     'classroom_id' => $this->enrollment_classroom_id,
-                    'status'       => $this->enrollment_status,
+                    'status' => $this->enrollment_status,
                 ]);
             }
         });
 
         // 3. Registro en Auditoría
-        $newClassroomName = $newClassroom->grade->grade_name . ' ' . $newClassroom->section->section_name . ' ' . $newClassroom->year;
+        $newClassroomName = $newClassroom->grade->grade_name.' '.$newClassroom->section->section_name.' '.$newClassroom->year;
 
         $logDescription = $oldClassroomId && $oldClassroomId != $this->enrollment_classroom_id
-            ? "El estudiante {$this->userForm->user->name} fue trasladado del aula: {$oldClassroomName} a {$newClassroomName}. " . ($notasBorradas ? "Se eliminaron sus notas del aula anterior." : "No tenía notas registradas en el aula anterior.")
+            ? "El estudiante {$this->userForm->user->name} fue trasladado del aula: {$oldClassroomName} a {$newClassroomName}. ".($notasBorradas ? 'Se eliminaron sus notas del aula anterior.' : 'No tenía notas registradas en el aula anterior.')
             : "Inscripción actualizada para {$this->userForm->user->name} en {$newClassroomName}. Estado: {$this->enrollment_status}.";
 
         AuditLog::create([
-            'user_id'        => Auth::id() ?? 1, // El ID del administrador que hizo el cambio
-            'event'          => 'enrolled',
-            'module'         => 'Inscripciones',
-            'description'    => $logDescription,
+            'user_id' => Auth::id() ?? 1, // El ID del administrador que hizo el cambio
+            'event' => 'enrolled',
+            'module' => 'Inscripciones',
+            'description' => $logDescription,
             'auditable_type' => StudentEnrollment::class,
-            'auditable_id'   => $this->currentEnrollment ? $this->currentEnrollment->id : null,
-            'old_values'     => $oldClassroomId && $oldClassroomId != $this->enrollment_classroom_id ? ['classroom' => $oldClassroomName] : null,
-            'new_values'     => [
-                'status'    => $this->enrollment_status,
-                'classroom' => $newClassroomName
+            'auditable_id' => $this->currentEnrollment ? $this->currentEnrollment->id : null,
+            'old_values' => $oldClassroomId && $oldClassroomId != $this->enrollment_classroom_id ? ['classroom' => $oldClassroomName] : null,
+            'new_values' => [
+                'status' => $this->enrollment_status,
+                'classroom' => $newClassroomName,
             ],
-            'ip_address'     => request()->ip(),
+            'ip_address' => request()->ip(),
         ]);
 
         // Recargar datos para la vista
         $user = User::with(['student.enrollments.classroom.level', 'student.enrollments.classroom.grade', 'student.enrollments.classroom.section'])->find($this->userForm->user->id);
 
         $this->currentEnrollment = $user->student->enrollments
-            ->filter(fn($e) => $e->classroom->year == $currentYear)
+            ->filter(fn ($e) => $e->classroom->year == $currentYear)
             ->first();
 
         $this->enrollment_classroom_id = $this->currentEnrollment->classroom_id;
-        $this->enrollment_status       = $this->currentEnrollment->status;
+        $this->enrollment_status = $this->currentEnrollment->status;
 
         $this->enrollmentHistory = $user->student->enrollments
-            ->filter(fn($e) => $e->classroom->year != $currentYear)
-            ->sortByDesc(fn($e) => $e->classroom->year)
+            ->filter(fn ($e) => $e->classroom->year != $currentYear)
+            ->sortByDesc(fn ($e) => $e->classroom->year)
             ->values();
 
         $this->dispatch('toastMessage', [
-            'type'    => 'success',
+            'type' => 'success',
             'message' => 'Inscripción guardada y actualizada correctamente.',
         ]);
     }
@@ -427,7 +452,7 @@ class StudentList extends Component
     {
         $gradeBooks = GradeBook::whereHas(
             'assignment',
-            fn($q) => $q->where('classroom_id', $classroomId)
+            fn ($q) => $q->where('classroom_id', $classroomId)
         )->with('activities')->get();
 
         foreach ($gradeBooks as $gradeBook) {
@@ -449,9 +474,9 @@ class StudentList extends Component
         if ($this->readyToLoad) {
             $students = User::role('Estudiante')
                 ->where(function ($query) {
-                    $query->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('cui', 'like', '%' . $this->search . '%')
-                        ->orWhere('email', 'like', '%' . $this->search . '%');
+                    $query->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('cui', 'like', '%'.$this->search.'%')
+                        ->orWhere('email', 'like', '%'.$this->search.'%');
                 })
                 ->orderBy($this->sort, $this->direction)
                 ->paginate($this->cant);
@@ -459,8 +484,12 @@ class StudentList extends Component
             $students = [];
         }
 
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+
         $currentYearClassrooms = Classroom::with(['level', 'grade', 'section'])
             ->where('year', date('Y'))
+            ->whereIn('level_id', $userLevelIds)
+            ->orderBy('level_id')
             ->get();
 
         return view('livewire.students.student-list', compact('students', 'currentYearClassrooms'));

@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Notifications\GradeBookApproved;
 use App\Notifications\GradeBookRejected;
 use App\Services\AuditService;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -153,7 +154,7 @@ class GradeBooks extends Component
 
     public function openGradeBook(int $id): void
     {
-        $this->viewingGradeBook = GradeBook::with([
+        $gradeBook = GradeBook::with([
             'assignment.classroom.level',
             'assignment.classroom.grade',
             'assignment.classroom.section',
@@ -164,6 +165,13 @@ class GradeBooks extends Component
             'academicConfiguration',
             'totals',
         ])->findOrFail($id);
+
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($gradeBook->assignment->classroom->level_id)) {
+            abort(403);
+        }
+
+        $this->viewingGradeBook = $gradeBook;
     }
 
     public function closeGradeBook(): void
@@ -202,6 +210,11 @@ class GradeBooks extends Component
             'assignment.classroom.grade',
             'assignment.classroom.section',
         ])->findOrFail($id);
+
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($gradeBook->assignment->classroom->level_id)) {
+            abort(403);
+        }
 
         $oldStatus = $gradeBook->status;
 
@@ -249,6 +262,11 @@ class GradeBooks extends Component
             'assignment.classroom.section',
         ])->findOrFail($this->rejectingId);
 
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+        if (! $userLevelIds->contains($gradeBook->assignment->classroom->level_id)) {
+            abort(403);
+        }
+
         $oldStatus = $gradeBook->status;
 
         $gradeBook->update([
@@ -277,10 +295,16 @@ class GradeBooks extends Component
 
     public function render()
     {
-        $years = Classroom::select('year')->distinct()->orderByDesc('year')->pluck('year');
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
 
-        // Cascada dinámica
-        $levels = Level::orderBy('level_name')->get();
+        $years = Classroom::select('year')
+            ->whereIn('level_id', $userLevelIds)
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year');
+
+        // Cascada dinámica — $levels restringido a los niveles del usuario
+        $levels = Level::whereIn('id', $userLevelIds)->orderBy('level_name')->get();
 
         $grades = $this->filterLevel
             ? Grade::whereHas('classrooms', function ($q) {
@@ -324,6 +348,7 @@ class GradeBooks extends Component
                 'assignment.professor.user',
                 'academicConfiguration',
             ])
+                ->whereHas('assignment.classroom', fn ($q) => $q->whereIn('level_id', $userLevelIds))
                 ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
                 ->when($this->filterYear, fn ($q) => $q->whereHas(
                     'assignment.classroom',
