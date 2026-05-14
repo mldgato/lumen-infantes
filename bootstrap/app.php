@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware(['web', 'auth', 'force.password.change'])
                 ->prefix('profesor')
                 ->group(base_path('routes/profesor.php'));
+
+            Route::middleware(['web', 'auth', 'force.password.change'])
+                ->prefix('student')
+                ->group(base_path('routes/student.php'));
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {

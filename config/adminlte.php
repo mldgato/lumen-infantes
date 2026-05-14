@@ -673,6 +673,35 @@ return [
                 ],
             ],
         ],
+
+        // ==========================================
+        // STUDENT
+        // ==========================================
+        [
+            'header' => 'ESTUDIANTE',
+            'can' => 'student.grades.view',
+        ],
+
+        [
+            'text' => 'Mis Calificaciones',
+            'route' => 'student.grades.index',
+            'icon' => 'fas fa-fw fa-book-open',
+            'can' => 'student.grades.view',
+        ],
+
+        [
+            'text' => 'Mi Asistencia',
+            'route' => 'student.attendance.index',
+            'icon' => 'fas fa-fw fa-user-check',
+            'can' => 'student.attendance.view',
+        ],
+
+        [
+            'text' => 'Mi Boleta',
+            'route' => 'student.report-card.index',
+            'icon' => 'fas fa-fw fa-file-pdf',
+            'can' => 'student.report-card.view',
+        ],
     ],
 
     /*

@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.7.8
+v1.8.0
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -27,8 +27,9 @@ v1.7.8
 - `MAIL_MAILER=log` (desarrollo), SMTP en producción
 
 ## Convenciones de código
-- Código PHP/Laravel: **inglés** (clases, métodos, variables, rutas, archivos)
-- Textos de usuario: **español** (labels, validaciones, PDFs, alertas, mensajes)
+- Código PHP/Laravel: **inglés** (clases, métodos, variables, rutas, archivos, nombres de permisos, nombres de rutas, prefijos de URL)
+- Textos de usuario: **español** (labels, validaciones, PDFs, alertas, mensajes, descripciones de permisos, textos del menú)
+- **CRÍTICO — rutas y permisos siempre en inglés:** los `name` de rutas (`student.grades.index`), los prefijos de URL (`/student`), los nombres de permisos (`student.grades.view`) y los archivos de rutas (`routes/student.php`) deben usar inglés sin excepción. Los textos visibles (`'description'` de permisos, `'text'` del menú, `'header'` del menú) van en español.
 - Siempre usar `use` imports, nunca rutas inline (`\Namespace\Class`)
 - Siempre llaves en estructuras de control, incluso para cuerpos de una sola línea
 - PHPDoc blocks sobre comentarios inline; nunca comentarios dentro del código salvo lógica excepcionalmente compleja
@@ -41,6 +42,7 @@ v1.7.8
 - `routes/web.php` — login, dashboard, profile, reauth
 - `routes/admin.php` — todas las rutas del administrador
 - `routes/profesor.php` — todas las rutas del profesor
+- `routes/student.php` — todas las rutas del estudiante (prefijo `/student`)
 - `routes/settings.php` — configuración de perfil/contraseña/2FA
 - Middleware de permisos: `can:nombre.del.permiso`
 - Middleware personalizado: `force.password.change` → `EnsurePasswordIsChanged`
@@ -67,6 +69,13 @@ Livewire components validan con `$this->authorize('permiso')`.
 - **Session:** database driver, lifetime 120 min
 
 ## Módulos implementados
+
+### Estudiante
+- Ver calificaciones por unidad (solo cuadros aprobados, con indicador de riesgo)
+- Ver historial de asistencia por curso con porcentaje global
+- Imprimir boleta PDF personal (selecciona unidad; genera su propia boleta, nunca la de otro)
+- Dashboard con KPIs: mis cursos, cursos en riesgo, % asistencia, unidades publicadas
+- Perfil propio (ruta `/profile` existente en `web.php`)
 
 ### Administración
 - Gestión de usuarios, roles y permisos (Spatie)
@@ -189,6 +198,7 @@ Cada panel es un componente independiente protegido por su propio permiso `dashb
 | `ActionableGradeBooks` | `dashboard.panel.actionable-grade-books` | Profesor |
 | `BirthdayStudents` | `dashboard.panel.birthday-students` | Secretaria |
 | `UpcomingBirthdays` | `dashboard.panel.upcoming-birthdays` | Secretaria |
+| `StudentSummary` | `dashboard.panel.student-summary` | Estudiante |
 
 Seeder de permisos: `database/seeders/DashboardPanelPermissionsSeeder.php` (usa `firstOrCreate`, seguro de re-ejecutar).
 Los paneles info-box (`StatsGeneral`, `GradeBooksPending`, `ProfesorStats`) renderizan col-divs sin `<div class="row">` propio; el row lo provee `dashboard.blade.php`.
@@ -244,6 +254,19 @@ if (! $professor) {
 | `GradeChangeRequests` | Crear solicitudes de cambio |
 | `TakeAttendance` | Asistencia diaria + historial |
 | `Reports/*` | Reportes específicos del profesor |
+
+### Estudiante (app/Livewire/Estudiante/)
+| Componente | Responsabilidad |
+|---|---|
+| `MyGrades` | Vista de calificaciones por unidad (solo lectura, cuadros aprobados) |
+| `MyAttendance` | Historial de asistencia por curso con % global |
+| `MyReportCard` | Selector de unidad para imprimir boleta PDF personal |
+
+**Restricciones de seguridad del módulo Student:**
+- Todos los componentes y el controlador validan que `Auth::user()->student` exista.
+- Se requiere inscripción activa (`status='Activo'`) en un aula del año actual.
+- El controlador `Student\ReportCardController::print()` usa el `student_id` del usuario autenticado — nunca acepta `student_id` por query string.
+- Solo se muestran datos de cuadros con `status='approved'`.
 
 ### Forms (app/Livewire/Forms/) — objetos `Livewire\Form`
 `UserForm`, `StudentForm`, `GuardianForm`, `ProfessorForm`, `MedicalForm`,
@@ -520,3 +543,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.7.6 — CRUD `Admin/ActivityTypes`: búsqueda, paginación, modal create/edit, protección de eliminación, 4 permisos en RoleSeeder, ruta `/admin/activity-types`, entrada en menú Gestión Académica
 - v1.7.7 — `GradeBookCalculationService`: centraliza cálculo de totales de cuadros; `Profesor\GradeBooks` y `Admin\GradeChangeRequests` eliminan código duplicado y delegan al servicio; footer actualizado a v1.7.7
 - v1.7.8 — `EnrollmentPeriod`: modelo + migración + CRUD (`Admin/EnrollmentPeriods`) para gestionar períodos de inscripción y actualización de datos; integrado en `EnrollmentList` (botones deshabilitados + guard en `enrollExisting`/`enrollNew`) y `StudentDataRequest` (pantalla de período cerrado + guard en `submit`); menú bajo Gestión Estudiantil; 4 permisos `admin.enrollment-periods.*` asignados a SuperAdmin y Director
+- v1.8.0 — Módulo Student: rutas `/student/*` en `routes/student.php`; componentes `Livewire\Student\MyGrades`, `MyAttendance`, `MyReportCard`; panel dashboard `Dashboard\StudentSummary`; controlador `Student\ReportCardController` (genera PDF de boleta personal reutilizando lógica admin); 4 permisos `student.*` + `dashboard.panel.student-summary` asignados al rol Estudiante; `StudentPermissionsSeeder` para bases existentes (también migra nombres viejos `estudiante.*`); menú `ESTUDIANTE` en `adminlte.php`

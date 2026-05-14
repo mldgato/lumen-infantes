@@ -329,5 +329,31 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'dashboard.panel.actionable-grade-books',       'description' => 'Dashboard - Tabla: cuadros que requieren atención'])->syncRoles([$role1, $role4]);
         Permission::create(['name' => 'dashboard.panel.birthday-students',            'description' => 'Dashboard - Panel: cumpleañeros del mes (estudiantes)'])->syncRoles([$role1, $role5]);
         Permission::create(['name' => 'dashboard.panel.upcoming-birthdays',           'description' => 'Dashboard - Panel: próximos cumpleaños del personal'])->syncRoles([$role1, $role5]);
+
+        Permission::create([
+            'name' => 'admin.enrollment-periods.index',
+            'description' => 'Administración - Ver períodos de inscripción'
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.enrollment-periods.create',
+            'description' => 'Administración - Crear período de inscripción'
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.enrollment-periods.edit',
+            'description' => 'Administración - Editar período de inscripción'
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.enrollment-periods.delete',
+            'description' => 'Administración - Eliminar período de inscripción'
+        ])->syncRoles([$role1, $role2]);
+
+        // Módulo Student
+        Permission::create(['name' => 'student.grades.view',          'description' => 'Estudiante - Ver mis calificaciones'])->assignRole($role3);
+        Permission::create(['name' => 'student.attendance.view',      'description' => 'Estudiante - Ver mi asistencia'])->assignRole($role3);
+        Permission::create(['name' => 'student.report-card.view',     'description' => 'Estudiante - Ver e imprimir mi boleta'])->assignRole($role3);
+        Permission::create(['name' => 'dashboard.panel.student-summary', 'description' => 'Dashboard - Panel resumen del estudiante'])->assignRole($role3);
     }
 }

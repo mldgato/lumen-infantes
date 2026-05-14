@@ -19,6 +19,13 @@
 
 @section('content')
 
+    {{-- Fila: Panel resumen del estudiante --}}
+    @can('dashboard.panel.student-summary')
+        <div class="row">
+            <livewire:dashboard.student-summary />
+        </div>
+    @endcan
+
     {{-- Fila: KPI cards (admin/secretaria comparten stats-general; admin agrega grade-books-pending) --}}
     @canany(['dashboard.panel.stats-general', 'dashboard.panel.grade-books-pending', 'dashboard.panel.profesor-stats'])
         <div class="row">
