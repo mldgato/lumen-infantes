@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             ActivityTypeSeeder::class,
             AcademicConfigurationSeeder::class,
             GradeBookSeeder::class,
+            ActivitySummaryPermissionSeeder::class,
         ]);
     }
 }

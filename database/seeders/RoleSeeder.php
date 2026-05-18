@@ -287,6 +287,8 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'admin.reports.missing-activities',   'description' => 'Reporte actividades no entregadas (admin)'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'profesor.reports.missing-activities', 'description' => 'Reporte actividades no entregadas (profesor)'])->assignRole($role4);
 
+        Permission::create(['name' => 'admin.reports.activity-summary', 'description' => 'Resumen consolidado de actividades por estudiante'])->syncRoles([$role1, $role2]);
+
         Permission::create(['name' => 'admin.students.enrollments.index', 'description' => 'Gestión de inscripciones de estudiantes'])->syncRoles([$role1, $role2]);
 
         Permission::create(['name' => 'admin.audit.index', 'description' => 'Ver registro de auditoría'])->syncRoles([$role1, $role2]);
@@ -332,22 +334,22 @@ class RoleSeeder extends Seeder
 
         Permission::create([
             'name' => 'admin.enrollment-periods.index',
-            'description' => 'Administración - Ver períodos de inscripción'
+            'description' => 'Administración - Ver períodos de inscripción',
         ])->syncRoles([$role1, $role2]);
 
         Permission::create([
             'name' => 'admin.enrollment-periods.create',
-            'description' => 'Administración - Crear período de inscripción'
+            'description' => 'Administración - Crear período de inscripción',
         ])->syncRoles([$role1, $role2]);
 
         Permission::create([
             'name' => 'admin.enrollment-periods.edit',
-            'description' => 'Administración - Editar período de inscripción'
+            'description' => 'Administración - Editar período de inscripción',
         ])->syncRoles([$role1, $role2]);
 
         Permission::create([
             'name' => 'admin.enrollment-periods.delete',
-            'description' => 'Administración - Eliminar período de inscripción'
+            'description' => 'Administración - Eliminar período de inscripción',
         ])->syncRoles([$role1, $role2]);
 
         // Módulo Student

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\ActivitySummaryExport;
 use App\Exports\SabanaUnidadExport;
 use App\Http\Controllers\Controller;
 use App\Models\Classroom;
@@ -19,11 +20,11 @@ class ReportController extends Controller
     public function exportSabanaUnidad(Request $request)
     {
         $request->validate([
-            'year'    => 'required',
-            'level'   => 'required|exists:levels,id',
-            'grade'   => 'required|exists:grades,id',
+            'year' => 'required',
+            'level' => 'required|exists:levels,id',
+            'grade' => 'required|exists:grades,id',
             'section' => 'required|exists:sections,id',
-            'unit'    => 'required|integer|min:1',
+            'unit' => 'required|integer|min:1',
         ]);
 
         $classroom = Classroom::where('year', $request->year)
@@ -32,7 +33,7 @@ class ReportController extends Controller
             ->where('section_id', $request->section)
             ->firstOrFail();
 
-        $filename = 'Sabana_U' . $request->unit . '_' . date('dmY_His') . '.xlsx';
+        $filename = 'Sabana_U'.$request->unit.'_'.date('dmY_His').'.xlsx';
 
         return Excel::download(
             new SabanaUnidadExport($classroom->id, (int) $request->unit),
@@ -48,9 +49,9 @@ class ReportController extends Controller
     public function exportSabanaGeneral(Request $request)
     {
         $request->validate([
-            'year'    => 'required',
-            'level'   => 'required|exists:levels,id',
-            'grade'   => 'required|exists:grades,id',
+            'year' => 'required',
+            'level' => 'required|exists:levels,id',
+            'grade' => 'required|exists:grades,id',
             'section' => 'required|exists:sections,id',
         ]);
 
@@ -60,7 +61,7 @@ class ReportController extends Controller
             ->where('section_id', $request->section)
             ->firstOrFail();
 
-        $filename = 'SabanaGeneral_' . date('dmY_His') . '.xlsx';
+        $filename = 'SabanaGeneral_'.date('dmY_His').'.xlsx';
 
         return Excel::download(
             new \App\Exports\SabanaGeneralExport($classroom->id),
@@ -76,9 +77,9 @@ class ReportController extends Controller
     public function exportSabanaPromedio(Request $request)
     {
         $request->validate([
-            'year'    => 'required',
-            'level'   => 'required|exists:levels,id',
-            'grade'   => 'required|exists:grades,id',
+            'year' => 'required',
+            'level' => 'required|exists:levels,id',
+            'grade' => 'required|exists:grades,id',
             'section' => 'required|exists:sections,id',
         ]);
 
@@ -88,7 +89,7 @@ class ReportController extends Controller
             ->where('section_id', $request->section)
             ->firstOrFail();
 
-        $filename = 'SabanaPromedio_' . date('dmY_His') . '.xlsx';
+        $filename = 'SabanaPromedio_'.date('dmY_His').'.xlsx';
 
         return Excel::download(
             new \App\Exports\SabanaPromedioExport($classroom->id),
@@ -107,8 +108,7 @@ class ReportController extends Controller
         // Consulta estandarizada: Solo Activos, orden jerárquico por 4 campos y Eager Loading del usuario
         $students = Student::whereHas(
             'enrollments',
-            fn($q) =>
-            $q->where('classroom_id', $classroom->id)->where('status', 'Activo')
+            fn ($q) => $q->where('classroom_id', $classroom->id)->where('status', 'Activo')
         )
             ->join('users', 'students.user_id', '=', 'users.id')
             ->orderBy('users.surname')
@@ -119,10 +119,10 @@ class ReportController extends Controller
             ->with('user')
             ->get();
 
-        $levelName   = $classroom->level->level_name;
-        $gradeName   = $classroom->grade->grade_name;
+        $levelName = $classroom->level->level_name;
+        $gradeName = $classroom->grade->grade_name;
         $sectionName = $classroom->section->section_name;
-        $year        = $classroom->year;
+        $year = $classroom->year;
 
         $pdf = new \App\Helpers\PDF('P', 'mm', 'Letter');
         $pdf->SetMargins(15, 15, 15);
@@ -141,15 +141,15 @@ class ReportController extends Controller
         $pdf->Ln(3);
 
         $pdf->SetFont('Arial', '', 9);
-        $pdf->CellUTF8(90, 5, $pdf->dec('NIVEL: ' . $levelName), 0, 0, 'L');
-        $pdf->CellUTF8(90, 5, $pdf->dec('AÑO: ' . $year), 0, 1, 'R');
-        $pdf->CellUTF8(180, 5, $pdf->dec('GRADO: ' . $gradeName . ' ' . $sectionName), 0, 1, 'L');
+        $pdf->CellUTF8(90, 5, $pdf->dec('NIVEL: '.$levelName), 0, 0, 'L');
+        $pdf->CellUTF8(90, 5, $pdf->dec('AÑO: '.$year), 0, 1, 'R');
+        $pdf->CellUTF8(180, 5, $pdf->dec('GRADO: '.$gradeName.' '.$sectionName), 0, 1, 'L');
         $pdf->Ln(4);
 
-        $numWidth         = 10;
-        $nameWidth        = 100;
+        $numWidth = 10;
+        $nameWidth = 100;
         $observationWidth = 70;
-        $rowHeight        = 7;
+        $rowHeight = 7;
 
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->SetFillColor(47, 117, 182);
@@ -175,13 +175,13 @@ class ReportController extends Controller
             $count++;
         }
 
-        $safeGrade   = preg_replace('/[^A-Za-z0-9_\-]/', '_', $gradeName);
+        $safeGrade = preg_replace('/[^A-Za-z0-9_\-]/', '_', $gradeName);
         $safeSection = preg_replace('/[^A-Za-z0-9_\-]/', '_', $sectionName);
-        $fileName    = "StudentList_{$safeGrade}_{$safeSection}_" . date('dmY_His') . '.pdf';
+        $fileName = "StudentList_{$safeGrade}_{$safeSection}_".date('dmY_His').'.pdf';
 
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="' . $fileName . '"');
+            ->header('Content-Disposition', 'inline; filename="'.$fileName.'"');
     }
 
     public function studentListExcel(Request $request)
@@ -192,9 +192,9 @@ class ReportController extends Controller
 
         $classroom = Classroom::with(['grade', 'section'])->findOrFail($request->classroom_id);
 
-        $grade   = preg_replace('/[^A-Za-z0-9_\-]/', '_', $classroom->grade->grade_name);
+        $grade = preg_replace('/[^A-Za-z0-9_\-]/', '_', $classroom->grade->grade_name);
         $section = preg_replace('/[^A-Za-z0-9_\-]/', '_', $classroom->section->section_name);
-        $fileName = "StudentList_{$grade}_{$section}_" . date('dmY_His') . '.xlsx';
+        $fileName = "StudentList_{$grade}_{$section}_".date('dmY_His').'.xlsx';
 
         return Excel::download(
             new \App\Exports\StudentListExport($classroom->id),
@@ -206,7 +206,7 @@ class ReportController extends Controller
     {
         $request->validate([
             'classroom_id' => 'required|exists:classrooms,id',
-            'unit'         => 'required|integer|min:1',
+            'unit' => 'required|integer|min:1',
         ]);
 
         $export = new \App\Exports\MissingActivitiesAdminExport(
@@ -214,7 +214,22 @@ class ReportController extends Controller
             unit: (int) $request->unit,
         );
 
-        return \Maatwebsite\Excel\Facades\Excel::download($export, 'actividades_faltantes_aula_' . date('dmY') . '.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download($export, 'actividades_faltantes_aula_'.date('dmY').'.xlsx');
+    }
+
+    public function activitySummaryExport(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $request->validate([
+            'classroom_id' => 'required|exists:classrooms,id',
+            'unit' => 'required|integer|min:1',
+        ]);
+
+        $export = new ActivitySummaryExport(
+            classroomId: (int) $request->classroom_id,
+            unit: (int) $request->unit,
+        );
+
+        return Excel::download($export, 'resumen_actividades_'.date('dmY').'.xlsx');
     }
 
     public function professorCoursesExcel(Request $request)
@@ -223,8 +238,8 @@ class ReportController extends Controller
             'year' => 'required|integer',
         ]);
 
-        $year     = $request->integer('year');
-        $fileName = "Profesores_Cursos_{$year}_" . date('dmY_His') . '.xlsx';
+        $year = $request->integer('year');
+        $fileName = "Profesores_Cursos_{$year}_".date('dmY_His').'.xlsx';
 
         return Excel::download(
             new \App\Exports\ProfessorCoursesExport($year),

@@ -155,6 +155,14 @@ Route::get('/reports/missing-activities/export', [ReportController::class, 'miss
     ->name('admin.reports.missing-activities.export')
     ->middleware('can:admin.reports.missing-activities');
 
+Route::get('/reports/activity-summary', fn () => view('admin.reports.activity-summary.index'))
+    ->name('admin.reports.activity-summary.index')
+    ->middleware('can:admin.reports.activity-summary');
+
+Route::get('/reports/activity-summary/export', [ReportController::class, 'activitySummaryExport'])
+    ->name('admin.reports.activity-summary.export')
+    ->middleware('can:admin.reports.activity-summary');
+
 Route::get('/students/enrollments', fn () => view('admin.students.registrations'))
     ->name('admin.students.enrollments.index')
     ->middleware('can:admin.students.enrollments.index');

@@ -559,10 +559,23 @@ return [
                     'can' => 'admin.reports.report-cards',
                 ],
                 [
-                    'text' => 'Actividades No Entregadas',
-                    'route' => 'admin.reports.missing-activities.index',
+                    'text' => 'Actividades',
                     'icon' => 'fas fa-fw fa-tasks',
-                    'can' => 'admin.reports.missing-activities',
+                    'can' => ['admin.reports.missing-activities', 'admin.reports.activity-summary'],
+                    'submenu' => [
+                        [
+                            'text' => 'No Entregadas (detalle)',
+                            'route' => 'admin.reports.missing-activities.index',
+                            'icon' => 'fas fa-fw fa-times-circle',
+                            'can' => 'admin.reports.missing-activities',
+                        ],
+                        [
+                            'text' => 'Resumen por Estudiante',
+                            'route' => 'admin.reports.activity-summary.index',
+                            'icon' => 'fas fa-fw fa-table',
+                            'can' => 'admin.reports.activity-summary',
+                        ],
+                    ],
                 ],
                 [
                     'text' => 'Asistencia',
