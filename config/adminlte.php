@@ -561,7 +561,7 @@ return [
                 [
                     'text' => 'Actividades',
                     'icon' => 'fas fa-fw fa-tasks',
-                    'can' => ['admin.reports.missing-activities', 'admin.reports.activity-summary'],
+                    'can' => ['admin.reports.missing-activities', 'admin.reports.activity-summary', 'admin.reports.student-activity-detail'],
                     'submenu' => [
                         [
                             'text' => 'No Entregadas (detalle)',
@@ -574,6 +574,12 @@ return [
                             'route' => 'admin.reports.activity-summary.index',
                             'icon' => 'fas fa-fw fa-table',
                             'can' => 'admin.reports.activity-summary',
+                        ],
+                        [
+                            'text' => 'Informe Individual',
+                            'route' => 'admin.reports.student-activity-detail.index',
+                            'icon' => 'fas fa-fw fa-user-graduate',
+                            'can' => 'admin.reports.student-activity-detail',
                         ],
                     ],
                 ],

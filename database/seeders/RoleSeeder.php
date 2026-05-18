@@ -289,6 +289,8 @@ class RoleSeeder extends Seeder
 
         Permission::create(['name' => 'admin.reports.activity-summary', 'description' => 'Resumen consolidado de actividades por estudiante'])->syncRoles([$role1, $role2]);
 
+        Permission::create(['name' => 'admin.reports.student-activity-detail', 'description' => 'Informe detallado de actividades por estudiante'])->syncRoles([$role1, $role2]);
+
         Permission::create(['name' => 'admin.students.enrollments.index', 'description' => 'Gestión de inscripciones de estudiantes'])->syncRoles([$role1, $role2]);
 
         Permission::create(['name' => 'admin.audit.index', 'description' => 'Ver registro de auditoría'])->syncRoles([$role1, $role2]);

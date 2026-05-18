@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\PensumController;
 use App\Http\Controllers\Admin\ReportCardController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SectionController;
+use App\Http\Controllers\Admin\StudentActivityDetailPdfController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentPdfController;
 use App\Http\Controllers\Admin\UserController;
@@ -162,6 +163,18 @@ Route::get('/reports/activity-summary', fn () => view('admin.reports.activity-su
 Route::get('/reports/activity-summary/export', [ReportController::class, 'activitySummaryExport'])
     ->name('admin.reports.activity-summary.export')
     ->middleware('can:admin.reports.activity-summary');
+
+Route::get('/reports/student-activity-detail', fn () => view('admin.reports.student-activity-detail.index'))
+    ->name('admin.reports.student-activity-detail.index')
+    ->middleware('can:admin.reports.student-activity-detail');
+
+Route::get('/reports/student-activity-detail/pdf/student', [StudentActivityDetailPdfController::class, 'student'])
+    ->name('admin.reports.student-activity-detail.pdf.student')
+    ->middleware('can:admin.reports.student-activity-detail');
+
+Route::get('/reports/student-activity-detail/pdf/classroom', [StudentActivityDetailPdfController::class, 'classroom'])
+    ->name('admin.reports.student-activity-detail.pdf.classroom')
+    ->middleware('can:admin.reports.student-activity-detail');
 
 Route::get('/students/enrollments', fn () => view('admin.students.registrations'))
     ->name('admin.students.enrollments.index')
