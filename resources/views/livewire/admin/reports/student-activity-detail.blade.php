@@ -84,8 +84,14 @@
                         <a href="{{ route('admin.reports.student-activity-detail.pdf.classroom', [
                             'classroom_id' => $firstRow['classroom_id'],
                             'unit'         => $filterUnit,
-                        ]) }}" target="_blank" class="btn btn-dark btn-sm shadow-sm">
+                        ]) }}" target="_blank" class="btn btn-dark btn-sm shadow-sm mr-1">
                             <i class="fas fa-file-pdf"></i> PDF Sección
+                        </a>
+                        <a href="{{ route('admin.reports.student-activity-detail.pdf.classroom-compact', [
+                            'classroom_id' => $firstRow['classroom_id'],
+                            'unit'         => $filterUnit,
+                        ]) }}" target="_blank" class="btn btn-secondary btn-sm shadow-sm" title="PDF resumen sección (3 por hoja)">
+                            <i class="fas fa-compress-alt"></i> PDF Resumen
                         </a>
                     @endif
                 </div>

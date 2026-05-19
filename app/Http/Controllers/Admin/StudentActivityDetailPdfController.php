@@ -227,6 +227,92 @@ class StudentActivityDetailPdfController extends Controller
         ]);
     }
 
+    public function classroomCompact(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $request->validate([
+            'classroom_id' => 'required|exists:classrooms,id',
+            'unit' => 'required|integer|min:1',
+        ]);
+
+        $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
+
+        $students = Student::whereHas(
+            'enrollments',
+            fn ($q) => $q->where('classroom_id', $classroom->id)->where('status', 'Activo')
+        )
+            ->join('users', 'students.user_id', '=', 'users.id')
+            ->orderBy('users.surname')
+            ->orderBy('users.second_surname')
+            ->orderBy('users.first_name')
+            ->orderBy('users.middle_name')
+            ->select('students.*')
+            ->with('user')
+            ->get();
+
+        $unit = (int) $request->unit;
+        $allData = [];
+
+        foreach ($students as $student) {
+            $allData[] = [
+                'name' => $student->user->full_full_name,
+                'courses' => $this->buildCourseData($classroom->id, $student->id, $unit),
+            ];
+        }
+
+        $pdf = new PDF('P', 'mm', [216, 330]);
+        $pdf->SetMargins(10, 8, 10);
+        $pdf->SetAutoPageBreak(false);
+        $pdf->AliasNbPages();
+
+        $perPage = 3;
+        $yBlocksStart = 21.0;
+        $blockH = (330.0 - 8.0 - $yBlocksStart) / $perPage;
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
+
+        $chunks = array_chunk($allData, $perPage);
+
+        foreach ($chunks as $chunk) {
+            $pdf->AddPage();
+
+            $pdf->addImage($logoPath, 10, 8, 12);
+            $pdf->SetXY(24, 8);
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->CellUTF8(182, 5, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
+
+            $pdf->SetXY(10, 14);
+            $pdf->SetFont('Arial', '', 7);
+            $pdf->SetFillColor(230, 238, 247);
+            $infoText = $pdf->dec(
+                'Año: '.$classroom->year.
+                '  |  Unidad: '.$unit.
+                '  |  Nivel: '.($classroom->level->level_name ?? '—').
+                '  |  '.($classroom->grade->grade_name ?? '').
+                '  '.($classroom->section->section_name ?? '')
+            );
+            $pdf->CellUTF8(196, 5, $infoText, 0, 1, 'C', true);
+
+            foreach ($chunk as $idx => $data) {
+                $yBlock = $yBlocksStart + ($idx * $blockH);
+
+                if ($idx > 0) {
+                    $pdf->SetDrawColor(180, 180, 180);
+                    $pdf->Line(10, $yBlock - 1, 206, $yBlock - 1);
+                    $pdf->SetDrawColor(0, 0, 0);
+                }
+
+                $this->renderStudentCompactBlock($pdf, $data['name'], $data['courses'], $yBlock);
+            }
+        }
+
+        $grade = $classroom->grade->grade_name ?? '';
+        $section = $classroom->section->section_name ?? '';
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"Resumen_Seccion_{$grade}_{$section}_U{$unit}.pdf\"",
+        ]);
+    }
+
     private function buildCourseData(int $classroomId, int $studentId, int $unit): array
     {
         $assignments = ClassroomCourseAssignment::with([
@@ -292,6 +378,98 @@ class StudentActivityDetailPdfController extends Controller
         }
 
         return $courses;
+    }
+
+    private function renderStudentCompactBlock(PDF $pdf, string $studentName, array $courses, float $yStart): void
+    {
+        $x = 10;
+        $y = $yStart + 1;
+
+        $pdf->SetXY($x, $y);
+        $pdf->SetFillColor(31, 78, 121);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->CellUTF8(196, 6, $pdf->dec('  '.$studentName), 0, 1, 'L', true);
+        $pdf->SetTextColor(0, 0, 0);
+        $y += 7;
+
+        $pdf->SetXY($x, $y);
+        $pdf->SetFillColor(47, 117, 182);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->CellUTF8(8, 5, 'No.', 1, 0, 'C', true);
+        $pdf->CellUTF8(116, 5, $pdf->dec('Materia'), 1, 0, 'L', true);
+        $pdf->CellUTF8(24, 5, $pdf->dec('Hechas'), 1, 0, 'C', true);
+        $pdf->CellUTF8(24, 5, 'Total', 1, 0, 'C', true);
+        $pdf->CellUTF8(24, 5, $pdf->dec('Faltantes'), 1, 1, 'C', true);
+        $pdf->SetTextColor(0, 0, 0);
+        $y += 5;
+
+        $rowH = 5;
+        $totalDone = 0;
+        $totalAll = 0;
+        $totalMissing = 0;
+
+        foreach ($courses as $i => $course) {
+            $fill = $i % 2 === 0;
+            $pdf->SetXY($x, $y);
+            $pdf->SetFillColor(245, 245, 245);
+            $pdf->SetFont('Arial', '', 7);
+
+            $done = $course['done'];
+            $total = $course['total'];
+            $missing = $total - $done;
+            $totalDone += $done;
+            $totalAll += $total;
+            $totalMissing += $missing;
+
+            $pdf->CellUTF8(8, $rowH, (string) ($i + 1), 1, 0, 'C', $fill);
+            $pdf->CellUTF8(116, $rowH, $pdf->dec('  '.$course['course_name']), 1, 0, 'L', $fill);
+
+            if (! $course['has_activities']) {
+                $pdf->SetTextColor(120, 120, 120);
+                $pdf->CellUTF8(72, $rowH, $pdf->dec('Sin cuadro'), 1, 1, 'C', $fill);
+                $pdf->SetTextColor(0, 0, 0);
+            } else {
+                $pdf->CellUTF8(24, $rowH, (string) $done, 1, 0, 'C', $fill);
+                $pdf->CellUTF8(24, $rowH, (string) $total, 1, 0, 'C', $fill);
+
+                if ($missing === 0) {
+                    $pdf->SetTextColor(39, 98, 33);
+                    $pdf->SetFillColor(198, 239, 206);
+                } elseif ($missing <= 3) {
+                    $pdf->SetTextColor(156, 101, 0);
+                    $pdf->SetFillColor(255, 235, 156);
+                } else {
+                    $pdf->SetTextColor(156, 0, 6);
+                    $pdf->SetFillColor(255, 199, 206);
+                }
+                $pdf->SetFont('Arial', 'B', 7);
+                $pdf->CellUTF8(24, $rowH, (string) $missing, 1, 1, 'C', true);
+                $pdf->SetTextColor(0, 0, 0);
+            }
+            $y += $rowH;
+        }
+
+        $pdf->SetXY($x, $y);
+        $pdf->SetFillColor(217, 226, 243);
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->CellUTF8(124, 5, $pdf->dec('  TOTAL'), 1, 0, 'L', true);
+        $pdf->CellUTF8(24, 5, (string) $totalDone, 1, 0, 'C', true);
+        $pdf->CellUTF8(24, 5, (string) $totalAll, 1, 0, 'C', true);
+
+        if ($totalMissing === 0) {
+            $pdf->SetTextColor(39, 98, 33);
+            $pdf->SetFillColor(198, 239, 206);
+        } elseif ($totalMissing <= 5) {
+            $pdf->SetTextColor(156, 101, 0);
+            $pdf->SetFillColor(255, 235, 156);
+        } else {
+            $pdf->SetTextColor(156, 0, 6);
+            $pdf->SetFillColor(255, 199, 206);
+        }
+        $pdf->CellUTF8(24, 5, (string) $totalMissing, 1, 1, 'C', true);
+        $pdf->SetTextColor(0, 0, 0);
     }
 
     private function buildPdf(): PDF

@@ -180,6 +180,10 @@ Route::get('/reports/student-activity-detail/pdf/student-compact', [StudentActiv
     ->name('admin.reports.student-activity-detail.pdf.student-compact')
     ->middleware('can:admin.reports.student-activity-detail');
 
+Route::get('/reports/student-activity-detail/pdf/classroom-compact', [StudentActivityDetailPdfController::class, 'classroomCompact'])
+    ->name('admin.reports.student-activity-detail.pdf.classroom-compact')
+    ->middleware('can:admin.reports.student-activity-detail');
+
 Route::get('/students/enrollments', fn () => view('admin.students.registrations'))
     ->name('admin.students.enrollments.index')
     ->middleware('can:admin.students.enrollments.index');
