@@ -122,11 +122,12 @@ class StudentActivityDetail extends Component
 
         foreach ($assignments as $assignment) {
             $gradeBook = $assignment->gradeBook;
-            if (! $gradeBook || $gradeBook->activities->isEmpty()) {
+            $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+            if (! $gradeBook || $mainActivities->isEmpty()) {
                 continue;
             }
 
-            $activityIds = $gradeBook->activities->pluck('id');
+            $activityIds = $mainActivities->pluck('id');
             $totalActivities += $activityIds->count();
 
             $scores = GradeBookScore::whereIn('grade_book_activity_id', $activityIds)->get();
@@ -142,11 +143,12 @@ class StudentActivityDetail extends Component
 
             foreach ($assignments as $assignment) {
                 $gradeBook = $assignment->gradeBook;
-                if (! $gradeBook || $gradeBook->activities->isEmpty()) {
+                $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+                if (! $gradeBook || $mainActivities->isEmpty()) {
                     continue;
                 }
 
-                foreach ($gradeBook->activities as $activity) {
+                foreach ($mainActivities as $activity) {
                     $score = $scoreIndex[$student->id][$activity->id] ?? null;
                     if ($score !== null && $score->score !== null && (float) $score->score > 0) {
                         $done++;
@@ -198,7 +200,9 @@ class StudentActivityDetail extends Component
             $courseName = $assignment->pensumCourse->course->course_name;
             $gradeBook = $assignment->gradeBook;
 
-            if (! $gradeBook || $gradeBook->activities->isEmpty()) {
+            $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+
+            if (! $gradeBook || $mainActivities->isEmpty()) {
                 $courses[] = [
                     'course_name' => $courseName,
                     'professor_name' => $assignment->professor->user->name ?? '—',
@@ -211,7 +215,7 @@ class StudentActivityDetail extends Component
                 continue;
             }
 
-            $activityIds = $gradeBook->activities->pluck('id');
+            $activityIds = $mainActivities->pluck('id');
             $studentScores = GradeBookScore::whereIn('grade_book_activity_id', $activityIds)
                 ->where('student_id', $studentId)
                 ->get()
@@ -220,7 +224,7 @@ class StudentActivityDetail extends Component
             $activities = [];
             $done = 0;
 
-            foreach ($gradeBook->activities as $activity) {
+            foreach ($mainActivities as $activity) {
                 $score = $studentScores->get($activity->id);
                 $isDone = $score !== null && $score->score !== null && (float) $score->score > 0;
                 if ($isDone) {

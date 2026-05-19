@@ -112,7 +112,7 @@
                                 <th>Estudiante</th>
                                 <th class="text-center" style="width:130px">Actividades</th>
                                 <th class="text-center" style="width:100px">Faltantes</th>
-                                <th class="text-center" style="width:130px">Acciones</th>
+                                <th class="text-center" style="width:155px">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -149,8 +149,15 @@
                                             'classroom_id' => $row['classroom_id'],
                                             'student_id'   => $row['id'],
                                             'unit'         => $filterUnit,
-                                        ]) }}" target="_blank" class="btn btn-xs btn-danger" title="Descargar PDF">
+                                        ]) }}" target="_blank" class="btn btn-xs btn-danger mr-1" title="PDF detallado">
                                             <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                        <a href="{{ route('admin.reports.student-activity-detail.pdf.student-compact', [
+                                            'classroom_id' => $row['classroom_id'],
+                                            'student_id'   => $row['id'],
+                                            'unit'         => $filterUnit,
+                                        ]) }}" target="_blank" class="btn btn-xs btn-warning" title="PDF resumen (1 hoja)">
+                                            <i class="fas fa-compress-alt"></i>
                                         </a>
                                     </td>
                                 </tr>

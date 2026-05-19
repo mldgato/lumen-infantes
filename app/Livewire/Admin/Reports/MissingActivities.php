@@ -128,7 +128,7 @@ class MissingActivities extends Component
                 continue;
             }
 
-            $activitiesCollection = $gradeBook->activities;
+            $activitiesCollection = $gradeBook->activities->where('activity_type_id', 1);
             if ($activitiesCollection->isEmpty()) {
                 continue;
             }

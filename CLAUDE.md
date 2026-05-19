@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.8.0
+v1.8.2
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -240,7 +240,9 @@ if (! $professor) {
 | `Reports/ReportCards` | Boletas PDF |
 | `Reports/StudentList` | Listado de estudiantes |
 | `Reports/StudentListExcel` | Export Excel de estudiantes |
-| `Reports/MissingActivities` | Actividades no entregadas |
+| `Reports/MissingActivities` | Actividades no entregadas (tipo id=1) |
+| `Reports/ActivitySummary` | Resumen pivot actividades por estudiante y materia |
+| `Reports/StudentActivityDetail` | Detalle individual de actividades por alumno |
 | `Reports/AttendanceReport` | Reporte de asistencia |
 | `Reports/ProfessorCoursesExcel` | Cursos por profesor |
 | `Roles/ShowRoles` | Gestión de roles (Spatie) |
@@ -350,16 +352,26 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
 - `ActivityTemplateExport` — plantilla formateada con header `[ACT_ID:X]` para cargar notas
 - `SabanaGeneralExport`, `SabanaPromedioExport`, `SabanaUnidadExport`
 - `StudentListExport`, `ProfessorCoursesExport`
-- `MissingActivitiesAdminExport`, `MissingActivitiesProfesorExport`
+- `MissingActivitiesAdminExport`, `MissingActivitiesProfesorExport` — actividades no entregadas (filtrado a `activity_type_id=1`)
+- `ActivitySummaryExport` — tabla pivot estudiantes×materias con columnas hechas/total por curso; encabezados coloreados y leyenda de colores; `WithCustomStartCell` + `startCell()='A5'`
 
 **Imports (app/Imports/):**
 - `ActivityScoresImport` — convierte Excel a array (validación de seguridad en Livewire)
+
+**Convención `activity_type_id=1`:** todos los reportes de actividades (`ActivitySummary`, `MissingActivities`, `StudentActivityDetail`) filtran a `activity_type_id=1` (actividades normales, excluye extras). Siempre usar `.where('activity_type_id', 1)` al consultar `$gradeBook->activities` en reportes y exports.
 
 ## PDF Helper
 - `app/Helpers/PDF.php` extiende FPDF
 - Métodos clave: `CellUTF8()`, `rotatedHeader()`, `addImage()`, `dec()`
 - Propiedad `$hideFooter = false` — activar en cuadros de calificaciones
 - Orientación landscape: `[215, 330]` (carta oficio)
+
+## Controladores PDF de reportes
+- `app/Http/Controllers/Admin/StudentActivityDetailPdfController.php`
+  - `student(classroom_id, student_id, unit)` — PDF detallado por alumno (tabla actividades por curso con estado ✔/✘)
+  - `classroom(classroom_id, unit)` — PDF de toda la sección (un alumno por página)
+  - `studentCompact(classroom_id, student_id, unit)` — PDF resumen de una sola hoja (tabla por curso: hechas/total/faltantes, sin `SetAutoPageBreak`)
+  - `buildCourseData(classroom, studentId, unit)` — método privado compartido; aplica filtro `activity_type_id=1`
 
 ## Patrón de datos postgrado
 - Secciones con `level_id` 2 o 5 usan `Enrollment.carne` para display/sorting
@@ -544,3 +556,5 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.7.7 — `GradeBookCalculationService`: centraliza cálculo de totales de cuadros; `Profesor\GradeBooks` y `Admin\GradeChangeRequests` eliminan código duplicado y delegan al servicio; footer actualizado a v1.7.7
 - v1.7.8 — `EnrollmentPeriod`: modelo + migración + CRUD (`Admin/EnrollmentPeriods`) para gestionar períodos de inscripción y actualización de datos; integrado en `EnrollmentList` (botones deshabilitados + guard en `enrollExisting`/`enrollNew`) y `StudentDataRequest` (pantalla de período cerrado + guard en `submit`); menú bajo Gestión Estudiantil; 4 permisos `admin.enrollment-periods.*` asignados a SuperAdmin y Director
 - v1.8.0 — Módulo Student: rutas `/student/*` en `routes/student.php`; componentes `Livewire\Student\MyGrades`, `MyAttendance`, `MyReportCard`; panel dashboard `Dashboard\StudentSummary`; controlador `Student\ReportCardController` (genera PDF de boleta personal reutilizando lógica admin); 4 permisos `student.*` + `dashboard.panel.student-summary` asignados al rol Estudiante; `StudentPermissionsSeeder` para bases existentes (también migra nombres viejos `estudiante.*`); menú `ESTUDIANTE` en `adminlte.php`
+- v1.8.1 — Dos nuevos reportes de actividades admin: `Reports/ActivitySummary` (tabla pivot estudiantes×materias con hechas/total por curso, export Excel `ActivitySummaryExport` con encabezados coloreados y leyenda) + `Reports/StudentActivityDetail` (listado de alumnos con modal de detalle por curso, PDF detallado por alumno y PDF de toda la sección via `StudentActivityDetailPdfController`); menú "Actividades" con 3 ítems agrupados; seeders `ActivitySummaryPermissionSeeder` y `StudentActivityDetailPermissionSeeder` (SuperAdmin + Director)
+- v1.8.2 — Filtro `activity_type_id=1` aplicado consistentemente en `ActivitySummary` (Livewire + `ActivitySummaryExport`), `MissingActivities` (Livewire + `MissingActivitiesAdminExport`) y `StudentActivityDetail` (Livewire + `buildCourseData()`); PDF compacto de una sola hoja por alumno (`studentCompact()`) en `StudentActivityDetailPdfController` con `SetAutoPageBreak(false)` y tabla por curso; ruta `admin.reports.student-activity-detail.pdf.student-compact`; botón "PDF resumen" (amarillo, `fa-compress-alt`) en vista del listado
