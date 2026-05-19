@@ -266,31 +266,13 @@ class StudentActivityDetailPdfController extends Controller
         $pdf->AliasNbPages();
 
         $perPage = 3;
-        $yBlocksStart = 21.0;
-        $blockH = (330.0 - 8.0 - $yBlocksStart) / $perPage;
-        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
+        $yBlocksStart = 8.0;
+        $blockH = (330.0 - 8.0 - 8.0) / $perPage;
 
         $chunks = array_chunk($allData, $perPage);
 
         foreach ($chunks as $chunk) {
             $pdf->AddPage();
-
-            $pdf->addImage($logoPath, 10, 8, 12);
-            $pdf->SetXY(24, 8);
-            $pdf->SetFont('Arial', 'B', 10);
-            $pdf->CellUTF8(182, 5, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
-
-            $pdf->SetXY(10, 14);
-            $pdf->SetFont('Arial', '', 7);
-            $pdf->SetFillColor(230, 238, 247);
-            $infoText = $pdf->dec(
-                'Año: '.$classroom->year.
-                '  |  Unidad: '.$unit.
-                '  |  Nivel: '.($classroom->level->level_name ?? '—').
-                '  |  '.($classroom->grade->grade_name ?? '').
-                '  '.($classroom->section->section_name ?? '')
-            );
-            $pdf->CellUTF8(196, 5, $infoText, 0, 1, 'C', true);
 
             foreach ($chunk as $idx => $data) {
                 $yBlock = $yBlocksStart + ($idx * $blockH);
@@ -301,7 +283,7 @@ class StudentActivityDetailPdfController extends Controller
                     $pdf->SetDrawColor(0, 0, 0);
                 }
 
-                $this->renderStudentCompactBlock($pdf, $data['name'], $data['courses'], $yBlock);
+                $this->renderStudentCompactBlock($pdf, $data['name'], $data['courses'], $yBlock, $classroom, $unit);
             }
         }
 
@@ -381,11 +363,33 @@ class StudentActivityDetailPdfController extends Controller
         return $courses;
     }
 
-    private function renderStudentCompactBlock(PDF $pdf, string $studentName, array $courses, float $yStart): void
+    private function renderStudentCompactBlock(PDF $pdf, string $studentName, array $courses, float $yStart, Classroom $classroom, int $unit): void
     {
         $x = 10;
-        $y = $yStart + 1;
 
+        // ── Mini-header: logo izquierda, institución + info a la derecha ──
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
+        $pdf->addImage($logoPath, $x, $yStart + 1, 10);
+
+        $pdf->SetXY(22, $yStart + 1);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->CellUTF8(184, 4, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
+
+        $pdf->SetXY(22, $yStart + 5.5);
+        $pdf->SetFont('Arial', '', 6.5);
+        $pdf->SetFillColor(214, 227, 242);
+        $infoText = $pdf->dec(
+            'Año: '.$classroom->year.
+            '  |  Unidad: '.$unit.
+            '  |  Nivel: '.($classroom->level->level_name ?? '—').
+            '  |  '.($classroom->grade->grade_name ?? '').
+            '  '.($classroom->section->section_name ?? '')
+        );
+        $pdf->CellUTF8(184, 4, $infoText, 0, 1, 'C', true);
+
+        $y = $yStart + 12;
+
+        // ── Nombre del estudiante ──────────────────────────────────────
         $pdf->SetXY($x, $y);
         $pdf->SetFillColor(31, 78, 121);
         $pdf->SetTextColor(255, 255, 255);
