@@ -260,6 +260,7 @@ class StudentActivityDetailPdfController extends Controller
         }
 
         $pdf = new PDF('P', 'mm', [216, 330]);
+        $pdf->hideFooter = true;
         $pdf->SetMargins(10, 8, 10);
         $pdf->SetAutoPageBreak(false);
         $pdf->AliasNbPages();
