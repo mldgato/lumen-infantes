@@ -7,6 +7,7 @@ use App\Models\ClassroomCourseAssignment;
 use App\Models\GradeBookScore;
 use App\Models\Student;
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
@@ -15,7 +16,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class ActivitySummaryExport implements FromArray, WithEvents, WithTitle
+class ActivitySummaryExport implements FromArray, WithCustomStartCell, WithEvents, WithTitle
 {
     private array $rows = [];
 
@@ -73,14 +74,16 @@ class ActivitySummaryExport implements FromArray, WithEvents, WithTitle
             $courseName = $assignment->pensumCourse->course->course_name;
             $gradeBook = $assignment->gradeBook;
 
-            if (! $gradeBook || $gradeBook->activities->isEmpty()) {
+            $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+
+            if (! $gradeBook || $mainActivities->isEmpty()) {
                 $this->courseHeaders[] = ['name' => $courseName, 'total' => 0, 'has_activities' => false];
                 $courseScoreData[] = null;
 
                 continue;
             }
 
-            $activityIds = $gradeBook->activities->pluck('id');
+            $activityIds = $mainActivities->pluck('id');
             $total = $activityIds->count();
 
             $scoresByStudent = GradeBookScore::whereIn('grade_book_activity_id', $activityIds)
@@ -134,12 +137,17 @@ class ActivitySummaryExport implements FromArray, WithEvents, WithTitle
         return 'Resumen de Actividades';
     }
 
+    public function startCell(): string
+    {
+        return 'A5';
+    }
+
     public function registerEvents(): array
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $dataStart = 4;
+                $dataStart = 5;
                 $lastDataRow = $dataStart + count($this->rows) - 1;
                 $lastColIdx = $this->courseCount + 3;
                 $lastCol = Coordinate::stringFromColumnIndex($lastColIdx);

@@ -127,7 +127,9 @@ class ActivitySummary extends Component
             $courseName = $assignment->pensumCourse->course->course_name;
             $gradeBook = $assignment->gradeBook;
 
-            if (! $gradeBook || $gradeBook->activities->isEmpty()) {
+            $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+
+            if (! $gradeBook || $mainActivities->isEmpty()) {
                 $this->courseHeaders[] = [
                     'name' => $courseName,
                     'total' => 0,
@@ -138,7 +140,7 @@ class ActivitySummary extends Component
                 continue;
             }
 
-            $activityIds = $gradeBook->activities->pluck('id');
+            $activityIds = $mainActivities->pluck('id');
             $total = $activityIds->count();
 
             $scoresByStudent = GradeBookScore::whereIn('grade_book_activity_id', $activityIds)
