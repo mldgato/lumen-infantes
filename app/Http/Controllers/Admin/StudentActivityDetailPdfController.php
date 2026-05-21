@@ -313,7 +313,9 @@ class StudentActivityDetailPdfController extends Controller
             $gradeBook = $assignment->gradeBook;
             $courseName = $assignment->pensumCourse->course->course_name;
 
-            $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+            $mainActivities = $gradeBook
+                ? $gradeBook->activities->where('activity_type_id', 1)->values()
+                : collect();
 
             if (! $gradeBook || $mainActivities->isEmpty()) {
                 $courses[] = [
@@ -356,7 +358,7 @@ class StudentActivityDetailPdfController extends Controller
                 'has_activities' => true,
                 'activities' => $activities,
                 'done' => $done,
-                'total' => $gradeBook->activities->count(),
+                'total' => $mainActivities->count(),
             ];
         }
 
