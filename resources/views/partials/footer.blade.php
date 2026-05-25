@@ -32,7 +32,7 @@
         </div>
         <div style="font-size:0.75rem; color:#686868;">
             Todos los derechos reservados &nbsp;|&nbsp;
-            <span class="badge badge-secondary">v1.7.8</span>
+            <span class="badge badge-secondary">v1.8.3</span>
         </div>
     </div>
 

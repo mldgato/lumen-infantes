@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.8.2
+v1.8.3
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -242,7 +242,7 @@ if (! $professor) {
 | `Reports/StudentListExcel` | Export Excel de estudiantes |
 | `Reports/MissingActivities` | Actividades no entregadas (tipo id=1) |
 | `Reports/ActivitySummary` | Resumen pivot actividades por estudiante y materia |
-| `Reports/StudentActivityDetail` | Detalle individual de actividades por alumno |
+| `Reports/StudentActivityDetail` | Detalle individual de actividades por alumno; filtro `filterMaxActivities` (1–10) para limitar actividades mostradas |
 | `Reports/AttendanceReport` | Reporte de asistencia |
 | `Reports/ProfessorCoursesExcel` | Cursos por profesor |
 | `Roles/ShowRoles` | Gestión de roles (Spatie) |
@@ -253,6 +253,7 @@ if (! $professor) {
 | Componente | Responsabilidad |
 |---|---|
 | `GradeBooks` | Edición completa de cuadros |
+| `GradeBookGrid` | Ingreso de calificaciones en formato cuadrícula tipo Excel (Alpine.js, guardado total sin round-trips) |
 | `GradeChangeRequests` | Crear solicitudes de cambio |
 | `TakeAttendance` | Asistencia diaria + historial |
 | `Reports/*` | Reportes específicos del profesor |
@@ -371,7 +372,11 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
   - `student(classroom_id, student_id, unit)` — PDF detallado por alumno (tabla actividades por curso con estado ✔/✘)
   - `classroom(classroom_id, unit)` — PDF de toda la sección (un alumno por página)
   - `studentCompact(classroom_id, student_id, unit)` — PDF resumen de una sola hoja (tabla por curso: hechas/total/faltantes, sin `SetAutoPageBreak`)
-  - `buildCourseData(classroom, studentId, unit)` — método privado compartido; aplica filtro `activity_type_id=1`
+  - `classroomCompact(classroom_id, unit)` — PDF resumen de sección en oficio, 3 alumnos/hoja; llama `renderStudentCompactBlock(..., 'medium')`
+  - `classroomCompactCarta(classroom_id, unit)` — PDF resumen de sección en carta, 2 alumnos/hoja; llama `renderStudentCompactBlock(..., 'large')` con fuentes más grandes
+  - `buildCourseData(classroom, studentId, unit, ?int $maxActivities = null)` — método privado compartido; aplica filtro `activity_type_id=1`; acepta `max_activities` para limitar actividades mostradas
+  - `renderStudentCompactBlock(string $size = 'small')` — renderiza bloque de un alumno; `$size` puede ser `'small'` (original), `'medium'` (oficio, fuentes ligeramente mayores) o `'large'` (carta, fuentes grandes aprovechando más espacio)
+  - Todos los métodos públicos aceptan `?int $maxActivities` vía query string validado (`nullable|integer|min:1|max:10`)
 
 ## Patrón de datos postgrado
 - Secciones con `level_id` 2 o 5 usan `Enrollment.carne` para display/sorting
@@ -558,3 +563,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.8.0 — Módulo Student: rutas `/student/*` en `routes/student.php`; componentes `Livewire\Student\MyGrades`, `MyAttendance`, `MyReportCard`; panel dashboard `Dashboard\StudentSummary`; controlador `Student\ReportCardController` (genera PDF de boleta personal reutilizando lógica admin); 4 permisos `student.*` + `dashboard.panel.student-summary` asignados al rol Estudiante; `StudentPermissionsSeeder` para bases existentes (también migra nombres viejos `estudiante.*`); menú `ESTUDIANTE` en `adminlte.php`
 - v1.8.1 — Dos nuevos reportes de actividades admin: `Reports/ActivitySummary` (tabla pivot estudiantes×materias con hechas/total por curso, export Excel `ActivitySummaryExport` con encabezados coloreados y leyenda) + `Reports/StudentActivityDetail` (listado de alumnos con modal de detalle por curso, PDF detallado por alumno y PDF de toda la sección via `StudentActivityDetailPdfController`); menú "Actividades" con 3 ítems agrupados; seeders `ActivitySummaryPermissionSeeder` y `StudentActivityDetailPermissionSeeder` (SuperAdmin + Director)
 - v1.8.2 — Filtro `activity_type_id=1` aplicado consistentemente en `ActivitySummary` (Livewire + `ActivitySummaryExport`), `MissingActivities` (Livewire + `MissingActivitiesAdminExport`) y `StudentActivityDetail` (Livewire + `buildCourseData()`); PDF compacto de una sola hoja por alumno (`studentCompact()`) en `StudentActivityDetailPdfController` con `SetAutoPageBreak(false)` y tabla por curso; ruta `admin.reports.student-activity-detail.pdf.student-compact`; botón "PDF resumen" (amarillo, `fa-compress-alt`) en vista del listado
+- v1.8.3 — Filtro `filterMaxActivities` (1–10) en `Reports/StudentActivityDetail` para limitar actividades por curso en Livewire y todos los PDF (`max_activities` query param validado); nuevo PDF resumen por sección en carta con 2 alumnos/hoja (`classroomCompactCarta()`, ruta `admin.reports.student-activity-detail.pdf.classroom-compact-carta`); `renderStudentCompactBlock()` refactorizado de `bool $large` a `string $size` ('small'/'medium'/'large') para tres tiers de tamaño de fuente; nuevo componente Livewire `Profesor\GradeBookGrid` — cuadrícula tipo Excel con Alpine.js (estado cliente, guardado único vía `this.$wire.saveGrid()`), inputs `type="text" inputmode="decimal"` sin spinners, navegación Enter por columna, columnas sticky, soporte completo de mejoramiento, total en tiempo real; ruta `profesor.grade-books.grid`; botón de acceso desde `GradeBooks` por cuadro

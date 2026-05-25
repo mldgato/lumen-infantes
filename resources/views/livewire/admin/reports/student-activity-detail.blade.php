@@ -72,26 +72,45 @@
                     </div>
                 </div>
 
-                <div class="col-md-3 form-group mb-3 d-flex align-items-end">
-                    <button wire:click="generateReport" class="btn btn-danger btn-sm shadow-sm mr-2"
+                <div class="col-md-1 form-group mb-3">
+                    <label class="text-sm mb-1" title="Limita el máximo de actividades por materia">Máx. Act.</label>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-list-ol"></i></span></div>
+                        <select wire:model.live="filterMaxActivities" class="form-control">
+                            <option value="">Todas</option>
+                            @for ($i = 1; $i <= 10; $i++)
+                                <option value="{{ $i }}">{{ $i }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-2 form-group mb-3 d-flex align-items-end">
+                    <button wire:click="generateReport" class="btn btn-danger btn-sm shadow-sm mr-1"
                         wire:loading.attr="disabled" wire:target="generateReport" {{ !$filterUnit ? 'disabled' : '' }}>
                         <span wire:loading.remove wire:target="generateReport"><i class="fas fa-search"></i> Generar</span>
-                        <span wire:loading wire:target="generateReport"><i class="fas fa-spinner fa-pulse"></i> Generando...</span>
+                        <span wire:loading wire:target="generateReport"><i class="fas fa-spinner fa-pulse"></i></span>
                     </button>
 
                     @if ($generated && count($studentList) > 0)
-                        @php $firstRow = $studentList[0]; @endphp
-                        <a href="{{ route('admin.reports.student-activity-detail.pdf.classroom', [
-                            'classroom_id' => $firstRow['classroom_id'],
-                            'unit'         => $filterUnit,
-                        ]) }}" target="_blank" class="btn btn-dark btn-sm shadow-sm mr-1">
-                            <i class="fas fa-file-pdf"></i> PDF Sección
+                        @php
+                            $firstRow = $studentList[0];
+                            $pdfParams = ['classroom_id' => $firstRow['classroom_id'], 'unit' => $filterUnit];
+                            if ($filterMaxActivities !== '') {
+                                $pdfParams['max_activities'] = $filterMaxActivities;
+                            }
+                        @endphp
+                        <a href="{{ route('admin.reports.student-activity-detail.pdf.classroom', $pdfParams) }}"
+                            target="_blank" class="btn btn-dark btn-sm shadow-sm mr-1" title="PDF sección completa">
+                            <i class="fas fa-file-pdf"></i>
                         </a>
-                        <a href="{{ route('admin.reports.student-activity-detail.pdf.classroom-compact', [
-                            'classroom_id' => $firstRow['classroom_id'],
-                            'unit'         => $filterUnit,
-                        ]) }}" target="_blank" class="btn btn-secondary btn-sm shadow-sm" title="PDF resumen sección (3 por hoja)">
-                            <i class="fas fa-compress-alt"></i> PDF Resumen
+                        <a href="{{ route('admin.reports.student-activity-detail.pdf.classroom-compact', $pdfParams) }}"
+                            target="_blank" class="btn btn-secondary btn-sm shadow-sm mr-1" title="PDF resumen sección — 3 por hoja oficio">
+                            <i class="fas fa-compress-alt"></i>
+                        </a>
+                        <a href="{{ route('admin.reports.student-activity-detail.pdf.classroom-compact-carta', $pdfParams) }}"
+                            target="_blank" class="btn btn-info btn-sm shadow-sm" title="PDF resumen sección — 2 por hoja carta">
+                            <i class="fas fa-compress"></i>
                         </a>
                     @endif
                 </div>
@@ -140,6 +159,16 @@
                                         <span class="badge badge-{{ $missingCls }}">{{ $row['missing'] }}</span>
                                     </td>
                                     <td class="text-center align-middle">
+                                        @php
+                                            $studentPdfParams = [
+                                                'classroom_id' => $row['classroom_id'],
+                                                'student_id'   => $row['id'],
+                                                'unit'         => $filterUnit,
+                                            ];
+                                            if ($filterMaxActivities !== '') {
+                                                $studentPdfParams['max_activities'] = $filterMaxActivities;
+                                            }
+                                        @endphp
                                         <button wire:click="loadStudentDetail({{ $row['id'] }})"
                                             wire:loading.attr="disabled"
                                             wire:target="loadStudentDetail({{ $row['id'] }})"
@@ -151,18 +180,12 @@
                                                 <i class="fas fa-spinner fa-pulse"></i>
                                             </span>
                                         </button>
-                                        <a href="{{ route('admin.reports.student-activity-detail.pdf.student', [
-                                            'classroom_id' => $row['classroom_id'],
-                                            'student_id'   => $row['id'],
-                                            'unit'         => $filterUnit,
-                                        ]) }}" target="_blank" class="btn btn-xs btn-danger mr-1" title="PDF detallado">
+                                        <a href="{{ route('admin.reports.student-activity-detail.pdf.student', $studentPdfParams) }}"
+                                            target="_blank" class="btn btn-xs btn-danger mr-1" title="PDF detallado">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>
-                                        <a href="{{ route('admin.reports.student-activity-detail.pdf.student-compact', [
-                                            'classroom_id' => $row['classroom_id'],
-                                            'student_id'   => $row['id'],
-                                            'unit'         => $filterUnit,
-                                        ]) }}" target="_blank" class="btn btn-xs btn-warning" title="PDF resumen (1 hoja)">
+                                        <a href="{{ route('admin.reports.student-activity-detail.pdf.student-compact', $studentPdfParams) }}"
+                                            target="_blank" class="btn btn-xs btn-warning" title="PDF resumen (1 hoja)">
                                             <i class="fas fa-compress-alt"></i>
                                         </a>
                                     </td>
@@ -256,11 +279,18 @@
                         @endforeach
                     </div>
                     <div class="modal-footer py-2">
-                        <a href="{{ route('admin.reports.student-activity-detail.pdf.student', [
-                            'classroom_id' => $selectedStudentDetail['classroom_id'],
-                            'student_id'   => $selectedStudentDetail['student_id'],
-                            'unit'         => $selectedStudentDetail['unit'],
-                        ]) }}" target="_blank" class="btn btn-danger btn-sm">
+                        @php
+                            $modalPdfParams = [
+                                'classroom_id' => $selectedStudentDetail['classroom_id'],
+                                'student_id'   => $selectedStudentDetail['student_id'],
+                                'unit'         => $selectedStudentDetail['unit'],
+                            ];
+                            if ($filterMaxActivities !== '') {
+                                $modalPdfParams['max_activities'] = $filterMaxActivities;
+                            }
+                        @endphp
+                        <a href="{{ route('admin.reports.student-activity-detail.pdf.student', $modalPdfParams) }}"
+                            target="_blank" class="btn btn-danger btn-sm">
                             <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
                         </a>
                         <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>

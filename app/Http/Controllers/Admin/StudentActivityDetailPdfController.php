@@ -18,6 +18,7 @@ class StudentActivityDetailPdfController extends Controller
             'classroom_id' => 'required|exists:classrooms,id',
             'student_id' => 'required|exists:students,id',
             'unit' => 'required|integer|min:1',
+            'max_activities' => 'nullable|integer|min:1|max:10',
         ]);
 
         $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
@@ -31,7 +32,8 @@ class StudentActivityDetailPdfController extends Controller
         abort_unless($enrolled, 403);
 
         $unit = (int) $request->unit;
-        $courses = $this->buildCourseData($classroom->id, $student->id, $unit);
+        $maxActivities = $request->filled('max_activities') ? (int) $request->max_activities : null;
+        $courses = $this->buildCourseData($classroom->id, $student->id, $unit, $maxActivities);
 
         $pdf = $this->buildPdf();
         $this->renderStudent($pdf, $student->user->full_full_name, $courses, $classroom, $unit);
@@ -49,6 +51,7 @@ class StudentActivityDetailPdfController extends Controller
         $request->validate([
             'classroom_id' => 'required|exists:classrooms,id',
             'unit' => 'required|integer|min:1',
+            'max_activities' => 'nullable|integer|min:1|max:10',
         ]);
 
         $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
@@ -67,10 +70,11 @@ class StudentActivityDetailPdfController extends Controller
             ->get();
 
         $unit = (int) $request->unit;
+        $maxActivities = $request->filled('max_activities') ? (int) $request->max_activities : null;
         $pdf = $this->buildPdf();
 
         foreach ($students as $student) {
-            $courses = $this->buildCourseData($classroom->id, $student->id, $unit);
+            $courses = $this->buildCourseData($classroom->id, $student->id, $unit, $maxActivities);
             $this->renderStudent($pdf, $student->user->full_full_name, $courses, $classroom, $unit);
         }
 
@@ -89,6 +93,7 @@ class StudentActivityDetailPdfController extends Controller
             'classroom_id' => 'required|exists:classrooms,id',
             'student_id' => 'required|exists:students,id',
             'unit' => 'required|integer|min:1',
+            'max_activities' => 'nullable|integer|min:1|max:10',
         ]);
 
         $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
@@ -102,7 +107,8 @@ class StudentActivityDetailPdfController extends Controller
         abort_unless($enrolled, 403);
 
         $unit = (int) $request->unit;
-        $courses = $this->buildCourseData($classroom->id, $student->id, $unit);
+        $maxActivities = $request->filled('max_activities') ? (int) $request->max_activities : null;
+        $courses = $this->buildCourseData($classroom->id, $student->id, $unit, $maxActivities);
 
         $pdf = new PDF('P', 'mm', [210, 279]);
         $pdf->SetMargins(12, 10, 12);
@@ -232,6 +238,7 @@ class StudentActivityDetailPdfController extends Controller
         $request->validate([
             'classroom_id' => 'required|exists:classrooms,id',
             'unit' => 'required|integer|min:1',
+            'max_activities' => 'nullable|integer|min:1|max:10',
         ]);
 
         $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
@@ -250,12 +257,13 @@ class StudentActivityDetailPdfController extends Controller
             ->get();
 
         $unit = (int) $request->unit;
+        $maxActivities = $request->filled('max_activities') ? (int) $request->max_activities : null;
         $allData = [];
 
         foreach ($students as $student) {
             $allData[] = [
                 'name' => $student->user->full_full_name,
-                'courses' => $this->buildCourseData($classroom->id, $student->id, $unit),
+                'courses' => $this->buildCourseData($classroom->id, $student->id, $unit, $maxActivities),
             ];
         }
 
@@ -283,7 +291,7 @@ class StudentActivityDetailPdfController extends Controller
                     $pdf->SetDrawColor(0, 0, 0);
                 }
 
-                $this->renderStudentCompactBlock($pdf, $data['name'], $data['courses'], $yBlock, $classroom, $unit);
+                $this->renderStudentCompactBlock($pdf, $data['name'], $data['courses'], $yBlock, $classroom, $unit, 'medium');
             }
         }
 
@@ -296,7 +304,78 @@ class StudentActivityDetailPdfController extends Controller
         ]);
     }
 
-    private function buildCourseData(int $classroomId, int $studentId, int $unit): array
+    public function classroomCompactCarta(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $request->validate([
+            'classroom_id' => 'required|exists:classrooms,id',
+            'unit' => 'required|integer|min:1',
+            'max_activities' => 'nullable|integer|min:1|max:10',
+        ]);
+
+        $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
+
+        $students = Student::whereHas(
+            'enrollments',
+            fn ($q) => $q->where('classroom_id', $classroom->id)->where('status', 'Activo')
+        )
+            ->join('users', 'students.user_id', '=', 'users.id')
+            ->orderBy('users.surname')
+            ->orderBy('users.second_surname')
+            ->orderBy('users.first_name')
+            ->orderBy('users.middle_name')
+            ->select('students.*')
+            ->with('user')
+            ->get();
+
+        $unit = (int) $request->unit;
+        $maxActivities = $request->filled('max_activities') ? (int) $request->max_activities : null;
+        $allData = [];
+
+        foreach ($students as $student) {
+            $allData[] = [
+                'name' => $student->user->full_full_name,
+                'courses' => $this->buildCourseData($classroom->id, $student->id, $unit, $maxActivities),
+            ];
+        }
+
+        $pdf = new PDF('P', 'mm', [216, 279]);
+        $pdf->hideFooter = true;
+        $pdf->SetMargins(10, 8, 10);
+        $pdf->SetAutoPageBreak(false);
+        $pdf->AliasNbPages();
+
+        $perPage = 2;
+        $yBlocksStart = 8.0;
+        $blockH = (279.0 - 8.0 - 8.0) / $perPage;
+
+        $chunks = array_chunk($allData, $perPage);
+
+        foreach ($chunks as $chunk) {
+            $pdf->AddPage();
+
+            foreach ($chunk as $idx => $data) {
+                $yBlock = $yBlocksStart + ($idx * $blockH);
+
+                if ($idx > 0) {
+                    $pdf->SetDrawColor(180, 180, 180);
+                    $pdf->Line(10, $yBlock - 1, 206, $yBlock - 1);
+                    $pdf->SetDrawColor(0, 0, 0);
+                }
+
+                $this->renderStudentCompactBlock($pdf, $data['name'], $data['courses'], $yBlock, $classroom, $unit, 'large');
+            }
+        }
+
+        $grade = $classroom->grade->grade_name ?? '';
+        $section = $classroom->section->section_name ?? '';
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"Resumen_Carta_{$grade}_{$section}_U{$unit}.pdf\"",
+        ]);
+    }
+
+    private function buildCourseData(int $classroomId, int $studentId, int $unit, ?int $maxActivities = null): array
     {
         $assignments = ClassroomCourseAssignment::with([
             'pensumCourse.course',
@@ -314,7 +393,7 @@ class StudentActivityDetailPdfController extends Controller
             $courseName = $assignment->pensumCourse->course->course_name;
 
             $mainActivities = $gradeBook
-                ? $gradeBook->activities->where('activity_type_id', 1)->values()
+                ? $gradeBook->activities->where('activity_type_id', 1)->sortBy('ordering')->values()
                 : collect();
 
             if (! $gradeBook || $mainActivities->isEmpty()) {
@@ -328,6 +407,10 @@ class StudentActivityDetailPdfController extends Controller
                 ];
 
                 continue;
+            }
+
+            if ($maxActivities !== null) {
+                $mainActivities = $mainActivities->take($maxActivities);
             }
 
             $activityIds = $mainActivities->pluck('id');
@@ -365,20 +448,40 @@ class StudentActivityDetailPdfController extends Controller
         return $courses;
     }
 
-    private function renderStudentCompactBlock(PDF $pdf, string $studentName, array $courses, float $yStart, Classroom $classroom, int $unit): void
+    private function renderStudentCompactBlock(PDF $pdf, string $studentName, array $courses, float $yStart, Classroom $classroom, int $unit, string $size = 'small'): void
     {
         $x = 10;
 
-        // ── Mini-header: logo izquierda, institución + info a la derecha ──
+        // Tamaños según modo ('small' = oficio 3/hoja, 'medium' = oficio más legible, 'large' = carta 2/hoja)
+        $logoSize    = match ($size) { 'large'  => 13,  default => 10 };
+        $fontInst    = match ($size) { 'large'  => 10,  'medium' => 9,   default => 8 };
+        $fontInfo    = match ($size) { 'large'  => 8.0, 'medium' => 7.0, default => 6.5 };
+        $cellHInst   = match ($size) { 'large'  => 5,   default => 4 };
+        $cellHInfo   = match ($size) { 'large'  => 5,   default => 4 };
+        $infoOffsetY = match ($size) { 'large'  => 7.0, default => 5.5 };
+        $yBodyStart  = match ($size) { 'large'  => 15,  default => 12 };
+        $fontName    = match ($size) { 'large'  => 10,  'medium' => 9,   default => 8 };
+        $cellHName   = match ($size) { 'large'  => 7,   default => 6 };
+        $nameGap     = match ($size) { 'large'  => 8,   default => 7 };
+        $fontHeader  = match ($size) { 'large'  => 9,   'medium' => 8,   default => 7 };
+        $cellHHeader = match ($size) { 'large'  => 6,   default => 5 };
+        $rowH        = match ($size) { 'large'  => 6,   default => 5 };
+        $fontRow     = match ($size) { 'large'  => 8,   'medium' => 8,   default => 7 };
+        $cellHTotal  = match ($size) { 'large'  => 6,   default => 5 };
+        $colNo       = match ($size) { 'large'  => 10,  default => 8 };
+        $colCourse   = match ($size) { 'large'  => 114, default => 116 };
+        $colNum      = 24;
+
+        // ── Mini-header ────────────────────────────────────────────────
         $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/Escudo.png');
-        $pdf->addImage($logoPath, $x, $yStart + 1, 10);
+        $pdf->addImage($logoPath, $x, $yStart + 1, $logoSize);
 
         $pdf->SetXY(22, $yStart + 1);
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->CellUTF8(184, 4, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
+        $pdf->SetFont('Arial', 'B', $fontInst);
+        $pdf->CellUTF8(184, $cellHInst, $pdf->dec(env('APP_INSTITUTION_NAME', 'Institución Educativa')), 0, 1, 'C');
 
-        $pdf->SetXY(22, $yStart + 5.5);
-        $pdf->SetFont('Arial', '', 6.5);
+        $pdf->SetXY(22, $yStart + $infoOffsetY);
+        $pdf->SetFont('Arial', '', $fontInfo);
         $pdf->SetFillColor(214, 227, 242);
         $infoText = $pdf->dec(
             'Año: '.$classroom->year.
@@ -387,32 +490,33 @@ class StudentActivityDetailPdfController extends Controller
             '  |  '.($classroom->grade->grade_name ?? '').
             '  '.($classroom->section->section_name ?? '')
         );
-        $pdf->CellUTF8(184, 4, $infoText, 0, 1, 'C', true);
+        $pdf->CellUTF8(184, $cellHInfo, $infoText, 0, 1, 'C', true);
 
-        $y = $yStart + 12;
+        $y = $yStart + $yBodyStart;
 
         // ── Nombre del estudiante ──────────────────────────────────────
         $pdf->SetXY($x, $y);
         $pdf->SetFillColor(31, 78, 121);
         $pdf->SetTextColor(255, 255, 255);
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->CellUTF8(196, 6, $pdf->dec('  '.$studentName), 0, 1, 'L', true);
+        $pdf->SetFont('Arial', 'B', $fontName);
+        $pdf->CellUTF8(196, $cellHName, $pdf->dec('  '.$studentName), 0, 1, 'L', true);
         $pdf->SetTextColor(0, 0, 0);
-        $y += 7;
+        $y += $nameGap;
 
+        // ── Encabezado de tabla ────────────────────────────────────────
         $pdf->SetXY($x, $y);
         $pdf->SetFillColor(47, 117, 182);
         $pdf->SetTextColor(255, 255, 255);
-        $pdf->SetFont('Arial', 'B', 7);
-        $pdf->CellUTF8(8, 5, 'No.', 1, 0, 'C', true);
-        $pdf->CellUTF8(116, 5, $pdf->dec('Materia'), 1, 0, 'L', true);
-        $pdf->CellUTF8(24, 5, $pdf->dec('Hechas'), 1, 0, 'C', true);
-        $pdf->CellUTF8(24, 5, 'Total', 1, 0, 'C', true);
-        $pdf->CellUTF8(24, 5, $pdf->dec('Faltantes'), 1, 1, 'C', true);
+        $pdf->SetFont('Arial', 'B', $fontHeader);
+        $pdf->CellUTF8($colNo, $cellHHeader, 'No.', 1, 0, 'C', true);
+        $pdf->CellUTF8($colCourse, $cellHHeader, $pdf->dec('Materia'), 1, 0, 'L', true);
+        $pdf->CellUTF8($colNum, $cellHHeader, $pdf->dec('Hechas'), 1, 0, 'C', true);
+        $pdf->CellUTF8($colNum, $cellHHeader, 'Total', 1, 0, 'C', true);
+        $pdf->CellUTF8($colNum, $cellHHeader, $pdf->dec('Faltantes'), 1, 1, 'C', true);
         $pdf->SetTextColor(0, 0, 0);
-        $y += 5;
+        $y += $cellHHeader;
 
-        $rowH = 5;
+        // ── Filas de cursos ────────────────────────────────────────────
         $totalDone = 0;
         $totalAll = 0;
         $totalMissing = 0;
@@ -421,7 +525,7 @@ class StudentActivityDetailPdfController extends Controller
             $fill = $i % 2 === 0;
             $pdf->SetXY($x, $y);
             $pdf->SetFillColor(245, 245, 245);
-            $pdf->SetFont('Arial', '', 7);
+            $pdf->SetFont('Arial', '', $fontRow);
 
             $done = $course['done'];
             $total = $course['total'];
@@ -430,16 +534,16 @@ class StudentActivityDetailPdfController extends Controller
             $totalAll += $total;
             $totalMissing += $missing;
 
-            $pdf->CellUTF8(8, $rowH, (string) ($i + 1), 1, 0, 'C', $fill);
-            $pdf->CellUTF8(116, $rowH, $pdf->dec('  '.$course['course_name']), 1, 0, 'L', $fill);
+            $pdf->CellUTF8($colNo, $rowH, (string) ($i + 1), 1, 0, 'C', $fill);
+            $pdf->CellUTF8($colCourse, $rowH, $pdf->dec('  '.$course['course_name']), 1, 0, 'L', $fill);
 
             if (! $course['has_activities']) {
                 $pdf->SetTextColor(120, 120, 120);
-                $pdf->CellUTF8(72, $rowH, $pdf->dec('Sin cuadro'), 1, 1, 'C', $fill);
+                $pdf->CellUTF8($colNum * 3, $rowH, $pdf->dec('Sin cuadro'), 1, 1, 'C', $fill);
                 $pdf->SetTextColor(0, 0, 0);
             } else {
-                $pdf->CellUTF8(24, $rowH, (string) $done, 1, 0, 'C', $fill);
-                $pdf->CellUTF8(24, $rowH, (string) $total, 1, 0, 'C', $fill);
+                $pdf->CellUTF8($colNum, $rowH, (string) $done, 1, 0, 'C', $fill);
+                $pdf->CellUTF8($colNum, $rowH, (string) $total, 1, 0, 'C', $fill);
 
                 if ($missing === 0) {
                     $pdf->SetTextColor(39, 98, 33);
@@ -451,19 +555,20 @@ class StudentActivityDetailPdfController extends Controller
                     $pdf->SetTextColor(156, 0, 6);
                     $pdf->SetFillColor(255, 199, 206);
                 }
-                $pdf->SetFont('Arial', 'B', 7);
-                $pdf->CellUTF8(24, $rowH, (string) $missing, 1, 1, 'C', true);
+                $pdf->SetFont('Arial', 'B', $fontRow);
+                $pdf->CellUTF8($colNum, $rowH, (string) $missing, 1, 1, 'C', true);
                 $pdf->SetTextColor(0, 0, 0);
             }
             $y += $rowH;
         }
 
+        // ── Fila de totales ────────────────────────────────────────────
         $pdf->SetXY($x, $y);
         $pdf->SetFillColor(217, 226, 243);
-        $pdf->SetFont('Arial', 'B', 7);
-        $pdf->CellUTF8(124, 5, $pdf->dec('  TOTAL'), 1, 0, 'L', true);
-        $pdf->CellUTF8(24, 5, (string) $totalDone, 1, 0, 'C', true);
-        $pdf->CellUTF8(24, 5, (string) $totalAll, 1, 0, 'C', true);
+        $pdf->SetFont('Arial', 'B', $fontHeader);
+        $pdf->CellUTF8($colNo + $colCourse, $cellHTotal, $pdf->dec('  TOTAL'), 1, 0, 'L', true);
+        $pdf->CellUTF8($colNum, $cellHTotal, (string) $totalDone, 1, 0, 'C', true);
+        $pdf->CellUTF8($colNum, $cellHTotal, (string) $totalAll, 1, 0, 'C', true);
 
         if ($totalMissing === 0) {
             $pdf->SetTextColor(39, 98, 33);
@@ -475,7 +580,7 @@ class StudentActivityDetailPdfController extends Controller
             $pdf->SetTextColor(156, 0, 6);
             $pdf->SetFillColor(255, 199, 206);
         }
-        $pdf->CellUTF8(24, 5, (string) $totalMissing, 1, 1, 'C', true);
+        $pdf->CellUTF8($colNum, $cellHTotal, (string) $totalMissing, 1, 1, 'C', true);
         $pdf->SetTextColor(0, 0, 0);
     }
 

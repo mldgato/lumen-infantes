@@ -14,6 +14,10 @@ Route::get('/grade-books/{gradeBook}/pdf', [GradeBookPdfController::class, 'gene
     ->name('profesor.grade-books.pdf')
     ->middleware('can:profesor.grade-books.index');
 
+Route::get('/grade-books/{gradeBook}/grid', fn (\App\Models\GradeBook $gradeBook) => view('profesor.grade-books.grid', compact('gradeBook')))
+    ->name('profesor.grade-books.grid')
+    ->middleware('can:profesor.grade-books.index');
+
 Route::get('/reports/sabana-promedio', [ReportController::class, 'sabanaPromedio'])
     ->name('profesor.reports.sabana-promedio')
     ->middleware('can:profesor.reports.sabana-promedio');
