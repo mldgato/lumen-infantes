@@ -13,7 +13,7 @@
                     ({{ $gradeBook->assignment->classroom->year }})
                 </small>
             </h5>
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center flex-wrap gap-1">
                 @php
                     [$statusLabel, $statusColor] = match ($gradeBook->status) {
                         'open'     => ['Abierto',   'success'],
@@ -24,12 +24,46 @@
                     };
                 @endphp
                 <span class="badge badge-{{ $statusColor }} px-3 py-2 mr-2">{{ $statusLabel }}</span>
+
+                @if ($gradeBook->status === 'approved')
+                    <a href="{{ route('profesor.grade-books.pdf', $gradeBook->id) }}" target="_blank"
+                        class="btn btn-sm btn-danger shadow-sm mr-1">
+                        <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
+                    </a>
+                @endif
+
+                @if ($gradeBook->activities->isNotEmpty() && $normalMax >= 100)
+                    <button wire:click="openCloneModal" class="btn btn-sm btn-outline-info shadow-sm mr-1"
+                        title="Copiar actividades a otra sección">
+                        <i class="fas fa-copy mr-1"></i> Clonar a otra sección
+                    </button>
+                @endif
+
+                @if ($gradeBook->status === 'open' && $normalMax >= 100)
+                    <button onclick="confirmLockGrid()" class="btn btn-sm btn-secondary shadow-sm mr-1">
+                        <i class="fas fa-lock mr-1"></i> Bloquear Cuadro
+                    </button>
+                @endif
+
+                @if ($gradeBook->status === 'rejected')
+                    <button onclick="confirmReopenGrid()" class="btn btn-sm btn-warning shadow-sm mr-1">
+                        <i class="fas fa-lock-open mr-1"></i> Reabrir para Edición
+                    </button>
+                @endif
+
                 <a href="{{ route('profesor.grade-books.index') }}" class="btn btn-sm btn-secondary">
                     <i class="fas fa-arrow-left mr-1"></i> Volver
                 </a>
             </div>
         </div>
     </div>
+
+    @if ($gradeBook->status === 'rejected' && $gradeBook->rejection_reason)
+        <div class="alert alert-danger">
+            <i class="fas fa-times-circle mr-1"></i>
+            <strong>Motivo de rechazo:</strong> {{ $gradeBook->rejection_reason }}
+        </div>
+    @endif
 
     @if ($gradeBook->status !== 'open')
         <div class="alert alert-warning">
@@ -178,6 +212,114 @@
             @endif
         </div>
     @endif
+
+    {{-- Modal: Clonar actividades a otra sección --}}
+    @if ($showCloneModal)
+        <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document"
+                x-data="{
+                    search: '',
+                    matches(label) {
+                        return this.search === '' || label.toLowerCase().includes(this.search.toLowerCase());
+                    }
+                }">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-copy mr-2"></i>Clonar actividades a otro cuadro
+                        </h5>
+                        <button type="button" class="close text-white" wire:click="closeCloneModal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body pb-0">
+                        <p class="text-sm text-muted mb-3">
+                            Se copiarán <strong>{{ $gradeBook->activities->count() }}</strong>
+                            actividad(es). No se copian calificaciones. Selecciona los cuadros destino:
+                        </p>
+
+                        @error('selectedCloneTargets')
+                            <div class="alert alert-danger py-2 text-sm">
+                                <i class="fas fa-exclamation-circle mr-1"></i> {{ $message }}
+                            </div>
+                        @enderror
+
+                        <div class="input-group input-group-sm mb-2">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="text" x-model="search" class="form-control"
+                                placeholder="Filtrar por sección, curso..." autocomplete="new-password">
+                            <div class="input-group-append" x-show="search !== ''">
+                                <button type="button" class="btn btn-outline-secondary" @click="search = ''">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <ul class="list-group mb-0" style="max-height: 340px; overflow-y: auto;">
+                            @foreach ($cloneTargets as $target)
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2
+                                    {{ !$target['can_clone'] ? 'list-group-item-light' : '' }}"
+                                    x-show="matches('{{ addslashes($target['label']) }}')"
+                                    x-cloak>
+                                    <div class="d-flex align-items-center" style="min-width: 0;">
+                                        @if ($target['can_clone'])
+                                            <input type="checkbox" class="mr-2 flex-shrink-0"
+                                                wire:model="selectedCloneTargets"
+                                                value="{{ $target['assignment_id'] }}"
+                                                id="clone_grid_{{ $target['assignment_id'] }}">
+                                        @else
+                                            <input type="checkbox" class="mr-2 flex-shrink-0" disabled>
+                                        @endif
+                                        <label class="mb-0 text-sm {{ !$target['can_clone'] ? 'text-muted' : '' }}"
+                                            for="clone_grid_{{ $target['assignment_id'] }}"
+                                            style="cursor: pointer; line-height: 1.3;">
+                                            {{ $target['label'] }}
+                                        </label>
+                                    </div>
+                                    <div class="ml-2 flex-shrink-0">
+                                        @if (!$target['can_clone'])
+                                            <span class="badge badge-warning text-dark"
+                                                title="Este cuadro ya tiene actividades">
+                                                <i class="fas fa-ban mr-1"></i>Ya tiene actividades
+                                            </span>
+                                        @elseif ($target['grade_book_status'])
+                                            <span class="badge badge-success">Abierto</span>
+                                        @else
+                                            <span class="badge badge-secondary">Sin cuadro</span>
+                                        @endif
+                                    </div>
+                                </li>
+                            @endforeach
+
+                            <li class="list-group-item text-center text-muted text-sm py-3"
+                                x-show="{{ collect($cloneTargets)->map(fn($t) => "!matches('".addslashes($t['label'])."')")->join(' && ') ?: 'false' }}">
+                                <i class="fas fa-search mr-1"></i> Sin resultados para "<span x-text="search"></span>"
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer bg-light justify-content-between mt-3">
+                        <button type="button" class="btn btn-secondary" wire:click="closeCloneModal">
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-info shadow-sm"
+                            wire:click="cloneActivities"
+                            wire:loading.attr="disabled"
+                            wire:target="cloneActivities"
+                            {{ collect($cloneTargets)->where('can_clone', true)->isEmpty() ? 'disabled' : '' }}>
+                            <span wire:loading.remove wire:target="cloneActivities">
+                                <i class="fas fa-copy mr-1"></i> Copiar actividades
+                            </span>
+                            <span wire:loading wire:target="cloneActivities">
+                                <i class="fas fa-spinner fa-spin mr-1"></i> Copiando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 @push('css')
@@ -193,6 +335,40 @@
 
 @push('js')
 <script>
+function confirmLockGrid() {
+    Swal.fire({
+        title: '¿Bloquear el cuadro?',
+        text: 'Una vez bloqueado no podrás modificar las calificaciones.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, bloquear',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            @this.lockGradeBook();
+        }
+    });
+}
+
+function confirmReopenGrid() {
+    Swal.fire({
+        title: '¿Reabrir el cuadro?',
+        text: 'El cuadro volverá al estado Abierto para que puedas corregirlo y bloquearlo nuevamente.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f6a821',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, reabrir',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            @this.reopenGradeBook();
+        }
+    });
+}
+
 document.addEventListener('livewire:initialized', () => {
     Livewire.on('showAlert', (event) => {
         let payload = event[0] || event;

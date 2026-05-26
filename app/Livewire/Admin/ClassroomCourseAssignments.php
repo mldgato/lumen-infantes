@@ -7,6 +7,7 @@ use App\Models\Classroom;
 use App\Models\ClassroomCourseAssignment;
 use App\Models\Pensum;
 use App\Models\Professor;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -113,8 +114,10 @@ class ClassroomCourseAssignments extends Component
         $this->originalAssignments = [];
 
         if ($this->pensum) {
-            // Optimización: Traemos la relación gradeBook solo con el ID para saber si existe
-            $existing = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
+            $existing = ClassroomCourseAssignment::with([
+                'gradeBook:id,classroom_course_assignment_id,status',
+                'gradeBook.activities:id,grade_book_id',
+            ])
                 ->where('classroom_id', $classroomId)
                 ->get();
 
@@ -122,9 +125,11 @@ class ClassroomCourseAssignments extends Component
                 $this->assignments[$assignment->pensum_course_id][$assignment->unit] = $assignment->professor_id;
                 $this->originalAssignments[$assignment->pensum_course_id][$assignment->unit] = $assignment->professor_id;
 
-                // Si tiene un GradeBook, lo marcamos como bloqueado
                 if ($assignment->gradeBook) {
-                    $this->lockedAssignments[$assignment->pensum_course_id][$assignment->unit] = true;
+                    $this->lockedAssignments[$assignment->pensum_course_id][$assignment->unit] = [
+                        'status' => $assignment->gradeBook->status,
+                        'activity_count' => $assignment->gradeBook->activities->count(),
+                    ];
                 }
             }
         }
@@ -183,13 +188,16 @@ class ClassroomCourseAssignments extends Component
             return;
         }
 
+        $gradeBookTransferCount = 0;
+        $autoReopenCount = 0;
+
         foreach ($classroomIds as $classroomId) {
-            $existingAssignments = ClassroomCourseAssignment::with('gradeBook:id,classroom_course_assignment_id')
+            $existingAssignments = ClassroomCourseAssignment::with([
+                'gradeBook:id,classroom_course_assignment_id,status,rejection_reason',
+            ])
                 ->where('classroom_id', $classroomId)
                 ->get()
-                ->keyBy(function ($item) {
-                    return $item->pensum_course_id.'_'.$item->unit;
-                });
+                ->keyBy(fn ($item) => $item->pensum_course_id.'_'.$item->unit);
 
             foreach ($this->assignments as $pensumCourseId => $units) {
                 foreach ($units as $unit => $professorId) {
@@ -197,10 +205,9 @@ class ClassroomCourseAssignments extends Component
                     $existing = $existingAssignments->get($key);
 
                     if (! $professorId) {
-                        // Si no hay profesor y la asignación existe pero tiene GradeBook, no se puede borrar
                         if ($existing) {
                             if ($existing->gradeBook) {
-                                continue; // No se puede dejar vacía una asignación con cuadro activo
+                                continue;
                             }
                             $oldProfId = $existing->professor_id;
                             $existing->delete();
@@ -215,9 +222,34 @@ class ClassroomCourseAssignments extends Component
                             $oldProfId = $existing->professor_id;
                             $existing->update(['professor_id' => $professorId]);
 
-                            $description = $existing->gradeBook
-                                ? 'Profesor modificado (cuadro de calificaciones transferido al nuevo profesor)'
-                                : 'Asignación de profesor modificada';
+                            if ($existing->gradeBook) {
+                                $gradeBookTransferCount++;
+                                $wasReopened = false;
+
+                                if ($existing->gradeBook->status === 'rejected') {
+                                    $existing->gradeBook->update([
+                                        'status' => 'open',
+                                        'rejection_reason' => null,
+                                    ]);
+
+                                    $existing->gradeBook->load([
+                                        'assignment.professor.user',
+                                        'assignment.pensumCourse.course',
+                                        'assignment.classroom.grade',
+                                        'assignment.classroom.section',
+                                    ]);
+
+                                    AuditService::gradeBookStatusChanged($existing->gradeBook, 'rejected', 'open');
+                                    $autoReopenCount++;
+                                    $wasReopened = true;
+                                }
+
+                                $description = $wasReopened
+                                    ? 'Profesor modificado (cuadro rechazado reabierto y transferido al nuevo profesor)'
+                                    : 'Profesor modificado (cuadro de calificaciones transferido al nuevo profesor)';
+                            } else {
+                                $description = 'Asignación de profesor modificada';
+                            }
 
                             $this->logAudit('updated', $existing, ['professor_id' => $oldProfId], ['professor_id' => $professorId], $description);
                         }
@@ -236,13 +268,21 @@ class ClassroomCourseAssignments extends Component
         }
 
         $total = count($classroomIds);
-        $msg = $total > 1
-            ? "Asignaciones guardadas en {$total} aulas."
-            : 'Asignaciones guardadas correctamente.';
+        $msgParts = $total > 1
+            ? ["Asignaciones guardadas en {$total} aulas."]
+            : ['Asignaciones guardadas correctamente.'];
+
+        if ($gradeBookTransferCount > 0) {
+            $msgParts[] = "{$gradeBookTransferCount} cuadro(s) transferido(s) al nuevo profesor.";
+        }
+
+        if ($autoReopenCount > 0) {
+            $msgParts[] = "{$autoReopenCount} cuadro(s) rechazado(s) reabierto(s) automáticamente.";
+        }
 
         $this->dispatch('showAlert', [
             'title' => '¡Éxito!',
-            'message' => $msg,
+            'message' => implode(' ', $msgParts),
             'type' => 'success',
         ]);
 

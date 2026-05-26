@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.8.3
+v1.8.4
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -228,7 +228,7 @@ if (! $professor) {
 | `Levels`, `Grades`, `Sections` | CRUD con paginación y búsqueda |
 | `Classrooms` | CRUD de aulas |
 | `Courses`, `Pensums` | Gestión de cursos y planes |
-| `ClassroomCourseAssignments` | Asignación profesor-curso |
+| `ClassroomCourseAssignments` | Asignación profesor-curso; soporta reemplazo de profesor en los tres escenarios (sin cuadro, cuadro vacío, cuadro con actividades/calificaciones); si el cuadro estaba `rejected` al transferir, se reabre automáticamente |
 | `AcademicConfigurations` | Config por ciclo escolar |
 | `GradeBooks` | Lista filtrable + aprobación/rechazo |
 | `GradeChangeRequests` | Gestión de solicitudes |
@@ -253,7 +253,7 @@ if (! $professor) {
 | Componente | Responsabilidad |
 |---|---|
 | `GradeBooks` | Edición completa de cuadros |
-| `GradeBookGrid` | Ingreso de calificaciones en formato cuadrícula tipo Excel (Alpine.js, guardado total sin round-trips) |
+| `GradeBookGrid` | Ingreso de calificaciones en formato cuadrícula tipo Excel (Alpine.js, guardado total sin round-trips); incluye Bloquear Cuadro, Reabrir, Clonar actividades a otra sección (requiere actividades normales = 100 pts) y descarga de PDF cuando el cuadro está aprobado |
 | `GradeChangeRequests` | Crear solicitudes de cambio |
 | `TakeAttendance` | Asistencia diaria + historial |
 | `Reports/*` | Reportes específicos del profesor |
@@ -564,3 +564,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.8.1 — Dos nuevos reportes de actividades admin: `Reports/ActivitySummary` (tabla pivot estudiantes×materias con hechas/total por curso, export Excel `ActivitySummaryExport` con encabezados coloreados y leyenda) + `Reports/StudentActivityDetail` (listado de alumnos con modal de detalle por curso, PDF detallado por alumno y PDF de toda la sección via `StudentActivityDetailPdfController`); menú "Actividades" con 3 ítems agrupados; seeders `ActivitySummaryPermissionSeeder` y `StudentActivityDetailPermissionSeeder` (SuperAdmin + Director)
 - v1.8.2 — Filtro `activity_type_id=1` aplicado consistentemente en `ActivitySummary` (Livewire + `ActivitySummaryExport`), `MissingActivities` (Livewire + `MissingActivitiesAdminExport`) y `StudentActivityDetail` (Livewire + `buildCourseData()`); PDF compacto de una sola hoja por alumno (`studentCompact()`) en `StudentActivityDetailPdfController` con `SetAutoPageBreak(false)` y tabla por curso; ruta `admin.reports.student-activity-detail.pdf.student-compact`; botón "PDF resumen" (amarillo, `fa-compress-alt`) en vista del listado
 - v1.8.3 — Filtro `filterMaxActivities` (1–10) en `Reports/StudentActivityDetail` para limitar actividades por curso en Livewire y todos los PDF (`max_activities` query param validado); nuevo PDF resumen por sección en carta con 2 alumnos/hoja (`classroomCompactCarta()`, ruta `admin.reports.student-activity-detail.pdf.classroom-compact-carta`); `renderStudentCompactBlock()` refactorizado de `bool $large` a `string $size` ('small'/'medium'/'large') para tres tiers de tamaño de fuente; nuevo componente Livewire `Profesor\GradeBookGrid` — cuadrícula tipo Excel con Alpine.js (estado cliente, guardado único vía `this.$wire.saveGrid()`), inputs `type="text" inputmode="decimal"` sin spinners, navegación Enter por columna, columnas sticky, soporte completo de mejoramiento, total en tiempo real; ruta `profesor.grade-books.grid`; botón de acceso desde `GradeBooks` por cuadro
+- v1.8.4 — `GradeBookGrid` enriquecido con Bloquear Cuadro (valida 100 pts normales, audita, notifica admins), Reabrir (para cuadros rechazados), Clonar actividades a otra sección (con restricción: actividades normales deben sumar 100 pts) y descarga de PDF cuando el cuadro está aprobado; misma restricción de 100 pts aplicada al clonar desde `GradeBooks`; `ClassroomCourseAssignments` mejorado para gestionar reemplazo de profesor: `lockedAssignments` ahora almacena `{status, activity_count}` en lugar de `true`, badges de color por estado del cuadro en la vista (verde/gris/azul/rojo con conteo de actividades y tooltip contextual), auto-reapertura de cuadros `rejected` al transferir con audit log via `AuditService`, mensaje de éxito diferenciado con conteo de transferencias y reaperturas
