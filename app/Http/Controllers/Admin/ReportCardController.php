@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Classroom;
 use App\Models\ClassroomCourseAssignment;
 use App\Models\Grade;
-use App\Models\GradeBookTotal;
 use App\Models\Pensum;
 use App\Models\PensumCourse;
 use App\Models\Student;
@@ -18,11 +17,11 @@ class ReportCardController extends Controller
     public function all(Request $request)
     {
         $request->validate([
-            'year'    => 'required',
-            'level'   => 'required|exists:levels,id',
-            'grade'   => 'required|exists:grades,id',
+            'year' => 'required',
+            'level' => 'required|exists:levels,id',
+            'grade' => 'required|exists:grades,id',
             'section' => 'required',
-            'unit'    => 'required|integer|min:1',
+            'unit' => 'required|integer|min:1',
         ]);
 
         $classroomQuery = Classroom::with(['level', 'grade', 'section'])
@@ -50,7 +49,9 @@ class ReportCardController extends Controller
                 ->where('year', $classroom->year)
                 ->first();
 
-            if (! $pensum) continue;
+            if (! $pensum) {
+                continue;
+            }
 
             $assignments = $this->loadAssignments($classroom->id);
 
@@ -61,31 +62,33 @@ class ReportCardController extends Controller
             }
         }
 
-        $grade    = Grade::find($request->grade);
+        $grade = Grade::find($request->grade);
         $safeName = preg_replace('/\s+/', '_', $grade->grade_name);
-        $name     = "Boletas_{$safeName}_" . date('dmY_His') . '.pdf';
+        $name = "Boletas_{$safeName}_".date('dmY_His').'.pdf';
 
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="' . $name . '"');
+            ->header('Content-Disposition', 'inline; filename="'.$name.'"');
     }
 
     public function student(Request $request)
     {
         $request->validate([
-            'student_id'   => 'required|exists:students,id',
+            'student_id' => 'required|exists:students,id',
             'classroom_id' => 'required|exists:classrooms,id',
-            'unit'         => 'required|integer|min:1',
+            'unit' => 'required|integer|min:1',
         ]);
 
-        $student  = Student::with('user')->findOrFail($request->student_id);
+        $student = Student::with('user')->findOrFail($request->student_id);
         $classroom = Classroom::with(['level', 'grade', 'section'])->findOrFail($request->classroom_id);
 
         $pensum = Pensum::where('grade_id', $classroom->grade_id)
             ->where('year', $classroom->year)
             ->first();
 
-        if (! $pensum) abort(404, 'No existe un pénsum para este grado y año.');
+        if (! $pensum) {
+            abort(404, 'No existe un pénsum para este grado y año.');
+        }
 
         // VALIDACIÓN DE STATUS ACTIVO
         $enrolled = $student->enrollments()
@@ -93,10 +96,12 @@ class ReportCardController extends Controller
             ->where('status', 'Activo')
             ->exists();
 
-        if (! $enrolled) abort(403, 'El estudiante no está inscrito o está retirado.');
+        if (! $enrolled) {
+            abort(403, 'El estudiante no está inscrito o está retirado.');
+        }
 
         $students = $this->getStudents($classroom->id)->pluck('id')->values();
-        $clave    = $students->search($student->id) + 1;
+        $clave = $students->search($student->id) + 1;
 
         $assignments = $this->loadAssignments($classroom->id);
 
@@ -108,11 +113,11 @@ class ReportCardController extends Controller
         $this->appendBoleta($pdf, $student, $classroom, $pensum, $assignments, (int) $request->unit, $clave);
 
         $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $student->user->full_full_name);
-        $name     = "Boleta_{$safeName}_" . date('dmY_His') . '.pdf';
+        $name = "Boleta_{$safeName}_".date('dmY_His').'.pdf';
 
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="' . $name . '"');
+            ->header('Content-Disposition', 'inline; filename="'.$name.'"');
     }
 
     // ==========================================
@@ -123,8 +128,7 @@ class ReportCardController extends Controller
     {
         return Student::whereHas(
             'enrollments',
-            fn($q) =>
-            $q->where('classroom_id', $classroomId)->where('status', 'Activo')
+            fn ($q) => $q->where('classroom_id', $classroomId)->where('status', 'Activo')
         )
             ->join('users', 'students.user_id', '=', 'users.id')
             ->orderBy('users.surname')
@@ -139,35 +143,35 @@ class ReportCardController extends Controller
     protected function loadAssignments(int $classroomId): \Illuminate\Support\Collection
     {
         return ClassroomCourseAssignment::with([
-            'gradeBook' => fn($q) => $q->where('status', 'approved')->with('totals'),
+            'gradeBook' => fn ($q) => $q->where('status', 'approved')->with('totals'),
         ])
             ->where('classroom_id', $classroomId)
             ->get()
-            ->keyBy(fn($a) => $a->pensum_course_id . '-' . $a->unit);
+            ->keyBy(fn ($a) => $a->pensum_course_id.'-'.$a->unit);
     }
 
     protected function appendBoleta(PDF $pdf, Student $student, Classroom $classroom, Pensum $pensum, \Illuminate\Support\Collection $assignments, int $unit, int $clave): void
     {
         $pdf->AddPage();
 
-        $levelName       = $classroom->level->level_name;
-        $gradeName       = $classroom->grade->grade_name;
-        $sectionName     = $classroom->section->section_name;
-        $year            = $classroom->year;
+        $levelName = $classroom->level->level_name;
+        $gradeName = $classroom->grade->grade_name;
+        $sectionName = $classroom->section->section_name;
+        $year = $classroom->year;
         $institutionName = env('APP_INSTITUTION_NAME', 'Institución Educativa');
-        $logoPath        = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/AdminLTELogo.png');
-        $usableWidth     = 195;
-        $romanNumerals   = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+        $logoPath = env('APP_INSTITUTION_LOGO_IMG', 'vendor/adminlte/dist/img/AdminLTELogo.png');
+        $usableWidth = 195;
+        $romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 
-        $totalUnits  = $pensum->units;
-        $numWidth    = 10;
-        $acumWidth   = 22;
-        $unitWidth   = 18;
+        $totalUnits = $pensum->units;
+        $numWidth = 10;
+        $acumWidth = 22;
+        $unitWidth = 18;
         $courseWidth = $usableWidth - $numWidth - ($totalUnits * $unitWidth) - $acumWidth;
 
         if ($courseWidth < 50) {
             $courseWidth = 50;
-            $unitWidth   = max(12, round(($usableWidth - $numWidth - $acumWidth - $courseWidth) / $totalUnits, 1));
+            $unitWidth = max(12, round(($usableWidth - $numWidth - $acumWidth - $courseWidth) / $totalUnits, 1));
             $courseWidth = $usableWidth - $numWidth - ($totalUnits * $unitWidth) - $acumWidth;
         }
 
@@ -182,7 +186,7 @@ class ReportCardController extends Controller
         $pdf->CellUTF8($usableWidth, 5, $pdf->dec('BOLETA DE CALIFICACIONES'), 0, 1, 'C');
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->SetX(7.5);
-        $pdf->CellUTF8($usableWidth, 5, $pdf->dec('CICLO ESCOLAR ' . $year), 0, 1, 'C');
+        $pdf->CellUTF8($usableWidth, 5, $pdf->dec('CICLO ESCOLAR '.$year), 0, 1, 'C');
         $pdf->Ln(2);
 
         $pdf->SetLineWidth(0.4);
@@ -232,7 +236,7 @@ class ReportCardController extends Controller
         $pdf->CellUTF8($courseWidth, $rowH, 'Curso', 1, 0, 'C', true);
 
         for ($u = 1; $u <= $totalUnits; $u++) {
-            $label = ($romanNumerals[$u - 1] ?? "U{$u}") . ' UNIDAD';
+            $label = ($romanNumerals[$u - 1] ?? "U{$u}").' UNIDAD';
             $pdf->CellUTF8($unitWidth, $rowH, $pdf->dec($label), 1, 0, 'C', true);
         }
 
@@ -263,7 +267,7 @@ class ReportCardController extends Controller
             $totalPct = 0;
 
             for ($u = 1; $u <= $totalUnits; $u++) {
-                $key = $pc->id . '-' . $u;
+                $key = $pc->id.'-'.$u;
                 $assignment = $assignments->get($key);
                 $score = '';
 
@@ -280,7 +284,11 @@ class ReportCardController extends Controller
                     }
                 }
                 $pdf->SetFillColor(...$fillBg);
+                if ($score !== '' && (int) $score < 60) {
+                    $pdf->SetTextColor(156, 0, 6);
+                }
                 $pdf->CellUTF8($unitWidth, $rowH, $score, 1, 0, 'C', true);
+                $pdf->SetTextColor(0, 0, 0);
             }
 
             $acumValue = '';
@@ -292,7 +300,9 @@ class ReportCardController extends Controller
             }
 
             $pdf->SetFillColor(198, 239, 206);
-            if ($num % 2 === 0) $pdf->SetFillColor(180, 220, 185);
+            if ($num % 2 === 0) {
+                $pdf->SetFillColor(180, 220, 185);
+            }
             $pdf->SetFont('Arial', 'B', 8);
 
             if ($acumValue !== '' && (int) $acumValue < 60) {
