@@ -141,11 +141,10 @@
                             <select wire:model="civilStatus"
                                     class="form-control form-control-sm @error('civilStatus') is-invalid @enderror">
                                 <option value="">— Seleccionar —</option>
-                                <option>Soltero/a</option>
-                                <option>Casado/a</option>
-                                <option>Divorciado/a</option>
-                                <option>Viudo/a</option>
-                                <option>Unión de hecho</option>
+                                <option value="Soltero">Soltero(a)</option>
+                                <option value="Casado">Casado(a)</option>
+                                <option value="Divorciado">Divorciado(a)</option>
+                                <option value="Viudo">Viudo(a)</option>
                             </select>
                             @error('civilStatus')
                                 <div class="invalid-feedback">{{ $message }}</div>
