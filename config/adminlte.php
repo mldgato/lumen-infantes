@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'title' => 'Clemente Martínez Rojas',
+    'title' => env('APP_INSTITUTION_NAME', 'Instituto'),
     'title_prefix' => '',
     'title_postfix' => '',
 
