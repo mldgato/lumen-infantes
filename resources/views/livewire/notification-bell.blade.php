@@ -6,7 +6,7 @@
         @endif
     </a>
 
-    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="overflow: hidden;">
 
         {{-- Header --}}
         <span class="dropdown-item dropdown-header">
@@ -15,37 +15,36 @@
 
         <div class="dropdown-divider"></div>
 
-        {{-- Lista de notificaciones --}}
-        @forelse ($notifications as $notification)
-            @php
-                $data    = $notification->data;
-                $isRead  = ! is_null($notification->read_at);
-                $color   = $data['color'] ?? 'secondary';
-                $icon    = $data['icon']  ?? 'fas fa-bell';
-                $title   = $data['title'] ?? '';
-                $message = $data['message'] ?? '';
-                $url     = $data['url']   ?? '#';
-            @endphp
-            <a href="{{ $url }}"
-               wire:click.prevent="markRead('{{ $notification->id }}')"
-               class="dropdown-item {{ $isRead ? '' : 'font-weight-bold' }}"
-               style="{{ $isRead ? 'opacity:.75' : '' }}">
-                <i class="{{ $icon }} mr-2 text-{{ $color }}"></i>
-                <span class="d-inline-block" style="max-width:260px; white-space:normal; vertical-align:middle;">
-                    <span class="d-block text-sm">{{ $title }}</span>
-                    <span class="d-block text-xs text-muted">{{ $message }}</span>
-                    <span class="d-block text-xs text-muted mt-1">
-                        <i class="far fa-clock mr-1"></i>{{ $notification->created_at->diffForHumans() }}
+        {{-- Lista de notificaciones con scroll --}}
+        <div style="max-height: 255px; overflow-y: auto; overflow-x: hidden;">
+            @forelse ($notifications as $notification)
+                @php
+                    $data    = $notification->data;
+                    $color   = $data['color'] ?? 'secondary';
+                    $icon    = $data['icon']  ?? 'fas fa-bell';
+                    $title   = $data['title'] ?? '';
+                    $message = $data['message'] ?? '';
+                @endphp
+                <a href="#"
+                   wire:click.prevent="markReadAndRedirect('{{ $notification->id }}')"
+                   class="dropdown-item">
+                    <i class="{{ $icon }} mr-2 text-{{ $color }}"></i>
+                    <span class="d-inline-block" style="max-width:260px; white-space:normal; vertical-align:middle;">
+                        <span class="d-block text-sm">{{ $title }}</span>
+                        <span class="d-block text-xs text-muted">{{ $message }}</span>
+                        <span class="d-block text-xs text-muted mt-1">
+                            <i class="far fa-clock mr-1"></i>{{ $notification->created_at->diffForHumans() }}
+                        </span>
                     </span>
+                </a>
+                <div class="dropdown-divider"></div>
+            @empty
+                <span class="dropdown-item text-center text-muted text-sm py-2">
+                    <i class="far fa-bell-slash mr-1"></i> Sin notificaciones
                 </span>
-            </a>
-            <div class="dropdown-divider"></div>
-        @empty
-            <span class="dropdown-item text-center text-muted text-sm py-2">
-                <i class="far fa-bell-slash mr-1"></i> Sin notificaciones
-            </span>
-            <div class="dropdown-divider"></div>
-        @endforelse
+                <div class="dropdown-divider"></div>
+            @endforelse
+        </div>
 
         {{-- Footer --}}
         @if ($unreadCount > 0)
