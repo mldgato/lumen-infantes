@@ -362,6 +362,12 @@ return [
                     'icon' => 'fas fa-fw fa-id-badge',
                     'can' => 'admin.users.index',
                 ],
+                [
+                    'text' => 'Profesores',
+                    'route' => 'admin.professors.index',
+                    'icon' => 'fas fa-fw fa-chalkboard-teacher',
+                    'can' => 'admin.professors.index',
+                ],
             ],
         ],
 

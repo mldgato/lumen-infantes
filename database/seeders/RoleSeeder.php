@@ -29,6 +29,9 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Listado de usuarios',
         ])->syncRoles([$role1, $role2]);
 
+        Permission::create(['name' => 'admin.professors.index', 'description' => 'Administración - Listado de profesores'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.professors.edit',  'description' => 'Administración - Editar datos laborales de profesores'])->syncRoles([$role1, $role2]);
+
         Permission::create([
             'name' => 'admin.students.index',
             'description' => 'Administración - Listado de estudiantes',
