@@ -613,6 +613,24 @@ return [
                     'icon' => 'fas fa-fw fa-exclamation-triangle',
                     'can' => 'admin.reports.students-at-risk',
                 ],
+                [
+                    'text' => 'Comparativo por Unidad',
+                    'route' => 'admin.reports.grade-progress-comparison.index',
+                    'icon' => 'fas fa-fw fa-chart-bar',
+                    'can' => 'admin.reports.grade-progress-comparison',
+                ],
+                [
+                    'text' => 'Historial de Estudiante',
+                    'route' => 'admin.reports.student-history.index',
+                    'icon' => 'fas fa-fw fa-history',
+                    'can' => 'admin.reports.student-history',
+                ],
+                [
+                    'text' => 'Carga Docente',
+                    'route' => 'admin.reports.professor-workload.index',
+                    'icon' => 'fas fa-fw fa-briefcase',
+                    'can' => 'admin.reports.professor-workload',
+                ],
             ],
         ],
 

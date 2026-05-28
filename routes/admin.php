@@ -228,3 +228,15 @@ Route::get('/reports/grade-progress/index', fn () => view('admin.reports.grade-p
 Route::get('/reports/students-at-risk', fn () => view('admin.reports.students-at-risk.index'))
     ->name('admin.reports.students-at-risk.index')
     ->middleware('can:admin.reports.students-at-risk');
+
+Route::get('/reports/grade-progress-comparison', fn () => view('admin.reports.grade-progress-comparison.index'))
+    ->name('admin.reports.grade-progress-comparison.index')
+    ->middleware('can:admin.reports.grade-progress-comparison');
+
+Route::get('/reports/student-history', fn () => view('admin.reports.student-history.index'))
+    ->name('admin.reports.student-history.index')
+    ->middleware('can:admin.reports.student-history');
+
+Route::get('/reports/professor-workload', fn () => view('admin.reports.professor-workload.index'))
+    ->name('admin.reports.professor-workload.index')
+    ->middleware('can:admin.reports.professor-workload');

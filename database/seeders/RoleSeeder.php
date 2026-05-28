@@ -326,7 +326,10 @@ class RoleSeeder extends Seeder
 
         Permission::create(['name' => 'admin.reports.grade-progress', 'description' => 'Administración - Reporte de avance de ingreso de calificaciones'])->syncRoles([$role1, $role2]);
 
-        Permission::create(['name' => 'admin.reports.students-at-risk', 'description' => 'Administración - Reporte de estudiantes en riesgo de reprobación'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.students-at-risk',          'description' => 'Administración - Reporte de estudiantes en riesgo de reprobación'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.grade-progress-comparison', 'description' => 'Administración - Comparativo de rendimiento entre unidades'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.student-history',           'description' => 'Administración - Historial multi-año de calificaciones por estudiante'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.professor-workload',        'description' => 'Administración - Carga docente por profesor'])->syncRoles([$role1, $role2]);
 
         // Dashboard panels
         Permission::create(['name' => 'dashboard.panel.stats-general',                'description' => 'Dashboard - KPI: estudiantes, profesores, aulas'])->syncRoles([$role1, $role2, $role5]);
