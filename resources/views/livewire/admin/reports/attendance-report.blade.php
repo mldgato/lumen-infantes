@@ -116,7 +116,8 @@
     @if ($assignmentId && $assignment)
 
         {{-- Encabezado del resultado --}}
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        {{-- Encabezado del resultado --}}
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap" style="gap:.5rem">
             <div>
                 <span class="text-muted text-sm">Mostrando asistencia de:</span>
                 <strong class="ml-2">
@@ -131,62 +132,144 @@
                     {{ $assignment->professor->user->name }}
                 </span>
             </div>
-            <button wire:click="openPdfModal" class="btn btn-sm btn-danger shadow-sm">
-                <i class="fas fa-file-pdf"></i> Generar PDF
-            </button>
+            <div class="d-flex align-items-center" style="gap:.5rem">
+                {{-- Toggle de vista --}}
+                <div class="btn-group btn-group-sm">
+                    <button wire:click="switchView('records')"
+                        class="btn {{ $viewMode === 'records' ? 'btn-success' : 'btn-outline-success' }}">
+                        <i class="fas fa-calendar-day mr-1"></i> Sesiones
+                    </button>
+                    <button wire:click="switchView('summary')"
+                        class="btn {{ $viewMode === 'summary' ? 'btn-primary' : 'btn-outline-primary' }}">
+                        <i class="fas fa-chart-bar mr-1"></i> Resumen
+                    </button>
+                </div>
+                <button wire:click="openPdfModal" class="btn btn-sm btn-danger shadow-sm">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+            </div>
         </div>
 
-        <div class="card card-outline card-success">
-            <div class="card-header">
-                <h5 class="m-0 text-bold text-secondary">
-                    <i class="fas fa-history mr-1"></i> Sesiones Registradas
-                    <span class="badge badge-secondary ml-2">{{ $attendanceRecords->total() }} sesión(es)</span>
-                </h5>
-            </div>
-            <div class="card-body p-0">
-                @if ($attendanceRecords->count() > 0)
-                    <table class="table table-hover table-striped mb-0">
-                        <thead class="thead-light">
-                            <tr>
-                                <th>Fecha</th>
-                                <th class="text-center text-success">Presentes</th>
-                                <th class="text-center text-danger">Ausentes</th>
-                                <th class="text-center">Sin registro</th>
-                                <th class="text-center">Total alumnos</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($attendanceRecords as $record)
-                                @php
-                                    $present = $record->entries->where('present', true)->count();
-                                    $absent = $record->entries->where('present', false)->count();
-                                    $recorded = $record->entries->count();
-                                    $noRecord = max(0, $totalStudents - $recorded);
-                                @endphp
+        {{-- VISTA: SESIONES --}}
+        @if ($viewMode === 'records')
+            <div class="card card-outline card-success">
+                <div class="card-header">
+                    <h5 class="m-0 text-bold text-secondary">
+                        <i class="fas fa-history mr-1"></i> Sesiones Registradas
+                        <span class="badge badge-secondary ml-2">{{ $attendanceRecords->total() }} sesión(es)</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if ($attendanceRecords->count() > 0)
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="thead-light">
                                 <tr>
-                                    <td>
-                                        <i class="fas fa-calendar-day text-muted mr-1"></i>
-                                        {{ $record->date->format('d/m/Y') }}
-                                    </td>
-                                    <td class="text-center font-weight-bold text-success">{{ $present }}</td>
-                                    <td class="text-center font-weight-bold text-danger">{{ $absent }}</td>
-                                    <td class="text-center text-muted">{{ $noRecord }}</td>
-                                    <td class="text-center">{{ $totalStudents }}</td>
+                                    <th>Fecha</th>
+                                    <th class="text-center text-success">Presentes</th>
+                                    <th class="text-center text-danger">Ausentes</th>
+                                    <th class="text-center">Sin registro</th>
+                                    <th class="text-center">Total alumnos</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                    <div class="px-3 py-2">
-                        {{ $attendanceRecords->links() }}
-                    </div>
-                @else
-                    <div class="p-4 text-center text-muted">
-                        <i class="fas fa-calendar-times fa-2x mb-2"></i><br>
-                        No hay registros de asistencia para esta asignación.
-                    </div>
-                @endif
+                            </thead>
+                            <tbody>
+                                @foreach ($attendanceRecords as $record)
+                                    @php
+                                        $present  = $record->entries->where('present', true)->count();
+                                        $absent   = $record->entries->where('present', false)->count();
+                                        $recorded = $record->entries->count();
+                                        $noRecord = max(0, $totalStudents - $recorded);
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-calendar-day text-muted mr-1"></i>
+                                            {{ $record->date->format('d/m/Y') }}
+                                        </td>
+                                        <td class="text-center font-weight-bold text-success">{{ $present }}</td>
+                                        <td class="text-center font-weight-bold text-danger">{{ $absent }}</td>
+                                        <td class="text-center text-muted">{{ $noRecord }}</td>
+                                        <td class="text-center">{{ $totalStudents }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        <div class="px-3 py-2">{{ $attendanceRecords->links() }}</div>
+                    @else
+                        <div class="p-4 text-center text-muted">
+                            <i class="fas fa-calendar-times fa-2x mb-2"></i><br>
+                            No hay registros de asistencia para esta asignación.
+                        </div>
+                    @endif
+                </div>
             </div>
-        </div>
+        @endif
+
+        {{-- VISTA: RESUMEN POR ALUMNO --}}
+        @if ($viewMode === 'summary')
+            <div class="card card-outline card-primary">
+                <div class="card-header d-flex align-items-center">
+                    <h5 class="m-0 text-bold flex-grow-1">
+                        <i class="fas fa-chart-bar mr-1"></i> Resumen de Asistencia por Alumno
+                        <span class="badge badge-primary ml-2">{{ $studentSummary->count() }} alumnos</span>
+                    </h5>
+                    <div class="d-flex align-items-center ml-3" style="gap:.4rem">
+                        <label class="text-sm mb-0 text-muted">Umbral de riesgo:</label>
+                        <div class="input-group input-group-sm" style="width:100px">
+                            <input type="number" wire:model.live="attendanceThreshold"
+                                class="form-control form-control-sm text-center"
+                                min="1" max="100" step="1">
+                            <div class="input-group-append"><span class="input-group-text">%</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if ($studentSummary->count() > 0)
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th style="width:30px">#</th>
+                                    <th>Estudiante</th>
+                                    <th class="text-center" style="width:80px">Clases</th>
+                                    <th class="text-center text-success" style="width:80px">Presente</th>
+                                    <th class="text-center text-danger" style="width:80px">Ausente</th>
+                                    <th class="text-center" style="width:100px">% Asistencia</th>
+                                    <th class="text-center" style="width:80px">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($studentSummary as $i => $row)
+                                    <tr class="{{ $row['at_risk'] ? 'table-danger' : '' }}">
+                                        <td class="text-muted">{{ $i + 1 }}</td>
+                                        <td>{{ $row['name'] }}</td>
+                                        <td class="text-center">{{ $row['total_days'] }}</td>
+                                        <td class="text-center text-success font-weight-bold">{{ $row['present_days'] }}</td>
+                                        <td class="text-center text-danger font-weight-bold">{{ $row['absent_days'] }}</td>
+                                        <td class="text-center">
+                                            <span class="font-weight-bold {{ $row['at_risk'] ? 'text-danger' : 'text-success' }}">
+                                                {{ $row['total_days'] > 0 ? $row['percentage'] . '%' : '—' }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @if ($row['total_days'] === 0)
+                                                <span class="badge badge-secondary">Sin datos</span>
+                                            @elseif ($row['at_risk'])
+                                                <span class="badge badge-danger"><i class="fas fa-exclamation-triangle mr-1"></i>En riesgo</span>
+                                            @else
+                                                <span class="badge badge-success"><i class="fas fa-check mr-1"></i>Regular</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <div class="p-4 text-center text-muted">
+                            <i class="fas fa-users fa-2x mb-2"></i><br>
+                            No hay estudiantes activos para esta asignación.
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
     @elseif ($filterUnit !== '')
         <div class="alert alert-warning">
             <i class="fas fa-exclamation-triangle mr-1"></i>

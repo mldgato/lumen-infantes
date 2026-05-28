@@ -29,6 +29,12 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Listado de usuarios',
         ])->syncRoles([$role1, $role2]);
 
+        Permission::create(['name' => 'admin.professors.index', 'description' => 'Administración - Listado de profesores'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.professors.edit',  'description' => 'Administración - Editar datos laborales de profesores'])->syncRoles([$role1, $role2]);
+
+        Permission::create(['name' => 'admin.guardians.index', 'description' => 'Administración - Listado de guardianes'])->syncRoles([$role1, $role2, $role5]);
+        Permission::create(['name' => 'admin.guardians.edit',  'description' => 'Administración - Editar datos de guardianes'])->syncRoles([$role1, $role2]);
+
         Permission::create([
             'name' => 'admin.students.index',
             'description' => 'Administración - Listado de estudiantes',
@@ -319,6 +325,11 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'admin.reports.attendance',     'description' => 'Administración - Reporte de Asistencia'])->syncRoles([$role1, $role2]);
 
         Permission::create(['name' => 'admin.reports.grade-progress', 'description' => 'Administración - Reporte de avance de ingreso de calificaciones'])->syncRoles([$role1, $role2]);
+
+        Permission::create(['name' => 'admin.reports.students-at-risk',          'description' => 'Administración - Reporte de estudiantes en riesgo de reprobación'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.grade-progress-comparison', 'description' => 'Administración - Comparativo de rendimiento entre unidades'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.student-history',           'description' => 'Administración - Historial multi-año de calificaciones por estudiante'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.professor-workload',        'description' => 'Administración - Carga docente por profesor'])->syncRoles([$role1, $role2]);
 
         // Dashboard panels
         Permission::create(['name' => 'dashboard.panel.stats-general',                'description' => 'Dashboard - KPI: estudiantes, profesores, aulas'])->syncRoles([$role1, $role2, $role5]);

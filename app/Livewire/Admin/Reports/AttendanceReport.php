@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Reports;
 
+use App\Models\AttendanceEntry;
 use App\Models\AttendanceRecord;
 use App\Models\Classroom;
 use App\Models\ClassroomCourseAssignment;
@@ -33,6 +34,11 @@ class AttendanceReport extends Component
     public string $filterUnit = '';
 
     public ?int $assignmentId = null;
+
+    // Vista: 'records' | 'summary'
+    public string $viewMode = 'records';
+
+    public int $attendanceThreshold = 80;
 
     // Modal PDF
     public bool $showPdfModal = false;
@@ -85,9 +91,16 @@ class AttendanceReport extends Component
     public function updatedFilterUnit(): void
     {
         $this->assignmentId = null;
+        $this->viewMode = 'records';
         if ($this->filterUnit !== '') {
             $this->resolveAssignment();
         }
+        $this->resetPage();
+    }
+
+    public function switchView(string $mode): void
+    {
+        $this->viewMode = $mode;
         $this->resetPage();
     }
 
@@ -234,6 +247,42 @@ class AttendanceReport extends Component
             )->count()
             : 0;
 
+        // Resumen por alumno
+        $studentSummary = collect();
+        if ($this->assignmentId && $this->viewMode === 'summary') {
+            $totalDays = AttendanceRecord::where('classroom_course_assignment_id', $this->assignmentId)->count();
+
+            $studentSummary = Student::whereHas(
+                'enrollments',
+                fn ($q) => $q->where('classroom_id', $assignment->classroom_id)->where('status', 'Activo')
+            )
+                ->join('users', 'students.user_id', '=', 'users.id')
+                ->orderBy('users.surname')
+                ->orderBy('users.second_surname')
+                ->orderBy('users.first_name')
+                ->orderBy('users.middle_name')
+                ->select('students.*')
+                ->with('user')
+                ->get()
+                ->map(function (Student $student) use ($totalDays) {
+                    $presentDays = AttendanceEntry::where('student_id', $student->id)
+                        ->where('present', true)
+                        ->whereHas('record', fn ($q) => $q->where('classroom_course_assignment_id', $this->assignmentId))
+                        ->count();
+
+                    $pct = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0.0;
+
+                    return [
+                        'name' => $student->user->full_full_name,
+                        'total_days' => $totalDays,
+                        'present_days' => $presentDays,
+                        'absent_days' => $totalDays - $presentDays,
+                        'percentage' => $pct,
+                        'at_risk' => $totalDays > 0 && $pct < $this->attendanceThreshold,
+                    ];
+                });
+        }
+
         return view('livewire.admin.reports.attendance-report', compact(
             'years',
             'levels',
@@ -244,6 +293,7 @@ class AttendanceReport extends Component
             'assignment',
             'attendanceRecords',
             'totalStudents',
+            'studentSummary',
         ));
     }
 }

@@ -22,6 +22,8 @@ use App\Http\Controllers\Profesor\AttendancePdfController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
+Route::get('professors', fn () => view('admin.professors.index'))->name('admin.professors.index')->middleware('can:admin.professors.index');
+Route::get('guardians', fn () => view('admin.guardians.index'))->name('admin.guardians.index')->middleware('can:admin.guardians.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
 Route::get('students/{student}/pdf', [StudentPdfController::class, 'generate'])->name('admin.students.pdf');
 
@@ -200,6 +202,10 @@ Route::get('/audit', fn () => view('admin.audit.index'))
     ->name('admin.audit.index')
     ->middleware('can:admin.audit.index');
 
+Route::get('/audit/export', [ReportController::class, 'auditExport'])
+    ->name('admin.audit.export')
+    ->middleware('can:admin.audit.index');
+
 Route::post('user/loginUser', [UserController::class, 'loginUser'])
     ->name('admin.user.loginUser');
 
@@ -222,3 +228,19 @@ Route::get('/reports/attendance/pdf', [AttendancePdfController::class, 'adminGen
 Route::get('/reports/grade-progress/index', fn () => view('admin.reports.grade-progress.index'))
     ->name('admin.reports.grade-progress.index')
     ->middleware('can:admin.reports.grade-progress');
+
+Route::get('/reports/students-at-risk', fn () => view('admin.reports.students-at-risk.index'))
+    ->name('admin.reports.students-at-risk.index')
+    ->middleware('can:admin.reports.students-at-risk');
+
+Route::get('/reports/grade-progress-comparison', fn () => view('admin.reports.grade-progress-comparison.index'))
+    ->name('admin.reports.grade-progress-comparison.index')
+    ->middleware('can:admin.reports.grade-progress-comparison');
+
+Route::get('/reports/student-history', fn () => view('admin.reports.student-history.index'))
+    ->name('admin.reports.student-history.index')
+    ->middleware('can:admin.reports.student-history');
+
+Route::get('/reports/professor-workload', fn () => view('admin.reports.professor-workload.index'))
+    ->name('admin.reports.professor-workload.index')
+    ->middleware('can:admin.reports.professor-workload');

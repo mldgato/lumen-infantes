@@ -163,6 +163,99 @@
 
         </div>
 
+        {{-- INSCRIPCIONES RECIENTES --}}
+        <div class="row mb-3">
+            <div class="col-lg-8 col-md-12 mb-3 mb-lg-0">
+                <div class="card card-outline card-primary shadow-sm h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <h5 class="card-title m-0 text-bold flex-grow-1">
+                            <i class="fas fa-user-plus mr-1 text-primary"></i> Inscripciones Recientes
+                            <span class="badge badge-primary ml-1">{{ date('Y') }}</span>
+                        </h5>
+                        @can('admin.students.enrollments.index')
+                            <a href="{{ route('admin.students.enrollments.index') }}"
+                                class="btn btn-xs btn-outline-primary ml-2">
+                                <i class="fas fa-external-link-alt mr-1"></i> Ver todas
+                            </a>
+                        @endcan
+                    </div>
+                    <div class="card-body p-0">
+                        @if (empty($recentEnrollments))
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                <small>No hay inscripciones registradas este año.</small>
+                            </div>
+                        @else
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Estudiante</th>
+                                        <th style="width:110px">Grado</th>
+                                        <th style="width:80px">Sección</th>
+                                        <th style="width:90px">Estado</th>
+                                        <th style="width:100px">Hace</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($recentEnrollments as $enrollment)
+                                        <tr>
+                                            <td class="text-sm">{{ $enrollment['student'] }}</td>
+                                            <td class="text-sm">{{ $enrollment['grade'] }}</td>
+                                            <td class="text-sm">{{ $enrollment['section'] }}</td>
+                                            <td>
+                                                @if ($enrollment['status'] === 'Activo')
+                                                    <span class="badge badge-success">{{ $enrollment['status'] }}</span>
+                                                @elseif ($enrollment['status'] === 'Retirado')
+                                                    <span class="badge badge-danger">{{ $enrollment['status'] }}</span>
+                                                @else
+                                                    <span class="badge badge-secondary">{{ $enrollment['status'] }}</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-sm text-muted">{{ $enrollment['created'] }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-12">
+                <div class="card card-outline card-secondary shadow-sm h-100">
+                    <div class="card-header">
+                        <h5 class="card-title m-0 text-bold">
+                            <i class="fas fa-chart-pie mr-1 text-secondary"></i> Estado de Inscripciones
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-circle text-success mr-2"></i> Activos</span>
+                                <span class="badge badge-success badge-pill">{{ $enrollmentStatusCounts['Activo'] ?? 0 }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-circle text-secondary mr-2"></i> Inactivos</span>
+                                <span class="badge badge-secondary badge-pill">{{ $enrollmentStatusCounts['Inactivo'] ?? 0 }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-circle text-danger mr-2"></i> Retirados</span>
+                                <span class="badge badge-danger badge-pill">{{ $enrollmentStatusCounts['Retirado'] ?? 0 }}</span>
+                            </li>
+                        </ul>
+                        @can('admin.students.enrollments.index')
+                            <div class="p-3">
+                                <a href="{{ route('admin.students.enrollments.index') }}"
+                                    class="btn btn-block btn-primary btn-sm">
+                                    <i class="fas fa-user-plus mr-1"></i> Inscribir Estudiante
+                                </a>
+                            </div>
+                        @endcan
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- CHARTS --}}
         <div class="row">
             <div class="col-lg-12 mb-3">

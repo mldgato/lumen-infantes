@@ -72,7 +72,7 @@ class Guardians extends Component
         ]);
     }
 
-    public function render()
+    public function render(): \Illuminate\View\View
     {
         $guardians = $this->readyToLoad
             ? Guardian::withCount('students')

@@ -95,7 +95,11 @@
                     <span class="badge badge-secondary ml-1">{{ $logs->total() }}</span>
                 @endif
             </h6>
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <button wire:click="export" class="btn btn-sm btn-outline-success mr-2"
+                    title="Exportar a Excel con los filtros aplicados">
+                    <i class="fas fa-file-excel mr-1"></i> Excel
+                </button>
                 <span class="text-sm mr-2">Mostrar</span>
                 <select wire:model.live="cant" class="form-control form-control-sm w-auto">
                     <option value="25">25</option>
@@ -299,6 +303,7 @@
         <script>
             document.addEventListener('livewire:init', () => {
                 Livewire.on('openAuditDetailModal', () => $('#AuditDetailModal').modal('show'));
+                Livewire.on('downloadAuditLog', (data) => { window.location.href = data[0].url; });
             });
         </script>
     @endpush

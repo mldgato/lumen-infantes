@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Livewire\Forms\ProfessorForm;
 use App\Models\ClassroomCourseAssignment;
 use App\Models\Professor;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -75,8 +76,10 @@ class Professors extends Component
         ]);
     }
 
-    public function render()
+    public function render(): \Illuminate\View\View
     {
+        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
+
         $professors = $this->readyToLoad
             ? Professor::with('user')
                 ->join('users', 'professors.user_id', '=', 'users.id')
@@ -84,6 +87,7 @@ class Professors extends Component
                     $q->where('users.name', 'like', '%'.$this->search.'%')
                         ->orWhere('users.email', 'like', '%'.$this->search.'%');
                 })
+                ->whereHas('courseAssignments.classroom', fn ($q) => $q->whereIn('level_id', $userLevelIds))
                 ->orderBy('users.name')
                 ->select('professors.*')
                 ->paginate((int) $this->cant)
@@ -97,6 +101,7 @@ class Professors extends Component
                 'pensumCourse.course', 'gradeBook',
             ])
                 ->where('professor_id', $this->selectedProfessorId)
+                ->whereHas('classroom', fn ($q) => $q->whereIn('level_id', $userLevelIds))
                 ->get()
                 ->groupBy(fn ($a) => $a->classroom->year)
                 ->sortKeysDesc();
