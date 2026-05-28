@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.8.2
+v1.9.0
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -243,8 +243,14 @@ if (! $professor) {
 | `Reports/MissingActivities` | Actividades no entregadas (tipo id=1) |
 | `Reports/ActivitySummary` | Resumen pivot actividades por estudiante y materia |
 | `Reports/StudentActivityDetail` | Detalle individual de actividades por alumno |
-| `Reports/AttendanceReport` | Reporte de asistencia |
+| `Reports/AttendanceReport` | Reporte de asistencia con toggle Sesiones/Resumen y % por alumno |
+| `Reports/StudentsAtRisk` | Estudiantes con promedio ponderado < umbral (default 60%) |
+| `Reports/GradeProgressComparison` | Promedio por unidad por curso en un aula |
+| `Reports/StudentHistory` | Historial multi-año de calificaciones ponderadas por alumno |
+| `Reports/ProfessorWorkload` | Carga docente: asignaciones, aulas y alumnos por profesor |
 | `Reports/ProfessorCoursesExcel` | Cursos por profesor |
+| `Professors` | Listado filtrable de profesores con edición de datos laborales y detalle de cursos |
+| `Guardians` | Listado de guardianes con edición y vista de estudiantes relacionados |
 | `Roles/ShowRoles` | Gestión de roles (Spatie) |
 | `Permissions/ShowPermissions` | Gestión de permisos |
 | `Students/EnrollmentList` | Listado de inscripciones |
@@ -354,6 +360,7 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
 - `StudentListExport`, `ProfessorCoursesExport`
 - `MissingActivitiesAdminExport`, `MissingActivitiesProfesorExport` — actividades no entregadas (filtrado a `activity_type_id=1`)
 - `ActivitySummaryExport` — tabla pivot estudiantes×materias con columnas hechas/total por curso; encabezados coloreados y leyenda de colores; `WithCustomStartCell` + `startCell()='A5'`
+- `AuditLogExport` — exportación Excel del registro de auditoría con los mismos filtros activos del componente `Admin/AuditLog`; botón "Exportar Excel" en la cabecera
 
 **Imports (app/Imports/):**
 - `ActivityScoresImport` — convierte Excel a array (validación de seguridad en Livewire)
@@ -511,28 +518,29 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 ### Bug / Deuda técnica
 - Resolver codificación UTF-8 en correos (workaround actual: editar `.env` directamente en servidor con UTF-8)
 
-### Prioridad alta
-- **Filtrado de niveles por usuario** — ✅ Completado en v1.7.2–v1.7.5. El patrón `auth()->user()->levels()->pluck('levels.id')` se aplica en todos los componentes: `EnrollmentList`, `Classrooms`, `GradeBooks`, `ClassroomCourseAssignments`, `Students/StudentList`, `GradeChangeRequests` y todos los reportes (`MissingActivities`, `CuadrosClassroom`, `StudentListExcel`, `SabanaPromedio`, `StudentList`, `ReportCards`, `SabanaGeneral`, `SabanaUnidad`, `AttendanceReport`, `GradeProgress`).
-  - **Nota:** `Users/UserList.php` usa `Level::orderBy` para los checkboxes de asignación — ese NO debe filtrarse, debe mostrar todos los niveles.
-- **Componente `Admin/Professors`** — No existe gestión especializada de profesores. Crear componente con: listado filtrable, edición de datos docentes, vista de cursos asignados por año e historial de asignaciones. Actualmente los profesores solo se gestionan a través del componente genérico de usuarios.
-- **Componente `Admin/Guardians`** — Los guardianes solo se administran dentro del flujo de inscripción. Crear componente independiente con búsqueda, edición y vista de todos los estudiantes relacionados con cada guardián (relación M:M con pivot `relationship_type`).
+### Bug / Deuda técnica pendiente
 - **Campo `supervised_practice` en `Grade` — sin usar** — La columna existe en la BD y el modelo pero no se referencia en ningún componente ni vista. Implementar lógica para prácticas supervisadas o eliminar el campo.
-- **Exportación del módulo de Auditoría** — `Admin/AuditLog` tiene filtros completos pero no permite exportar a Excel/PDF. Agregar exportación para reportes a directivos.
+- **Campo `is_official` en `PensumCourse`** — ✅ Usado en `StudentsAtRisk`, `GradeProgressComparison`, `StudentHistory` y `StudentSummary` para filtrar cursos oficiales. Agregar badge/filtro visual en el CRUD de `Admin/Pensums` si se desea.
 
-### Prioridad media
-- **Campo `is_official` en `PensumCourse` — sin usar** — Existe en migración y modelo pero no aparece en ninguna vista ni filtro. Implementar badge/filtro en el componente `Admin/Pensums` o eliminar el campo.
-- **Dashboard de Secretaria — accesos rápidos** — Los paneles de cumpleaños y estadísticas ya están. Agregar paneles: inscripciones recientes por estado y acceso rápido a inscripción de estudiante.
-- **CRUD de `ActivityType`** — ✅ Completado en v1.7.6. Componente `Admin/ActivityTypes` con búsqueda, paginación, modal create/edit, protección de eliminación (si está en uso en config o cuadros), permiso `admin.activity-types.*`, ruta `/admin/activity-types`, menú bajo Gestión Académica.
-- **Notificación: cuadro en `locked` sin revisar** — Notificar al admin cuando un cuadro lleva N días bloqueado sin ser aprobado/rechazado.
-- **Notificación: cambio de rol asignado a usuario** — Notificar al usuario cuando se le asigna o revoca un rol.
-- **Reporte: Estudiantes en riesgo de reprobación** — Con los datos de `GradeBookTotal` calcular qué estudiantes tienen nota < 60 en alguna unidad y generar reporte de alerta temprana para admin y profesor.
-- **Reporte de asistencia con porcentaje acumulado** — El `AttendanceReport` existe pero no calcula el % de asistencia por estudiante. Agregar columna de porcentaje y umbral configurable de inasistencias.
+### Prioridad alta — ✅ Todo completado en v1.9.0
+- **Filtrado de niveles por usuario** — ✅ v1.7.2–v1.7.5
+- **Componente `Admin/Professors`** — ✅ v1.9.0
+- **Componente `Admin/Guardians`** — ✅ v1.9.0
+- **Exportación del módulo de Auditoría** — ✅ v1.9.0
 
-### Prioridad baja (mejoras y reportes adicionales)
-- **Servicio `GradeBookCalculationService`** — ✅ Completado en v1.7.7. `app/Services/GradeBookCalculationService.php` con `recalculateAll()` (todos los alumnos) y `recalculateForStudents()` (IDs específicos). `Profesor\GradeBooks` y `Admin\GradeChangeRequests` ya delegan al servicio.
-- **Reporte: comparativo de rendimiento entre unidades** — Mostrar evolución de promedios de un aula unidad por unidad usando los datos de `GradeBookTotal`.
-- **Reporte: historial de calificaciones por estudiante** — Resumen de rendimiento del estudiante a lo largo de ciclos escolares (requiere datos de múltiples años).
-- **Reporte: carga docente por profesor** — Cuántos cursos, aulas y estudiantes tiene asignados cada profesor en el ciclo activo.
+### Prioridad media — ✅ Todo completado en v1.9.0
+- **CRUD de `ActivityType`** — ✅ v1.7.6
+- **Dashboard de Secretaria — inscripciones recientes** — ✅ v1.9.0
+- **Notificación: cuadro en `locked` sin revisar** — ✅ v1.9.0 (comando `gradebooks:notify-stale`, schedulado diariamente a las 08:00)
+- **Notificación: cambio de rol asignado** — ✅ v1.9.0 (`RoleAssigned` / `RoleRevoked` disparadas desde `UserList::save()`)
+- **Reporte de asistencia con % acumulado** — ✅ v1.9.0 (toggle Sesiones/Resumen en `AttendanceReport`, umbral configurable)
+- **Reporte: Estudiantes en riesgo de reprobación** — ✅ v1.9.0 (`Reports/StudentsAtRisk`)
+
+### Prioridad baja — ✅ Todo completado en v1.9.0
+- **Servicio `GradeBookCalculationService`** — ✅ v1.7.7
+- **Reporte: comparativo de rendimiento entre unidades** — ✅ v1.9.0 (`Reports/GradeProgressComparison`)
+- **Reporte: historial de calificaciones por estudiante** — ✅ v1.9.0 (`Reports/StudentHistory`)
+- **Reporte: carga docente por profesor** — ✅ v1.9.0 (`Reports/ProfessorWorkload`)
 
 ## Historial de versiones
 - v1.0.0 — Base del sistema
@@ -558,3 +566,4 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.8.0 — Módulo Student: rutas `/student/*` en `routes/student.php`; componentes `Livewire\Student\MyGrades`, `MyAttendance`, `MyReportCard`; panel dashboard `Dashboard\StudentSummary`; controlador `Student\ReportCardController` (genera PDF de boleta personal reutilizando lógica admin); 4 permisos `student.*` + `dashboard.panel.student-summary` asignados al rol Estudiante; `StudentPermissionsSeeder` para bases existentes (también migra nombres viejos `estudiante.*`); menú `ESTUDIANTE` en `adminlte.php`
 - v1.8.1 — Dos nuevos reportes de actividades admin: `Reports/ActivitySummary` (tabla pivot estudiantes×materias con hechas/total por curso, export Excel `ActivitySummaryExport` con encabezados coloreados y leyenda) + `Reports/StudentActivityDetail` (listado de alumnos con modal de detalle por curso, PDF detallado por alumno y PDF de toda la sección via `StudentActivityDetailPdfController`); menú "Actividades" con 3 ítems agrupados; seeders `ActivitySummaryPermissionSeeder` y `StudentActivityDetailPermissionSeeder` (SuperAdmin + Director)
 - v1.8.2 — Filtro `activity_type_id=1` aplicado consistentemente en `ActivitySummary` (Livewire + `ActivitySummaryExport`), `MissingActivities` (Livewire + `MissingActivitiesAdminExport`) y `StudentActivityDetail` (Livewire + `buildCourseData()`); PDF compacto de una sola hoja por alumno (`studentCompact()`) en `StudentActivityDetailPdfController` con `SetAutoPageBreak(false)` y tabla por curso; ruta `admin.reports.student-activity-detail.pdf.student-compact`; botón "PDF resumen" (amarillo, `fa-compress-alt`) en vista del listado
+- v1.9.0 — 11 mejoras implementadas: (1) `Admin/Professors` — gestión especializada de profesores con edición de datos laborales y vista de cursos asignados; (2) `Admin/Guardians` — búsqueda, edición y vista de estudiantes relacionados; (3) `AuditLogExport` + botón en `AuditLog` — exportación Excel con los filtros activos; (4) `RoleAssigned`/`RoleRevoked` notificaciones disparadas desde `UserList::save()`; (5) Dashboard Secretaria — panel de inscripciones recientes y conteo por estado; (6) `AttendanceReport` — toggle Sesiones/Resumen con % por alumno y umbral configurable; (7) `Reports/StudentsAtRisk` — alumnos con promedio ponderado < umbral por curso; (8) `gradebooks:notify-stale` — comando artisan schedulado diariamente para alertar cuadros bloqueados sin revisar; (9) `Reports/GradeProgressComparison` — promedio por unidad por curso en un aula; (10) `Reports/StudentHistory` — historial multi-año por alumno; (11) `Reports/ProfessorWorkload` — carga docente por año
