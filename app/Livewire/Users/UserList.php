@@ -2,15 +2,17 @@
 
 namespace App\Livewire\Users;
 
-use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\User;
-use Spatie\Permission\Models\Role;
-use App\Livewire\Forms\UserForm;
 use App\Livewire\Forms\MedicalForm;
 use App\Livewire\Forms\ProfessorForm;
+use App\Livewire\Forms\UserForm;
 use App\Models\Level;
+use App\Models\User;
+use App\Notifications\RoleAssigned;
+use App\Notifications\RoleRevoked;
 use App\Services\AuditService;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Spatie\Permission\Models\Role;
 
 class UserList extends Component
 {
@@ -19,35 +21,45 @@ class UserList extends Component
     protected $paginationTheme = 'bootstrap';
 
     public UserForm $userForm;
+
     public MedicalForm $medicalForm;
+
     public ProfessorForm $professorForm;
 
     public $search = '';
+
     public $sort = 'name';
+
     public $direction = 'asc';
+
     public $cant = '10';
+
     public $readyToLoad = false;
 
     // Control de pestañas de UI
     public $activeTab = 'general';
+
     public $selected_roles = [];
+
     public array $selected_levels = [];
 
     protected $queryString = [
         'cant' => ['except' => '10'],
         'sort' => ['except' => 'name'],
         'direction' => ['except' => 'asc'],
-        'search' => ['except' => '']
+        'search' => ['except' => ''],
     ];
 
     public function loadUsers()
     {
         $this->readyToLoad = true;
     }
+
     public function updatingSearch()
     {
         $this->resetPage();
     }
+
     public function updatingCant()
     {
         $this->resetPage();
@@ -96,7 +108,7 @@ class UserList extends Component
 
         if ($this->userForm->user) {
             $existingUser = User::findOrFail($this->userForm->user->id);
-            $oldValues    = $existingUser->only([
+            $oldValues = $existingUser->only([
                 'first_name',
                 'middle_name',
                 'surname',
@@ -122,7 +134,7 @@ class UserList extends Component
 
             $changed = array_filter(
                 array_map(
-                    fn($key) => $oldValues[$key] != $newValues[$key]
+                    fn ($key) => $oldValues[$key] != $newValues[$key]
                         ? ['old' => $oldValues[$key], 'new' => $newValues[$key]]
                         : null,
                     array_keys($oldValues)
@@ -140,7 +152,20 @@ class UserList extends Component
             $mensaje = 'Usuario creado exitosamente.';
         }
 
+        $oldRoles = $user->roles->pluck('name');
         $user->syncRoles($this->selected_roles);
+        $user->refresh();
+
+        $assigned = collect($this->selected_roles)->diff($oldRoles);
+        $revoked = $oldRoles->diff($this->selected_roles);
+
+        foreach ($assigned as $roleName) {
+            $user->notify(new RoleAssigned($roleName));
+        }
+        foreach ($revoked as $roleName) {
+            $user->notify(new RoleRevoked($roleName));
+        }
+
         $user->levels()->sync($this->selected_levels);
         $this->medicalForm->save($user->id);
 
@@ -151,9 +176,9 @@ class UserList extends Component
         $this->resetFields();
 
         $this->dispatch('closeModalMessaje', [
-            'title'   => '¡Éxito!',
+            'title' => '¡Éxito!',
             'message' => $mensaje,
-            'type'    => 'success',
+            'type' => 'success',
             'modalId' => 'UserModal',
         ]);
     }
@@ -163,29 +188,25 @@ class UserList extends Component
         $isSuperAdmin = auth()->user()->hasRole('Super Administrador');
 
         $roles = Role::where('name', '!=', 'Estudiante')
-            ->when(! $isSuperAdmin, fn($q) => $q->where('name', '!=', 'Super Administrador'))
+            ->when(! $isSuperAdmin, fn ($q) => $q->where('name', '!=', 'Super Administrador'))
             ->get();
 
         if ($this->readyToLoad) {
             $users = User::whereDoesntHave(
                 'roles',
-                fn($q) =>
-                $q->where('name', 'Estudiante')
+                fn ($q) => $q->where('name', 'Estudiante')
             )
                 ->when(
                     ! $isSuperAdmin,
-                    fn($q) =>
-                    $q->whereDoesntHave(
+                    fn ($q) => $q->whereDoesntHave(
                         'roles',
-                        fn($q) =>
-                        $q->where('name', 'Super Administrador')
+                        fn ($q) => $q->where('name', 'Super Administrador')
                     )
                 )
                 ->where(
-                    fn($query) =>
-                    $query->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('cui', 'like', '%' . $this->search . '%')
-                        ->orWhere('email', 'like', '%' . $this->search . '%')
+                    fn ($query) => $query->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('cui', 'like', '%'.$this->search.'%')
+                        ->orWhere('email', 'like', '%'.$this->search.'%')
                 )
                 ->orderBy($this->sort, $this->direction)
                 ->paginate($this->cant);

@@ -196,6 +196,10 @@ Route::get('/audit', fn () => view('admin.audit.index'))
     ->name('admin.audit.index')
     ->middleware('can:admin.audit.index');
 
+Route::get('/audit/export', [ReportController::class, 'auditExport'])
+    ->name('admin.audit.export')
+    ->middleware('can:admin.audit.index');
+
 Route::post('user/loginUser', [UserController::class, 'loginUser'])
     ->name('admin.user.loginUser');
 

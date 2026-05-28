@@ -246,4 +246,18 @@ class ReportController extends Controller
             $fileName
         );
     }
+
+    public function auditExport(Request $request)
+    {
+        $export = new \App\Exports\AuditLogExport(
+            filterModule: $request->string('module')->toString(),
+            filterEvent: $request->string('event')->toString(),
+            filterUser: $request->string('user')->toString(),
+            filterDateFrom: $request->string('date_from')->toString(),
+            filterDateTo: $request->string('date_to')->toString(),
+            search: $request->string('search')->toString(),
+        );
+
+        return Excel::download($export, 'auditoria_'.date('dmY_His').'.xlsx');
+    }
 }

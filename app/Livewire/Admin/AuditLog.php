@@ -13,24 +13,32 @@ class AuditLog extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-    public bool   $readyToLoad    = false;
-    public string $filterModule   = '';
-    public string $filterEvent    = '';
-    public string $filterUser     = '';
+    public bool $readyToLoad = false;
+
+    public string $filterModule = '';
+
+    public string $filterEvent = '';
+
+    public string $filterUser = '';
+
     public string $filterDateFrom = '';
-    public string $filterDateTo   = '';
-    public string $search         = '';
-    public string $cant           = '25';
-    public ?int   $selectedLogId  = null;
+
+    public string $filterDateTo = '';
+
+    public string $search = '';
+
+    public string $cant = '25';
+
+    public ?int $selectedLogId = null;
 
     protected $queryString = [
-        'filterModule'   => ['except' => ''],
-        'filterEvent'    => ['except' => ''],
-        'filterUser'     => ['except' => ''],
+        'filterModule' => ['except' => ''],
+        'filterEvent' => ['except' => ''],
+        'filterUser' => ['except' => ''],
         'filterDateFrom' => ['except' => ''],
-        'filterDateTo'   => ['except' => ''],
-        'search'         => ['except' => ''],
-        'cant'           => ['except' => '25'],
+        'filterDateTo' => ['except' => ''],
+        'search' => ['except' => ''],
+        'cant' => ['except' => '25'],
     ];
 
     public function loadData(): void
@@ -42,22 +50,27 @@ class AuditLog extends Component
     {
         $this->resetPage();
     }
+
     public function updatingFilterModule(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterEvent(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterUser(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterDateFrom(): void
     {
         $this->resetPage();
     }
+
     public function updatingFilterDateTo(): void
     {
         $this->resetPage();
@@ -76,41 +89,55 @@ class AuditLog extends Component
         $this->dispatch('openAuditDetailModal');
     }
 
+    public function export(): void
+    {
+        $this->dispatch('downloadAuditLog', [
+            'url' => route('admin.audit.export', array_filter([
+                'module' => $this->filterModule,
+                'event' => $this->filterEvent,
+                'user' => $this->filterUser,
+                'date_from' => $this->filterDateFrom,
+                'date_to' => $this->filterDateTo,
+                'search' => $this->search,
+            ])),
+        ]);
+    }
+
     public static function moduleBadge(string $module): string
     {
         return match ($module) {
-            'Cuadros'         => 'badge-primary',
-            'Calificaciones'  => 'badge-info',
-            'Inscripciones'   => 'badge-success',
-            'Usuarios'        => 'badge-warning',
+            'Cuadros' => 'badge-primary',
+            'Calificaciones' => 'badge-info',
+            'Inscripciones' => 'badge-success',
+            'Usuarios' => 'badge-warning',
             'Cambio de Notas' => 'badge-danger',
-            'Configuración'   => 'badge-dark',
-            default           => 'badge-secondary',
+            'Configuración' => 'badge-dark',
+            default => 'badge-secondary',
         };
     }
 
     public static function eventBadge(string $event): string
     {
         return match ($event) {
-            'created'                    => 'badge-success',
-            'updated'                    => 'badge-warning',
-            'deleted'                    => 'badge-danger',
-            'approved'                   => 'badge-success',
-            'rejected'                   => 'badge-danger',
-            'status_changed'             => 'badge-info',
-            'score_updated'              => 'badge-warning',
-            'enrolled'                   => 'badge-primary',
-            'enrollment_status_changed'  => 'badge-info',
-            'config_changed'             => 'badge-dark',
-            default                      => 'badge-secondary',
+            'created' => 'badge-success',
+            'updated' => 'badge-warning',
+            'deleted' => 'badge-danger',
+            'approved' => 'badge-success',
+            'rejected' => 'badge-danger',
+            'status_changed' => 'badge-info',
+            'score_updated' => 'badge-warning',
+            'enrolled' => 'badge-primary',
+            'enrollment_status_changed' => 'badge-info',
+            'config_changed' => 'badge-dark',
+            default => 'badge-secondary',
         };
     }
 
     public function render()
     {
         $modules = AuditLogModel::select('module')->distinct()->orderBy('module')->pluck('module');
-        $events  = AuditLogModel::select('event')->distinct()->orderBy('event')->pluck('event');
-        $users   = User::whereHas('auditLogs')->orderBy('name')->get(['id', 'name']);
+        $events = AuditLogModel::select('event')->distinct()->orderBy('event')->pluck('event');
+        $users = User::whereHas('auditLogs')->orderBy('name')->get(['id', 'name']);
 
         $selectedLog = $this->selectedLogId
             ? AuditLogModel::with('user')->find($this->selectedLogId)
@@ -120,12 +147,12 @@ class AuditLog extends Component
 
         if ($this->readyToLoad) {
             $logs = AuditLogModel::with('user')
-                ->when($this->filterModule,   fn($q) => $q->where('module', $this->filterModule))
-                ->when($this->filterEvent,    fn($q) => $q->where('event', $this->filterEvent))
-                ->when($this->filterUser,     fn($q) => $q->where('user_id', $this->filterUser))
-                ->when($this->filterDateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->filterDateFrom))
-                ->when($this->filterDateTo,   fn($q) => $q->whereDate('created_at', '<=', $this->filterDateTo))
-                ->when($this->search,         fn($q) => $q->where('description', 'like', '%' . $this->search . '%'))
+                ->when($this->filterModule, fn ($q) => $q->where('module', $this->filterModule))
+                ->when($this->filterEvent, fn ($q) => $q->where('event', $this->filterEvent))
+                ->when($this->filterUser, fn ($q) => $q->where('user_id', $this->filterUser))
+                ->when($this->filterDateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->filterDateFrom))
+                ->when($this->filterDateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->filterDateTo))
+                ->when($this->search, fn ($q) => $q->where('description', 'like', '%'.$this->search.'%'))
                 ->latest()
                 ->paginate($this->cant);
         }
