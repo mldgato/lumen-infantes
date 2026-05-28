@@ -1,6 +1,6 @@
 @extends('adminlte::auth.auth-page', ['auth_type' => 'login'])
 
-@section('auth_header', __('Forgot password'))
+@section('auth_header', 'Olvidé mi contraseña')
 
 @section('auth_body')
     {{-- Mensaje de éxito cuando se envía el correo --}}
@@ -10,7 +10,7 @@
         </div>
     @endif
 
-    <p class="login-box-msg">{{ __('Enter your email to receive a password reset link') }}</p>
+    <p class="login-box-msg">Ingresa tu correo para recibir un enlace de restablecimiento</p>
 
     <form action="{{ route('password.email') }}" method="post">
         @csrf
@@ -18,7 +18,7 @@
         {{-- Campo Correo Electrónico --}}
         <div class="input-group mb-3">
             <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                value="{{ old('email') }}" placeholder="{{ __('Email Address') }}" required autofocus>
+                value="{{ old('email') }}" placeholder="Correo electrónico" required autofocus>
             <div class="input-group-append">
                 <div class="input-group-text">
                     <span class="fas fa-envelope"></span>
@@ -34,7 +34,7 @@
         <div class="row">
             <div class="col-12">
                 <button type="submit" class="btn btn-primary btn-block">
-                    {{ __('Email password reset link') }}
+                    Enviar enlace de restablecimiento
                 </button>
             </div>
         </div>
@@ -43,6 +43,6 @@
 
 @section('auth_footer')
     <p class="mt-3 mb-1 text-center">
-        <a href="{{ route('login') }}" wire:navigate>{{ __('Or, return to log in') }}</a>
+        <a href="{{ route('login') }}" wire:navigate>Volver al inicio de sesión</a>
     </p>
 @stop

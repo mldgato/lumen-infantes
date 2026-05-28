@@ -13,24 +13,22 @@ class Guardians extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-    public GuardianForm $guardianForm;
+    public GuardianForm $form;
 
     public string $search = '';
 
-    public int $perPage = 15;
+    public string $cant = '15';
 
     public bool $readyToLoad = false;
 
-    public ?int $editingGuardianId = null;
-
-    public ?int $detailGuardianId = null;
+    public ?int $selectedGuardianId = null;
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'perPage' => ['except' => 15],
+        'cant' => ['except' => '15'],
     ];
 
-    public function loadGuardians(): void
+    public function loadData(): void
     {
         $this->readyToLoad = true;
     }
@@ -40,74 +38,67 @@ class Guardians extends Component
         $this->resetPage();
     }
 
-    public function openEdit(int $guardianId): void
+    public function updatingCant(): void
     {
-        $guardian = Guardian::findOrFail($guardianId);
-        $this->guardianForm->setGuardian($guardian);
-        $this->editingGuardianId = $guardianId;
+        $this->resetPage();
     }
 
-    public function closeEdit(): void
+    public function openModal(int $id): void
     {
-        $this->editingGuardianId = null;
-        $this->guardianForm->resetForm();
+        $this->selectedGuardianId = $id;
+        $this->form->setGuardian(Guardian::findOrFail($id));
+        $this->resetValidation();
+        $this->dispatch('openGuardianModal');
+    }
+
+    public function resetFields(): void
+    {
+        $this->form->resetForm();
+        $this->selectedGuardianId = null;
         $this->resetValidation();
     }
 
     public function save(): void
     {
-        $this->guardianForm->update();
-        $this->closeEdit();
+        $this->authorize('admin.guardians.edit');
+        $this->form->update();
+        $name = $this->form->first_name.' '.$this->form->last_name;
+        $this->resetFields();
         $this->dispatch('closeModalMessaje', [
-            'title' => '¡Éxito!',
-            'message' => 'Datos del guardián actualizados.',
+            'title' => '¡Actualizado!',
+            'message' => "Datos de {$name} actualizados correctamente.",
             'type' => 'success',
-            'modalId' => 'GuardianEditModal',
+            'modalId' => 'GuardianModal',
         ]);
-    }
-
-    public function openDetail(int $guardianId): void
-    {
-        $this->detailGuardianId = $guardianId;
-    }
-
-    public function closeDetail(): void
-    {
-        $this->detailGuardianId = null;
     }
 
     public function render(): \Illuminate\View\View
     {
-        $guardians = collect();
-
-        if ($this->readyToLoad) {
-            $guardians = Guardian::when($this->search, fn ($q) => $q->where(fn ($q) => $q
-                ->where('first_name', 'like', '%'.$this->search.'%')
-                ->orWhere('last_name', 'like', '%'.$this->search.'%')
-                ->orWhere('cui', 'like', '%'.$this->search.'%')
-                ->orWhere('phone', 'like', '%'.$this->search.'%')
-                ->orWhere('email', 'like', '%'.$this->search.'%')
-            ))
-                ->withCount('students')
+        $guardians = $this->readyToLoad
+            ? Guardian::withCount('students')
+                ->where(function ($q) {
+                    $q->where('first_name', 'like', '%'.$this->search.'%')
+                        ->orWhere('last_name', 'like', '%'.$this->search.'%')
+                        ->orWhere('cui', 'like', '%'.$this->search.'%')
+                        ->orWhere('phone', 'like', '%'.$this->search.'%')
+                        ->orWhere('email', 'like', '%'.$this->search.'%');
+                })
                 ->orderBy('last_name')
                 ->orderBy('first_name')
-                ->paginate($this->perPage);
+                ->paginate((int) $this->cant)
+            : [];
+
+        $students = collect();
+
+        if ($this->selectedGuardianId) {
+            $guardian = Guardian::findOrFail($this->selectedGuardianId);
+            $students = $guardian->students()
+                ->with('user')
+                ->get()
+                ->sortBy(fn ($s) => $s->user->name)
+                ->values();
         }
 
-        $detailGuardian = null;
-        $detailStudents = collect();
-
-        if ($this->detailGuardianId) {
-            $detailGuardian = Guardian::with(['students.user'])->find($this->detailGuardianId);
-            if ($detailGuardian) {
-                $detailStudents = $detailGuardian->students->sortBy(fn ($s) => $s->user->full_full_name);
-            }
-        }
-
-        return view('livewire.admin.guardians', compact(
-            'guardians',
-            'detailGuardian',
-            'detailStudents',
-        ));
+        return view('livewire.admin.guardians', compact('guardians', 'students'));
     }
 }

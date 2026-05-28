@@ -26,6 +26,8 @@ class StudentActivityDetail extends Component
 
     public string $filterUnit = '';
 
+    public string $filterMaxActivities = '';
+
     public array $studentList = [];
 
     public array $selectedStudentDetail = [];
@@ -62,6 +64,11 @@ class StudentActivityDetail extends Component
     }
 
     public function updatedFilterUnit(): void
+    {
+        $this->resetReport();
+    }
+
+    public function updatedFilterMaxActivities(): void
     {
         $this->resetReport();
     }
@@ -117,14 +124,21 @@ class StudentActivityDetail extends Component
             ->where('unit', $this->filterUnit)
             ->get();
 
+        $maxAct = $this->filterMaxActivities !== '' ? (int) $this->filterMaxActivities : null;
         $totalActivities = 0;
         $scoreIndex = [];
 
         foreach ($assignments as $assignment) {
             $gradeBook = $assignment->gradeBook;
-            $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+            $mainActivities = $gradeBook
+                ? $gradeBook->activities->where('activity_type_id', 1)->sortBy('ordering')->values()
+                : collect();
             if (! $gradeBook || $mainActivities->isEmpty()) {
                 continue;
+            }
+
+            if ($maxAct !== null) {
+                $mainActivities = $mainActivities->take($maxAct);
             }
 
             $activityIds = $mainActivities->pluck('id');
@@ -143,9 +157,15 @@ class StudentActivityDetail extends Component
 
             foreach ($assignments as $assignment) {
                 $gradeBook = $assignment->gradeBook;
-                $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+                $mainActivities = $gradeBook
+                    ? $gradeBook->activities->where('activity_type_id', 1)->sortBy('ordering')->values()
+                    : collect();
                 if (! $gradeBook || $mainActivities->isEmpty()) {
                     continue;
+                }
+
+                if ($maxAct !== null) {
+                    $mainActivities = $mainActivities->take($maxAct);
                 }
 
                 foreach ($mainActivities as $activity) {
@@ -194,13 +214,16 @@ class StudentActivityDetail extends Component
             ->where('unit', $this->filterUnit)
             ->get();
 
+        $maxAct = $this->filterMaxActivities !== '' ? (int) $this->filterMaxActivities : null;
         $courses = [];
 
         foreach ($assignments as $assignment) {
             $courseName = $assignment->pensumCourse->course->course_name;
             $gradeBook = $assignment->gradeBook;
 
-            $mainActivities = $gradeBook ? $gradeBook->activities->where('activity_type_id', 1) : collect();
+            $mainActivities = $gradeBook
+                ? $gradeBook->activities->where('activity_type_id', 1)->sortBy('ordering')->values()
+                : collect();
 
             if (! $gradeBook || $mainActivities->isEmpty()) {
                 $courses[] = [
@@ -213,6 +236,10 @@ class StudentActivityDetail extends Component
                 ];
 
                 continue;
+            }
+
+            if ($maxAct !== null) {
+                $mainActivities = $mainActivities->take($maxAct);
             }
 
             $activityIds = $mainActivities->pluck('id');
@@ -243,7 +270,7 @@ class StudentActivityDetail extends Component
                 'has_activities' => true,
                 'activities' => $activities,
                 'done' => $done,
-                'total' => $gradeBook->activities->count(),
+                'total' => $mainActivities->count(),
             ];
         }
 

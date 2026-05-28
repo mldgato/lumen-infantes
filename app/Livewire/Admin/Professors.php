@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Livewire\Forms\ProfessorForm;
 use App\Models\ClassroomCourseAssignment;
 use App\Models\Professor;
-use App\Services\AuditService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -16,33 +15,22 @@ class Professors extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-    public ProfessorForm $professorForm;
+    public ProfessorForm $form;
 
     public string $search = '';
 
-    public string $filterYear = '';
-
-    public string $sortField = 'surname';
-
-    public string $sortDirection = 'asc';
-
-    public int $perPage = 15;
+    public string $cant = '15';
 
     public bool $readyToLoad = false;
 
-    // Detail / edit state
-    public ?int $editingProfessorId = null;
-
-    public ?int $detailProfessorId = null;
+    public ?int $selectedProfessorId = null;
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'filterYear' => ['except' => ''],
-        'sortField' => ['except' => 'surname'],
-        'sortDirection' => ['except' => 'asc'],
+        'cant' => ['except' => '15'],
     ];
 
-    public function loadProfessors(): void
+    public function loadData(): void
     {
         $this->readyToLoad = true;
     }
@@ -52,138 +40,73 @@ class Professors extends Component
         $this->resetPage();
     }
 
-    public function updatingFilterYear(): void
+    public function updatingCant(): void
     {
         $this->resetPage();
     }
 
-    public function sortBy(string $field): void
+    public function openModal(int $id): void
     {
-        if ($this->sortField === $field) {
-            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-            $this->sortField = $field;
-            $this->sortDirection = 'asc';
-        }
+        $this->selectedProfessorId = $id;
+        $this->form->setProfessor(Professor::with('user')->findOrFail($id));
+        $this->resetValidation();
+        $this->dispatch('openProfessorModal');
     }
 
-    public function openEdit(int $professorId): void
+    public function resetFields(): void
     {
-        $professor = Professor::with('user')->findOrFail($professorId);
-        $this->professorForm->setProfessor($professor);
-        $this->editingProfessorId = $professorId;
-    }
-
-    public function closeEdit(): void
-    {
-        $this->editingProfessorId = null;
-        $this->professorForm->resetForm();
+        $this->form->resetForm();
+        $this->selectedProfessorId = null;
         $this->resetValidation();
     }
 
     public function save(): void
     {
-        $professor = Professor::with('user')->findOrFail($this->editingProfessorId);
+        $this->authorize('admin.professors.edit');
+        $this->form->save($this->form->professor->user_id);
 
-        $userLevelIds = Auth::user()->levels()->pluck('levels.id');
-        $assignedLevelIds = $professor->courseAssignments()
-            ->with('classroom')
-            ->get()
-            ->pluck('classroom.level_id')
-            ->unique();
+        $name = $this->form->professor->user->name;
+        $this->resetFields();
 
-        if ($assignedLevelIds->isNotEmpty() && $assignedLevelIds->diff($userLevelIds)->isNotEmpty()) {
-            abort(403);
-        }
-
-        $this->professorForm->save($professor->user_id);
-
-        AuditService::userUpdated($professor->user, []);
-
-        $this->closeEdit();
         $this->dispatch('closeModalMessaje', [
-            'title' => '¡Éxito!',
-            'message' => 'Datos del profesor actualizados.',
+            'title' => '¡Actualizado!',
+            'message' => "Datos de {$name} actualizados correctamente.",
             'type' => 'success',
-            'modalId' => 'ProfessorEditModal',
+            'modalId' => 'ProfessorModal',
         ]);
-    }
-
-    public function openDetail(int $professorId): void
-    {
-        $this->detailProfessorId = $professorId;
-    }
-
-    public function closeDetail(): void
-    {
-        $this->detailProfessorId = null;
     }
 
     public function render(): \Illuminate\View\View
     {
         $userLevelIds = Auth::user()->levels()->pluck('levels.id');
 
-        $years = ClassroomCourseAssignment::with('classroom')
-            ->get()
-            ->pluck('classroom.year')
-            ->unique()
-            ->sort()
-            ->values();
-
-        $professors = collect();
-
-        if ($this->readyToLoad) {
-            $query = Professor::with('user')
+        $professors = $this->readyToLoad
+            ? Professor::with('user')
                 ->join('users', 'professors.user_id', '=', 'users.id')
-                ->when($this->search, fn ($q) => $q->where(fn ($q) => $q
-                    ->where('users.first_name', 'like', '%'.$this->search.'%')
-                    ->orWhere('users.surname', 'like', '%'.$this->search.'%')
-                    ->orWhere('users.second_surname', 'like', '%'.$this->search.'%')
-                    ->orWhere('users.email', 'like', '%'.$this->search.'%')
-                ))
-                ->when($this->filterYear, fn ($q) => $q->whereHas(
-                    'courseAssignments.classroom',
-                    fn ($q) => $q->where('year', $this->filterYear)->whereIn('level_id', $userLevelIds)
-                ))
-                ->when(! $this->filterYear, fn ($q) => $q->whereHas(
-                    'courseAssignments.classroom',
-                    fn ($q) => $q->whereIn('level_id', $userLevelIds)
-                ))
+                ->where(function ($q) {
+                    $q->where('users.name', 'like', '%'.$this->search.'%')
+                        ->orWhere('users.email', 'like', '%'.$this->search.'%');
+                })
+                ->whereHas('courseAssignments.classroom', fn ($q) => $q->whereIn('level_id', $userLevelIds))
+                ->orderBy('users.name')
                 ->select('professors.*')
-                ->orderBy('users.'.$this->sortField, $this->sortDirection);
+                ->paginate((int) $this->cant)
+            : [];
 
-            $professors = $query->paginate($this->perPage);
+        $assignments = collect();
+
+        if ($this->selectedProfessorId) {
+            $assignments = ClassroomCourseAssignment::with([
+                'classroom.level', 'classroom.grade', 'classroom.section',
+                'pensumCourse.course', 'gradeBook',
+            ])
+                ->where('professor_id', $this->selectedProfessorId)
+                ->whereHas('classroom', fn ($q) => $q->whereIn('level_id', $userLevelIds))
+                ->get()
+                ->groupBy(fn ($a) => $a->classroom->year)
+                ->sortKeysDesc();
         }
 
-        $detailProfessor = null;
-        $detailAssignments = collect();
-
-        if ($this->detailProfessorId) {
-            $detailProfessor = Professor::with('user')->find($this->detailProfessorId);
-            if ($detailProfessor) {
-                $detailQuery = ClassroomCourseAssignment::with([
-                    'classroom.level',
-                    'classroom.grade',
-                    'classroom.section',
-                    'pensumCourse.course',
-                ])->where('professor_id', $detailProfessor->id)
-                    ->whereHas('classroom', fn ($q) => $q->whereIn('level_id', $userLevelIds));
-
-                if ($this->filterYear) {
-                    $detailQuery->whereHas('classroom', fn ($q) => $q->where('year', $this->filterYear));
-                }
-
-                $detailAssignments = $detailQuery
-                    ->get()
-                    ->sortByDesc(fn ($a) => $a->classroom->year);
-            }
-        }
-
-        return view('livewire.admin.professors', compact(
-            'professors',
-            'years',
-            'detailProfessor',
-            'detailAssignments',
-        ));
+        return view('livewire.admin.professors', compact('professors', 'assignments'));
     }
 }

@@ -1,9 +1,9 @@
 @extends('adminlte::auth.auth-page', ['auth_type' => 'login'])
 
-@section('auth_header', __('Reset password'))
+@section('auth_header', 'Restablecer contraseña')
 
 @section('auth_body')
-    <p class="login-box-msg">{{ __('Please enter your new password below') }}</p>
+    <p class="login-box-msg">Ingresa tu nueva contraseña</p>
 
     <form method="POST" action="{{ route('password.update') }}">
         @csrf
@@ -13,7 +13,7 @@
         {{-- Email --}}
         <div class="input-group mb-3">
             <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                value="{{ request('email') }}" placeholder="{{ __('Email address') }}" required autocomplete="email">
+                value="{{ request('email') }}" placeholder="Correo electrónico" required autocomplete="email">
             <div class="input-group-append">
                 <div class="input-group-text">
                     <span class="fas fa-envelope"></span>
@@ -29,7 +29,7 @@
         {{-- Nueva contraseña --}}
         <div class="input-group mb-3">
             <input type="password" name="password" class="form-control @error('password') is-invalid @enderror"
-                placeholder="{{ __('New password') }}" required autocomplete="new-password">
+                placeholder="Nueva contraseña" required autocomplete="new-password">
             <div class="input-group-append">
                 <div class="input-group-text">
                     <span class="fas fa-lock"></span>
@@ -46,7 +46,7 @@
         <div class="input-group mb-3">
             <input type="password" name="password_confirmation"
                 class="form-control @error('password_confirmation') is-invalid @enderror"
-                placeholder="{{ __('Confirm new password') }}" required autocomplete="new-password">
+                placeholder="Confirmar nueva contraseña" required autocomplete="new-password">
             <div class="input-group-append">
                 <div class="input-group-text">
                     <span class="fas fa-lock"></span>
@@ -62,7 +62,7 @@
         <div class="row">
             <div class="col-12">
                 <button type="submit" class="btn btn-primary btn-block">
-                    {{ __('Reset password') }}
+                    Restablecer contraseña
                 </button>
             </div>
         </div>
@@ -71,6 +71,6 @@
 
 @section('auth_footer')
     <p class="mt-3 mb-1 text-center">
-        <a href="{{ route('login') }}">{{ __('Back to login') }}</a>
+        <a href="{{ route('login') }}">Volver al inicio de sesión</a>
     </p>
 @stop

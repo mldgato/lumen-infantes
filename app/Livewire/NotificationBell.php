@@ -12,16 +12,28 @@ class NotificationBell extends Component
         Auth::user()->unreadNotifications->markAsRead();
     }
 
-    public function markRead(string $id): void
+    public function markReadAndRedirect(string $id): void
     {
-        Auth::user()->notifications()->find($id)?->markAsRead();
+        $notification = Auth::user()->notifications()->find($id);
+
+        if (! $notification) {
+            return;
+        }
+
+        $notification->markAsRead();
+
+        $url = $notification->data['url'] ?? null;
+
+        if ($url && $url !== '#') {
+            $this->redirect($url);
+        }
     }
 
     public function render()
     {
         $user = Auth::user();
-        $notifications = $user->notifications()->latest()->take(10)->get();
-        $unreadCount = $user->unreadNotifications()->count();
+        $notifications = $user->unreadNotifications()->latest()->take(10)->get();
+        $unreadCount = $notifications->count();
 
         return view('livewire.notification-bell', compact('notifications', 'unreadCount'));
     }

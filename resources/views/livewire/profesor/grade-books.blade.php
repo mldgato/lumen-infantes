@@ -83,6 +83,13 @@
                                                 title="{{ $title }}">
                                                 <i class="fas {{ $icon }} mr-1"></i> U{{ $assignment->unit }}
                                             </button>
+                                            @if ($assignment->gradeBook)
+                                                <a href="{{ route('profesor.grade-books.grid', $assignment->gradeBook) }}"
+                                                   class="btn btn-sm btn-outline-dark shadow-sm mr-1"
+                                                   title="Vista cuadrícula — U{{ $assignment->unit }}">
+                                                    <i class="fas fa-th"></i>
+                                                </a>
+                                            @endif
                                         @endforeach
                                     </td>
                                 </tr>

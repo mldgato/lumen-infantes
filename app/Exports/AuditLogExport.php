@@ -12,6 +12,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -51,7 +52,7 @@ class AuditLogExport implements FromQuery, WithColumnWidths, WithEvents, WithHea
             $log->module,
             $log->event,
             $log->description,
-            $log->ip_address,
+            $log->ip_address ?? '',
         ];
     }
 
@@ -90,9 +91,6 @@ class AuditLogExport implements FromQuery, WithColumnWidths, WithEvents, WithHea
                 $sheet = $event->sheet->getDelegate();
                 $lastRow = $sheet->getHighestRow();
 
-                $sheet->getStyle('A1:F1')->getAlignment()
-                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
                 for ($row = 2; $row <= $lastRow; $row++) {
                     $bg = $row % 2 === 0 ? 'FFD6E4F0' : 'FFFFFFFF';
                     $sheet->getStyle("A{$row}:F{$row}")
@@ -103,7 +101,7 @@ class AuditLogExport implements FromQuery, WithColumnWidths, WithEvents, WithHea
                 $sheet->getStyle("A1:F{$lastRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'borderStyle' => Border::BORDER_THIN,
                             'color' => ['argb' => 'FFCCCCCC'],
                         ],
                     ],
@@ -111,6 +109,9 @@ class AuditLogExport implements FromQuery, WithColumnWidths, WithEvents, WithHea
 
                 $sheet->getStyle("A2:F{$lastRow}")
                     ->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+                $sheet->setAutoFilter('A1:F1');
+                $sheet->freezePane('A2');
             },
         ];
     }

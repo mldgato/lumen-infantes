@@ -548,6 +548,20 @@ class GradeBooks extends Component
 
     public function openCloneModal(): void
     {
+        $normalMax = $this->gradeBook->activities
+            ->filter(fn ($a) => ! $a->activityType->is_extra)
+            ->sum('max_points');
+
+        if ($normalMax < 100) {
+            $this->dispatch('showAlert', [
+                'title' => 'No se puede clonar',
+                'message' => "Las actividades normales suman {$normalMax} pts. Deben completar 100 pts para clonar.",
+                'type' => 'warning',
+            ]);
+
+            return;
+        }
+
         $this->selectedCloneTargets = [];
 
         $compatibleAssignments = ClassroomCourseAssignment::with([

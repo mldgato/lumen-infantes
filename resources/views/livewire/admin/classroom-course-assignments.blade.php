@@ -94,10 +94,22 @@
                                                 @for ($u = 1; $u <= $pensum->units; $u++)
                                                     <td class="p-1">
                                                         @if (!$pc->is_main && ($pc->units === null || in_array($u, $pc->units)))
+                                                            @php
+                                                                $lockData = $lockedAssignments[$pc->id][$u] ?? null;
+                                                                if ($lockData) {
+                                                                    [$borderClass, $badgeClass, $statusLabel, $tooltipText] = match ($lockData['status']) {
+                                                                        'open'     => ['border-success',   'badge-success',   'Abierto',   'Cuadro abierto — se transferirá al nuevo profesor'],
+                                                                        'locked'   => ['border-secondary', 'badge-secondary', 'Bloqueado', 'Cuadro bloqueado esperando aprobación — se transferirá al nuevo profesor'],
+                                                                        'approved' => ['border-primary',   'badge-primary',   'Aprobado',  'Cuadro aprobado — se transferirá en modo solo lectura'],
+                                                                        'rejected' => ['border-danger',    'badge-danger',    'Rechazado', 'Cuadro rechazado — al transferir se reabrirá automáticamente para el nuevo profesor'],
+                                                                        default    => ['border-warning',   'badge-warning',   'Activo',    'Tiene cuadro de calificaciones — el cuadro se transferirá al nuevo profesor'],
+                                                                    };
+                                                                }
+                                                            @endphp
                                                             <select
                                                                 wire:model="assignments.{{ $pc->id }}.{{ $u }}"
-                                                                class="form-control form-control-sm {{ isset($lockedAssignments[$pc->id][$u]) ? 'border-warning' : '' }}"
-                                                                title="{{ isset($lockedAssignments[$pc->id][$u]) ? 'Tiene cuadro de calificaciones — al cambiar el profesor, el cuadro se transferirá' : '' }}">
+                                                                class="form-control form-control-sm {{ $lockData ? $borderClass : '' }}"
+                                                                title="{{ $lockData ? $tooltipText : '' }}">
                                                                 <option value="">-- Sin asignar --</option>
                                                                 @foreach ($professors as $professor)
                                                                     <option value="{{ $professor->id }}">
@@ -105,11 +117,12 @@
                                                                     </option>
                                                                 @endforeach
                                                             </select>
-                                                            @if (isset($lockedAssignments[$pc->id][$u]))
-                                                                <small class="text-warning d-block mt-1">
-                                                                    <i
-                                                                        class="fas fa-exclamation-triangle mr-1"></i>Tiene
-                                                                    cuadro activo
+                                                            @if ($lockData)
+                                                                <small class="d-block mt-1">
+                                                                    <span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span>
+                                                                    <span class="text-muted" style="font-size:.75rem;">
+                                                                        · {{ $lockData['activity_count'] }} act.
+                                                                    </span>
                                                                 </small>
                                                             @endif
                                                         @elseif ($pc->is_main)
@@ -136,10 +149,22 @@
                                                     @for ($u = 1; $u <= $pensum->units; $u++)
                                                         <td class="p-1">
                                                             @if (in_array($u, $sub->units ?? []))
+                                                                @php
+                                                                    $lockData = $lockedAssignments[$sub->id][$u] ?? null;
+                                                                    if ($lockData) {
+                                                                        [$borderClass, $badgeClass, $statusLabel, $tooltipText] = match ($lockData['status']) {
+                                                                            'open'     => ['border-success',   'badge-success',   'Abierto',   'Cuadro abierto — se transferirá al nuevo profesor'],
+                                                                            'locked'   => ['border-secondary', 'badge-secondary', 'Bloqueado', 'Cuadro bloqueado esperando aprobación — se transferirá al nuevo profesor'],
+                                                                            'approved' => ['border-primary',   'badge-primary',   'Aprobado',  'Cuadro aprobado — se transferirá en modo solo lectura'],
+                                                                            'rejected' => ['border-danger',    'badge-danger',    'Rechazado', 'Cuadro rechazado — al transferir se reabrirá automáticamente para el nuevo profesor'],
+                                                                            default    => ['border-warning',   'badge-warning',   'Activo',    'Tiene cuadro de calificaciones — el cuadro se transferirá al nuevo profesor'],
+                                                                        };
+                                                                    }
+                                                                @endphp
                                                                 <select
                                                                     wire:model="assignments.{{ $sub->id }}.{{ $u }}"
-                                                                    class="form-control form-control-sm {{ isset($lockedAssignments[$sub->id][$u]) ? 'border-warning' : '' }}"
-                                                                    title="{{ isset($lockedAssignments[$sub->id][$u]) ? 'Tiene cuadro de calificaciones — al cambiar el profesor, el cuadro se transferirá' : '' }}">
+                                                                    class="form-control form-control-sm {{ $lockData ? $borderClass : '' }}"
+                                                                    title="{{ $lockData ? $tooltipText : '' }}">
                                                                     <option value="">-- Sin asignar --</option>
                                                                     @foreach ($professors as $professor)
                                                                         <option value="{{ $professor->id }}">
@@ -147,11 +172,12 @@
                                                                         </option>
                                                                     @endforeach
                                                                 </select>
-                                                                @if (isset($lockedAssignments[$sub->id][$u]))
-                                                                    <small class="text-warning d-block mt-1">
-                                                                        <i
-                                                                            class="fas fa-exclamation-triangle mr-1"></i>Tiene
-                                                                        cuadro activo
+                                                                @if ($lockData)
+                                                                    <small class="d-block mt-1">
+                                                                        <span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span>
+                                                                        <span class="text-muted" style="font-size:.75rem;">
+                                                                            · {{ $lockData['activity_count'] }} act.
+                                                                        </span>
                                                                     </small>
                                                                 @endif
                                                             @else

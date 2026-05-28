@@ -228,7 +228,7 @@ if (! $professor) {
 | `Levels`, `Grades`, `Sections` | CRUD con paginación y búsqueda |
 | `Classrooms` | CRUD de aulas |
 | `Courses`, `Pensums` | Gestión de cursos y planes |
-| `ClassroomCourseAssignments` | Asignación profesor-curso |
+| `ClassroomCourseAssignments` | Asignación profesor-curso; soporta reemplazo de profesor en los tres escenarios (sin cuadro, cuadro vacío, cuadro con actividades/calificaciones); si el cuadro estaba `rejected` al transferir, se reabre automáticamente |
 | `AcademicConfigurations` | Config por ciclo escolar |
 | `GradeBooks` | Lista filtrable + aprobación/rechazo |
 | `GradeChangeRequests` | Gestión de solicitudes |
@@ -242,7 +242,7 @@ if (! $professor) {
 | `Reports/StudentListExcel` | Export Excel de estudiantes |
 | `Reports/MissingActivities` | Actividades no entregadas (tipo id=1) |
 | `Reports/ActivitySummary` | Resumen pivot actividades por estudiante y materia |
-| `Reports/StudentActivityDetail` | Detalle individual de actividades por alumno |
+| `Reports/StudentActivityDetail` | Detalle individual de actividades por alumno; filtro `filterMaxActivities` (1–10) para limitar actividades mostradas |
 | `Reports/AttendanceReport` | Reporte de asistencia con toggle Sesiones/Resumen y % por alumno |
 | `Reports/StudentsAtRisk` | Estudiantes con promedio ponderado < umbral (default 60%) |
 | `Reports/GradeProgressComparison` | Promedio por unidad por curso en un aula |
@@ -259,6 +259,7 @@ if (! $professor) {
 | Componente | Responsabilidad |
 |---|---|
 | `GradeBooks` | Edición completa de cuadros |
+| `GradeBookGrid` | Ingreso de calificaciones en formato cuadrícula tipo Excel (Alpine.js, guardado total sin round-trips); incluye Bloquear Cuadro, Reabrir, Clonar actividades a otra sección (requiere actividades normales = 100 pts) y descarga de PDF cuando el cuadro está aprobado |
 | `GradeChangeRequests` | Crear solicitudes de cambio |
 | `TakeAttendance` | Asistencia diaria + historial |
 | `Reports/*` | Reportes específicos del profesor |
@@ -378,7 +379,11 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
   - `student(classroom_id, student_id, unit)` — PDF detallado por alumno (tabla actividades por curso con estado ✔/✘)
   - `classroom(classroom_id, unit)` — PDF de toda la sección (un alumno por página)
   - `studentCompact(classroom_id, student_id, unit)` — PDF resumen de una sola hoja (tabla por curso: hechas/total/faltantes, sin `SetAutoPageBreak`)
-  - `buildCourseData(classroom, studentId, unit)` — método privado compartido; aplica filtro `activity_type_id=1`
+  - `classroomCompact(classroom_id, unit)` — PDF resumen de sección en oficio, 3 alumnos/hoja; llama `renderStudentCompactBlock(..., 'medium')`
+  - `classroomCompactCarta(classroom_id, unit)` — PDF resumen de sección en carta, 2 alumnos/hoja; llama `renderStudentCompactBlock(..., 'large')` con fuentes más grandes
+  - `buildCourseData(classroom, studentId, unit, ?int $maxActivities = null)` — método privado compartido; aplica filtro `activity_type_id=1`; acepta `max_activities` para limitar actividades mostradas
+  - `renderStudentCompactBlock(string $size = 'small')` — renderiza bloque de un alumno; `$size` puede ser `'small'` (original), `'medium'` (oficio, fuentes ligeramente mayores) o `'large'` (carta, fuentes grandes aprovechando más espacio)
+  - Todos los métodos públicos aceptan `?int $maxActivities` vía query string validado (`nullable|integer|min:1|max:10`)
 
 ## Patrón de datos postgrado
 - Secciones con `level_id` 2 o 5 usan `Enrollment.carne` para display/sorting
@@ -566,4 +571,7 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.8.0 — Módulo Student: rutas `/student/*` en `routes/student.php`; componentes `Livewire\Student\MyGrades`, `MyAttendance`, `MyReportCard`; panel dashboard `Dashboard\StudentSummary`; controlador `Student\ReportCardController` (genera PDF de boleta personal reutilizando lógica admin); 4 permisos `student.*` + `dashboard.panel.student-summary` asignados al rol Estudiante; `StudentPermissionsSeeder` para bases existentes (también migra nombres viejos `estudiante.*`); menú `ESTUDIANTE` en `adminlte.php`
 - v1.8.1 — Dos nuevos reportes de actividades admin: `Reports/ActivitySummary` (tabla pivot estudiantes×materias con hechas/total por curso, export Excel `ActivitySummaryExport` con encabezados coloreados y leyenda) + `Reports/StudentActivityDetail` (listado de alumnos con modal de detalle por curso, PDF detallado por alumno y PDF de toda la sección via `StudentActivityDetailPdfController`); menú "Actividades" con 3 ítems agrupados; seeders `ActivitySummaryPermissionSeeder` y `StudentActivityDetailPermissionSeeder` (SuperAdmin + Director)
 - v1.8.2 — Filtro `activity_type_id=1` aplicado consistentemente en `ActivitySummary` (Livewire + `ActivitySummaryExport`), `MissingActivities` (Livewire + `MissingActivitiesAdminExport`) y `StudentActivityDetail` (Livewire + `buildCourseData()`); PDF compacto de una sola hoja por alumno (`studentCompact()`) en `StudentActivityDetailPdfController` con `SetAutoPageBreak(false)` y tabla por curso; ruta `admin.reports.student-activity-detail.pdf.student-compact`; botón "PDF resumen" (amarillo, `fa-compress-alt`) en vista del listado
+- v1.8.3 — Filtro `filterMaxActivities` (1–10) en `Reports/StudentActivityDetail` para limitar actividades por curso en Livewire y todos los PDF (`max_activities` query param validado); nuevo PDF resumen por sección en carta con 2 alumnos/hoja (`classroomCompactCarta()`, ruta `admin.reports.student-activity-detail.pdf.classroom-compact-carta`); `renderStudentCompactBlock()` refactorizado de `bool $large` a `string $size` ('small'/'medium'/'large') para tres tiers de tamaño de fuente; nuevo componente Livewire `Profesor\GradeBookGrid` — cuadrícula tipo Excel con Alpine.js (estado cliente, guardado único vía `this.$wire.saveGrid()`), inputs `type="text" inputmode="decimal"` sin spinners, navegación Enter por columna, columnas sticky, soporte completo de mejoramiento, total en tiempo real; ruta `profesor.grade-books.grid`; botón de acceso desde `GradeBooks` por cuadro
+- v1.8.4 — `GradeBookGrid` enriquecido con Bloquear Cuadro (valida 100 pts normales, audita, notifica admins), Reabrir (para cuadros rechazados), Clonar actividades a otra sección (con restricción: actividades normales deben sumar 100 pts) y descarga de PDF cuando el cuadro está aprobado; misma restricción de 100 pts aplicada al clonar desde `GradeBooks`; `ClassroomCourseAssignments` mejorado para gestionar reemplazo de profesor: `lockedAssignments` ahora almacena `{status, activity_count}` en lugar de `true`, badges de color por estado del cuadro en la vista (verde/gris/azul/rojo con conteo de actividades y tooltip contextual), auto-reapertura de cuadros `rejected` al transferir con audit log via `AuditService`, mensaje de éxito diferenciado con conteo de transferencias y reaperturas
+- v1.8.5 — Fix `NotificationBell`: solo muestra notificaciones no leídas (desaparecen al marcar), scroll interno en lista (~3 visibles), clic navega a la URL y marca como leída (`markReadAndRedirect`); fix boletas PDF (`ReportCardController`): calificaciones por unidad menores a 60 se marcan en rojo RGB(156,0,6) igual que el acumulado; fix vistas auth `forgot-password` y `reset-password` traducidas al español, eliminados `__()`; `config/adminlte.php` título dinámico desde `APP_INSTITUTION_NAME`; fix `student-data-update-form`: opciones de `civil_status` corregidas con `value` explícito que coincide con el ENUM de BD (`Soltero`, `Casado`, `Divorciado`, `Viudo`), eliminada opción `Unión de hecho` que no existía en el ENUM
 - v1.9.0 — 11 mejoras implementadas: (1) `Admin/Professors` — gestión especializada de profesores con edición de datos laborales y vista de cursos asignados; (2) `Admin/Guardians` — búsqueda, edición y vista de estudiantes relacionados; (3) `AuditLogExport` + botón en `AuditLog` — exportación Excel con los filtros activos; (4) `RoleAssigned`/`RoleRevoked` notificaciones disparadas desde `UserList::save()`; (5) Dashboard Secretaria — panel de inscripciones recientes y conteo por estado; (6) `AttendanceReport` — toggle Sesiones/Resumen con % por alumno y umbral configurable; (7) `Reports/StudentsAtRisk` — alumnos con promedio ponderado < umbral por curso; (8) `gradebooks:notify-stale` — comando artisan schedulado diariamente para alertar cuadros bloqueados sin revisar; (9) `Reports/GradeProgressComparison` — promedio por unidad por curso en un aula; (10) `Reports/StudentHistory` — historial multi-año por alumno; (11) `Reports/ProfessorWorkload` — carga docente por año

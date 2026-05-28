@@ -7,11 +7,15 @@
 @stop
 
 @section('content_header')
-    <h1 class="m-0 text-white">
-        <i class="fas fa-user-friends mr-2"></i> Guardianes / Tutores
-    </h1>
-@endsection
+    <h1 class="text-white"><i class="fas fa-user-friends"></i> Gestión de Guardianes</h1>
+@stop
 
 @section('content')
     <livewire:admin.guardians />
-@endsection
+@stop
+
+@section('css')
+@stop
+
+@section('js')
+@stop

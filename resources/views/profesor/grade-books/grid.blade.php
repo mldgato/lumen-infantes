@@ -1,17 +1,17 @@
 @extends('adminlte::page')
 
-@section('title', 'Profesores')
+@section('title', 'Vista Cuadrícula')
 
 @section('adminlte_css')
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
 @stop
 
 @section('content_header')
-    <h1 class="text-white"><i class="fas fa-chalkboard-teacher"></i> Gestión de Profesores</h1>
+    <h1 class="text-white"><i class="fas fa-th"></i> Vista Cuadrícula de Calificaciones</h1>
 @stop
 
 @section('content')
-    <livewire:admin.professors />
+    <livewire:profesor.grade-book-grid :gradeBook="$gradeBook" />
 @stop
 
 @section('css')
