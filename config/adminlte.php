@@ -595,6 +595,12 @@ return [
                     'icon' => 'fas fa-fw fa-chart-line',
                     'can' => 'admin.reports.grade-progress',
                 ],
+                [
+                    'text' => 'Estudiantes en Riesgo',
+                    'route' => 'admin.reports.students-at-risk.index',
+                    'icon' => 'fas fa-fw fa-exclamation-triangle',
+                    'can' => 'admin.reports.students-at-risk',
+                ],
             ],
         ],
 

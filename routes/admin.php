@@ -222,3 +222,7 @@ Route::get('/reports/attendance/pdf', [AttendancePdfController::class, 'adminGen
 Route::get('/reports/grade-progress/index', fn () => view('admin.reports.grade-progress.index'))
     ->name('admin.reports.grade-progress.index')
     ->middleware('can:admin.reports.grade-progress');
+
+Route::get('/reports/students-at-risk', fn () => view('admin.reports.students-at-risk.index'))
+    ->name('admin.reports.students-at-risk.index')
+    ->middleware('can:admin.reports.students-at-risk');
