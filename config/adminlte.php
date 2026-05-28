@@ -395,6 +395,12 @@ return [
                     'icon' => 'fas fa-fw fa-users',
                     'can' => 'admin.students.index',
                 ],
+                [
+                    'text' => 'Guardianes',
+                    'route' => 'admin.guardians.index',
+                    'icon' => 'fas fa-fw fa-user-friends',
+                    'can' => 'admin.guardians.index',
+                ],
             ],
         ],
 

@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('users/index', [UserController::class, 'index'])->middleware('can:admin.users.index')->name('admin.users.index');
 Route::get('professors', fn () => view('admin.professors.index'))->name('admin.professors.index')->middleware('can:admin.professors.index');
+Route::get('guardians', fn () => view('admin.guardians.index'))->name('admin.guardians.index')->middleware('can:admin.guardians.index');
 Route::get('students/index', [StudentController::class, 'index'])->middleware('can:admin.students.index')->name('admin.students.index');
 Route::get('students/{student}/pdf', [StudentPdfController::class, 'generate'])->name('admin.students.pdf');
 
