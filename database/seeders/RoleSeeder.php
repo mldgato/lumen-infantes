@@ -369,6 +369,7 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'admin.settings.index',     'description' => 'Administración - Configuraciones del sistema'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.admissions.index',   'description' => 'Administración - Listado de solicitudes de admisión'])->syncRoles([$role1, $role2, $role5]);
         Permission::create(['name' => 'admin.admissions.manage',  'description' => 'Administración - Gestionar solicitudes de admisión (aceptar/rechazar)'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.admissions.edit',  'description' => 'Administración - Editar solicitudes de admisión'])->syncRoles([$role1, $role2]);
 
         // Módulo Student
         Permission::create(['name' => 'student.grades.view',          'description' => 'Estudiante - Ver mis calificaciones'])->assignRole($role3);

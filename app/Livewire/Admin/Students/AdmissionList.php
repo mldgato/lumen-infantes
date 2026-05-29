@@ -390,7 +390,7 @@ class AdmissionList extends Component
 
         $this->viewing->load('level', 'grade');
         $this->viewing->refresh();
-        $this->dispatch('toastMessage', title: 'Información actualizada correctamente.', icon: 'success');
+        $this->dispatch('showAlert', title: 'Información actualizada correctamente.', icon: 'success');
         unset($this->applications);
     }
 
@@ -437,6 +437,10 @@ class AdmissionList extends Component
         $this->authorize('admin.admissions.manage');
 
         if (! array_key_exists($field, AdmissionApplicationDocument::fields())) {
+            return;
+        }
+
+        if ($this->viewing->current_status === 'pending') {
             return;
         }
 

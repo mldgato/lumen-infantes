@@ -446,7 +446,7 @@
                                     <option value="Página Web">Página Web</option>
                                     <option value="Publicidad">Publicidad (volante, afiche, etc.)</option>
                                     <option value="Cercanía">Cercanía (ubicación geográfica)</option>
-                                    <option value="Exalumno">Soy exalumno del instituto</option>
+                                    <option value="Exalumno">Soy exalumno</option>
                                     <option value="Referido por exalumno">Referido por un exalumno</option>
                                     <option value="Referido por familia vecina">Referido por una familia vecina</option>
                                     <option value="Referido por familiar">Referido por un familiar</option>

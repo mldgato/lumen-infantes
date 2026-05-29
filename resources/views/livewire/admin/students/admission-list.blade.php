@@ -108,15 +108,15 @@
                                     </button>
                                     @can('admin.admissions.manage')
                                         @if ($app->isPending())
-                                            <button wire:click="markEmailed({{ $app->id }})"
-                                                wire:confirm="¿Marcar correo enviado al postulante?"
+                                            <button
+                                                @click="Swal.fire({ title: '¿Marcar correo enviado al postulante?', icon: 'question', showCancelButton: true, confirmButtonText: 'Confirmar', cancelButtonText: 'Cancelar' }).then(r => r.isConfirmed && $wire.markEmailed({{ $app->id }}))"
                                                 class="btn btn-xs btn-primary" title="Correo enviado">
                                                 <i class="fas fa-envelope"></i>
                                             </button>
                                         @endif
                                         @if ($app->isReviewed())
-                                            <button wire:click="markAccepted({{ $app->id }})"
-                                                wire:confirm="¿Aceptar esta solicitud?"
+                                            <button
+                                                @click="Swal.fire({ title: '¿Aceptar esta solicitud?', icon: 'question', showCancelButton: true, confirmButtonText: 'Aceptar', cancelButtonText: 'Cancelar', confirmButtonColor: '#28a745' }).then(r => r.isConfirmed && $wire.markAccepted({{ $app->id }}))"
                                                 class="btn btn-xs btn-success" title="Aceptar">
                                                 <i class="fas fa-check"></i>
                                             </button>
@@ -126,8 +126,8 @@
                                             </button>
                                         @endif
                                         @if (! $app->isPending())
-                                            <button wire:click="resetToPending({{ $app->id }})"
-                                                wire:confirm="¿Regresar a Pendiente?"
+                                            <button
+                                                @click="Swal.fire({ title: '¿Regresar a Pendiente?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí', cancelButtonText: 'No', confirmButtonColor: '#ffc107' }).then(r => r.isConfirmed && $wire.resetToPending({{ $app->id }}))"
                                                 class="btn btn-xs btn-warning" title="Regresar a pendiente">
                                                 <i class="fas fa-undo"></i>
                                             </button>
@@ -173,24 +173,24 @@
                         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     </div>
 
-                    <div class="modal-body p-0">
+                    <div class="modal-body p-0" x-data="{ activeTab: 'tab-alumno' }">
                         {{-- TABS --}}
-                        <ul class="nav nav-tabs nav-justified border-bottom" id="admissionTabs" role="tablist">
+                        <ul class="nav nav-tabs nav-justified border-bottom" role="tablist">
                             <li class="nav-item">
-                                <a class="nav-link active" id="tab-alumno-link" data-toggle="tab"
-                                    href="#tab-alumno" role="tab">
+                                <a class="nav-link" :class="{ 'active': activeTab === 'tab-alumno' }"
+                                    @click.prevent="activeTab = 'tab-alumno'" href="#" role="tab">
                                     <i class="fas fa-user-graduate mr-1"></i> Alumno & Grado
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="tab-padres-link" data-toggle="tab"
-                                    href="#tab-padres" role="tab">
+                                <a class="nav-link" :class="{ 'active': activeTab === 'tab-padres' }"
+                                    @click.prevent="activeTab = 'tab-padres'" href="#" role="tab">
                                     <i class="fas fa-users mr-1"></i> Padres & Encargado
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="tab-papeleria-link" data-toggle="tab"
-                                    href="#tab-papeleria" role="tab">
+                                <a class="nav-link" :class="{ 'active': activeTab === 'tab-papeleria' }"
+                                    @click.prevent="activeTab = 'tab-papeleria'" href="#" role="tab">
                                     <i class="fas fa-folder-open mr-1"></i>
                                     Papelería
                                     @if ($viewing->documents?->isComplete())
@@ -203,8 +203,8 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="tab-historial-link" data-toggle="tab"
-                                    href="#tab-historial" role="tab">
+                                <a class="nav-link" :class="{ 'active': activeTab === 'tab-historial' }"
+                                    @click.prevent="activeTab = 'tab-historial'" href="#" role="tab">
                                     <i class="fas fa-history mr-1"></i> Historial
                                 </a>
                             </li>
@@ -212,7 +212,7 @@
 
                         <div class="tab-content p-3">
                             {{-- ── TAB 1: Alumno & Grado ─────────────────── --}}
-                            <div class="tab-pane fade show active" id="tab-alumno" role="tabpanel">
+                            <div id="tab-alumno" role="tabpanel" x-show="activeTab === 'tab-alumno'">
                                 <div class="row">
                                     <div class="col-sm-12 col-md-6">
                                         <div class="form-group">
@@ -330,7 +330,7 @@
                             </div>
 
                             {{-- ── TAB 2: Padres & Encargado ────────────── --}}
-                            <div class="tab-pane fade" id="tab-padres" role="tabpanel">
+                            <div id="tab-padres" role="tabpanel" x-show="activeTab === 'tab-padres'">
 
                                 {{-- PADRE --}}
                                 <fieldset class="edit-section mb-3">
@@ -597,7 +597,7 @@
                             </div>
 
                             {{-- ── TAB 3: Papelería & URLs ──────────────── --}}
-                            <div class="tab-pane fade" id="tab-papeleria" role="tabpanel">
+                            <div id="tab-papeleria" role="tabpanel" x-show="activeTab === 'tab-papeleria'">
 
                                 {{-- URLs --}}
                                 <fieldset class="edit-section mb-3">
@@ -611,7 +611,7 @@
                                                 </label>
                                                 <input type="text" wire:model="editUrlDocuments"
                                                     class="form-control @error('editUrlDocuments') is-invalid @enderror"
-                                                    placeholder="https://drive.google.com/..."
+                                                    placeholder="https://onedrive.com/..."
                                                     @cannot('admin.admissions.manage') disabled @endcannot>
                                                 @error('editUrlDocuments') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 @if ($editUrlDocuments)
@@ -629,7 +629,7 @@
                                                 </label>
                                                 <input type="text" wire:model="editUrlPayment"
                                                     class="form-control @error('editUrlPayment') is-invalid @enderror"
-                                                    placeholder="https://drive.google.com/..."
+                                                    placeholder="https://onedrive.com/..."
                                                     @cannot('admin.admissions.manage') disabled @endcannot>
                                                 @error('editUrlPayment') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 @if ($editUrlPayment)
@@ -657,6 +657,12 @@
                                         @endif
                                     </legend>
                                     @can('admin.admissions.manage')
+                                        @if ($viewing->current_status === 'pending')
+                                            <div class="alert alert-warning py-2 mb-3">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                Primero debe marcarse el correo como enviado al postulante para poder gestionar la papelería.
+                                            </div>
+                                        @endif
                                         <div class="row">
                                             @foreach (\App\Models\AdmissionApplicationDocument::fields() as $field => $label)
                                                 <div class="col-sm-12 col-md-6 mb-2">
@@ -665,8 +671,10 @@
                                                             class="custom-control-input"
                                                             id="doc_{{ $field }}"
                                                             wire:click="toggleDocument('{{ $field }}')"
-                                                            @checked($viewing->documents?->$field)>
-                                                        <label class="custom-control-label" for="doc_{{ $field }}">
+                                                            @checked($viewing->documents?->$field)
+                                                            @if ($viewing->current_status === 'pending') disabled @endif>
+                                                        <label class="custom-control-label @if ($viewing->current_status === 'pending') text-muted @endif"
+                                                            for="doc_{{ $field }}">
                                                             {{ $label }}
                                                         </label>
                                                     </div>
@@ -700,7 +708,7 @@
                                                     <option value="Página Web">Página Web</option>
                                                     <option value="Publicidad">Publicidad (volante, afiche, etc.)</option>
                                                     <option value="Cercanía">Cercanía (ubicación geográfica)</option>
-                                                    <option value="Exalumno">Soy exalumno del instituto</option>
+                                                    <option value="Exalumno">Soy exalumno</option>
                                                     <option value="Referido por exalumno">Referido por un exalumno</option>
                                                     <option value="Referido por familia vecina">Referido por una familia vecina</option>
                                                     <option value="Referido por familiar">Referido por un familiar</option>
@@ -712,7 +720,7 @@
                             </div>
 
                             {{-- ── TAB 4: Historial ─────────────────────── --}}
-                            <div class="tab-pane fade" id="tab-historial" role="tabpanel">
+                            <div id="tab-historial" role="tabpanel" x-show="activeTab === 'tab-historial'">
                                 <table class="table table-sm table-bordered mb-0">
                                     <thead class="thead-light">
                                         <tr>
@@ -746,15 +754,15 @@
                         <div>
                             @can('admin.admissions.manage')
                                 @if ($viewing->isPending())
-                                    <button wire:click="markEmailed({{ $viewing->id }})"
-                                        wire:confirm="¿Marcar correo enviado al postulante?"
+                                    <button
+                                        @click="Swal.fire({ title: '¿Marcar correo enviado al postulante?', icon: 'question', showCancelButton: true, confirmButtonText: 'Confirmar', cancelButtonText: 'Cancelar' }).then(r => r.isConfirmed && $wire.markEmailed({{ $viewing->id }}))"
                                         class="btn btn-primary btn-sm">
                                         <i class="fas fa-envelope mr-1"></i> Correo enviado
                                     </button>
                                 @endif
                                 @if ($viewing->isReviewed())
-                                    <button wire:click="markAccepted({{ $viewing->id }})"
-                                        wire:confirm="¿Aceptar esta solicitud de admisión?"
+                                    <button
+                                        @click="Swal.fire({ title: '¿Aceptar esta solicitud de admisión?', icon: 'question', showCancelButton: true, confirmButtonText: 'Aceptar', cancelButtonText: 'Cancelar', confirmButtonColor: '#28a745' }).then(r => r.isConfirmed && $wire.markAccepted({{ $viewing->id }}))"
                                         class="btn btn-success btn-sm">
                                         <i class="fas fa-check mr-1"></i> Aceptar
                                     </button>
@@ -764,8 +772,8 @@
                                     </button>
                                 @endif
                                 @if (! $viewing->isPending())
-                                    <button wire:click="resetToPending({{ $viewing->id }})"
-                                        wire:confirm="¿Regresar a Pendiente?"
+                                    <button
+                                        @click="Swal.fire({ title: '¿Regresar a Pendiente?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí', cancelButtonText: 'No', confirmButtonColor: '#ffc107' }).then(r => r.isConfirmed && $wire.resetToPending({{ $viewing->id }}))"
                                         class="btn btn-warning btn-sm">
                                         <i class="fas fa-undo mr-1"></i> Pendiente
                                     </button>
