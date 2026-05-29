@@ -303,7 +303,7 @@ class RoleSeeder extends Seeder
 
         // Permisos de menú admin
         Permission::create(['name' => 'admin.menu.personal',    'description' => 'Menú Gestión de Personal'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.menu.estudiantil', 'description' => 'Menú Gestión Estudiantil'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.estudiantil', 'description' => 'Menú Gestión Estudiantil'])->syncRoles([$role1, $role2, $role5]);
         Permission::create(['name' => 'admin.menu.academica',   'description' => 'Menú Gestión Académica'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.menu.cuadros',     'description' => 'Menú Cuadros y Calificaciones'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.menu.reportes',    'description' => 'Menú Reportes Admin'])->syncRoles([$role1, $role2]);
@@ -364,6 +364,11 @@ class RoleSeeder extends Seeder
             'name' => 'admin.enrollment-periods.delete',
             'description' => 'Administración - Eliminar período de inscripción',
         ])->syncRoles([$role1, $role2]);
+
+        // Módulo Admisiones
+        Permission::create(['name' => 'admin.settings.index',     'description' => 'Administración - Configuraciones del sistema'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.admissions.index',   'description' => 'Administración - Listado de solicitudes de admisión'])->syncRoles([$role1, $role2, $role5]);
+        Permission::create(['name' => 'admin.admissions.manage',  'description' => 'Administración - Gestionar solicitudes de admisión (aceptar/rechazar)'])->syncRoles([$role1, $role2]);
 
         // Módulo Student
         Permission::create(['name' => 'student.grades.view',          'description' => 'Estudiante - Ver mis calificaciones'])->assignRole($role3);

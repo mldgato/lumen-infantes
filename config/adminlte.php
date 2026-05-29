@@ -384,6 +384,12 @@ return [
                     'can' => 'admin.students.enrollments.index',
                 ],
                 [
+                    'text' => 'Admisiones',
+                    'route' => 'admin.admissions.index',
+                    'icon' => 'fas fa-fw fa-file-signature',
+                    'can' => 'admin.admissions.index',
+                ],
+                [
                     'text' => 'Períodos de Inscripción',
                     'route' => 'admin.enrollment-periods.index',
                     'icon' => 'fas fa-fw fa-calendar-alt',
@@ -645,6 +651,12 @@ return [
                     'route' => 'admin.audit.index',
                     'icon' => 'fas fa-fw fa-history',
                     'can' => 'admin.audit.index',
+                ],
+                [
+                    'text' => 'Configuraciones',
+                    'route' => 'admin.settings.index',
+                    'icon' => 'fas fa-fw fa-cogs',
+                    'can' => 'admin.settings.index',
                 ],
             ],
         ],

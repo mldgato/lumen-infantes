@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.9.0
+v1.9.1
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -76,6 +76,16 @@ Livewire components validan con `$this->authorize('permiso')`.
 - Imprimir boleta PDF personal (selecciona unidad; genera su propia boleta, nunca la de otro)
 - Dashboard con KPIs: mis cursos, cursos en riesgo, % asistencia, unidades publicadas
 - Perfil propio (ruta `/profile` existente en `web.php`)
+
+### Módulo de Admisiones (v1.9.1)
+- **Formulario público** en `/admisiones` (sin auth): 7 secciones — datos del alumno, grado, padre (toggle), madre (toggle), encargado, familia e hijos, cómo nos conoció
+- **Configuración** en `/admin/settings`: modo de inscripción (`direct` o `admissions`); en modo `admissions` el formulario público acepta solicitudes
+- **Panel admin** en `/admin/students/admissions`: listado filtrable, modal de detalle completo, gestión de papelería con checkboxes
+- **Flujo de estados**: `pending` → `emailed` (correo enviado, manual) → `reviewed` (documentación completa, automático cuando se marcan los 5 docs) → `accepted`/`rejected`
+- **Papelería** por solicitud: Boleta de pago, Calificaciones, Ficha, Carta de referencias, Fotografía; al completar los 5 el estado cambia automáticamente a `reviewed`
+- **NIT del encargado** solo se almacena cuando el tipo de encargado es "Otro"
+- **Interruptores padre/madre**: si se desactivan, sus datos quedan nulos; la opción de encargado se oculta dinámicamente
+- **Ciclo escolar del formulario**: enero–junio muestra año actual + siguiente; julio–diciembre solo el siguiente año
 
 ### Administración
 - Gestión de usuarios, roles y permisos (Spatie)
@@ -254,6 +264,8 @@ if (! $professor) {
 | `Roles/ShowRoles` | Gestión de roles (Spatie) |
 | `Permissions/ShowPermissions` | Gestión de permisos |
 | `Students/EnrollmentList` | Listado de inscripciones |
+| `Students/AdmissionList` | Listado y gestión de solicitudes de admisión (papelería, estados, rechazo con notas) |
+| `Admin/SystemSettings` | Configuraciones globales del sistema (`enrollment_mode`: direct/admissions) |
 
 ### Profesor (app/Livewire/Profesor/)
 | Componente | Responsabilidad |
@@ -390,7 +402,7 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
 - Otras secciones usan `User.carne`
 - Patrón de ordenamiento: `leftJoin` + `orderByRaw('CAST(COALESCE(...) AS UNSIGNED) ASC')`
 
-## Tablas de base de datos (43 migraciones)
+## Tablas de base de datos (49 migraciones)
 
 | Tabla | Descripción |
 |---|---|
@@ -420,6 +432,10 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
 | `audit_logs` | Auditoría completa con old/new values |
 | `roles`, `permissions`, `role_has_permissions` | Spatie |
 | `cache`, `jobs`, `sessions` | Laravel estándar |
+| `system_settings` | Configuraciones globales clave-valor (ej. `enrollment_mode`) |
+| `admission_applications` | Solicitudes de admisión con datos del alumno, padres, encargado y familia |
+| `admission_application_statuses` | Historial de cambios de estado por solicitud (user_id, notes) |
+| `admission_application_documents` | Papelería por solicitud: payment_receipt, grades_certificate, registration_form, reference_letter, photo |
 
 ## Estructura de vistas (resources/views/)
 ```
@@ -514,9 +530,11 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 **IMPORTANTE:** la ruta `/completado` debe ir ANTES de `{token}` para no ser capturada como token.
 
 ### Layout public
-- `resources/views/layouts/public.blade.php` — layout sin auth con Bootstrap 4 + FontAwesome CDN
+- `resources/views/layouts/public.blade.php` — layout sin auth con Bootstrap 4 + FontAwesome + SweetAlert2 CDN; soporta `@stack('styles')` y `@stack('scripts')`
 - `.public-card` (max-width: 520px) — para formularios pequeños
 - `.public-card-wide` (max-width: 760px) — para el formulario de 3 tabs
+- `.admission-card` (max-width: 960px) — para el formulario de admisiones de 7 secciones
+- Componentes de página completa (full-page Livewire) deben usar `->extends('layouts.public')->section('content')` en `render()`
 
 ## Pendientes
 
@@ -574,4 +592,5 @@ GET /actualizar-datos/{token}   → StudentDataController::verifyToken
 - v1.8.3 — Filtro `filterMaxActivities` (1–10) en `Reports/StudentActivityDetail` para limitar actividades por curso en Livewire y todos los PDF (`max_activities` query param validado); nuevo PDF resumen por sección en carta con 2 alumnos/hoja (`classroomCompactCarta()`, ruta `admin.reports.student-activity-detail.pdf.classroom-compact-carta`); `renderStudentCompactBlock()` refactorizado de `bool $large` a `string $size` ('small'/'medium'/'large') para tres tiers de tamaño de fuente; nuevo componente Livewire `Profesor\GradeBookGrid` — cuadrícula tipo Excel con Alpine.js (estado cliente, guardado único vía `this.$wire.saveGrid()`), inputs `type="text" inputmode="decimal"` sin spinners, navegación Enter por columna, columnas sticky, soporte completo de mejoramiento, total en tiempo real; ruta `profesor.grade-books.grid`; botón de acceso desde `GradeBooks` por cuadro
 - v1.8.4 — `GradeBookGrid` enriquecido con Bloquear Cuadro (valida 100 pts normales, audita, notifica admins), Reabrir (para cuadros rechazados), Clonar actividades a otra sección (con restricción: actividades normales deben sumar 100 pts) y descarga de PDF cuando el cuadro está aprobado; misma restricción de 100 pts aplicada al clonar desde `GradeBooks`; `ClassroomCourseAssignments` mejorado para gestionar reemplazo de profesor: `lockedAssignments` ahora almacena `{status, activity_count}` en lugar de `true`, badges de color por estado del cuadro en la vista (verde/gris/azul/rojo con conteo de actividades y tooltip contextual), auto-reapertura de cuadros `rejected` al transferir con audit log via `AuditService`, mensaje de éxito diferenciado con conteo de transferencias y reaperturas
 - v1.8.5 — Fix `NotificationBell`: solo muestra notificaciones no leídas (desaparecen al marcar), scroll interno en lista (~3 visibles), clic navega a la URL y marca como leída (`markReadAndRedirect`); fix boletas PDF (`ReportCardController`): calificaciones por unidad menores a 60 se marcan en rojo RGB(156,0,6) igual que el acumulado; fix vistas auth `forgot-password` y `reset-password` traducidas al español, eliminados `__()`; `config/adminlte.php` título dinámico desde `APP_INSTITUTION_NAME`; fix `student-data-update-form`: opciones de `civil_status` corregidas con `value` explícito que coincide con el ENUM de BD (`Soltero`, `Casado`, `Divorciado`, `Viudo`), eliminada opción `Unión de hecho` que no existía en el ENUM
+- v1.9.1 — Módulo de Admisiones completo: formulario público en `/admisiones` (7 secciones, interruptores padre/madre, NIT de encargado, lógica de ciclo escolar por mes); configuración del sistema (`SystemSetting` key-value con caché); panel admin `AdmissionList` con filtros, modal detalle, gestión de papelería (5 documentos con auto-estado `reviewed` al completar), rechazo con notas; flujo de estados: `pending→emailed→reviewed→accepted/rejected` con historial completo en tabla `admission_application_statuses`; 3 permisos nuevos (`admin.settings.index`, `admin.admissions.index`, `admin.admissions.manage`) en RoleSeeder; rutas públicas `/admisiones` y `/admisiones/gracias`; `AdmissionApplicationSeeder` con 5 solicitudes de prueba
 - v1.9.0 — 11 mejoras implementadas: (1) `Admin/Professors` — gestión especializada de profesores con edición de datos laborales y vista de cursos asignados; (2) `Admin/Guardians` — búsqueda, edición y vista de estudiantes relacionados; (3) `AuditLogExport` + botón en `AuditLog` — exportación Excel con los filtros activos; (4) `RoleAssigned`/`RoleRevoked` notificaciones disparadas desde `UserList::save()`; (5) Dashboard Secretaria — panel de inscripciones recientes y conteo por estado; (6) `AttendanceReport` — toggle Sesiones/Resumen con % por alumno y umbral configurable; (7) `Reports/StudentsAtRisk` — alumnos con promedio ponderado < umbral por curso; (8) `gradebooks:notify-stale` — comando artisan schedulado diariamente para alertar cuadros bloqueados sin revisar; (9) `Reports/GradeProgressComparison` — promedio por unidad por curso en un aula; (10) `Reports/StudentHistory` — historial multi-año por alumno; (11) `Reports/ProfessorWorkload` — carga docente por año

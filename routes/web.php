@@ -10,6 +10,12 @@ Route::redirect('/', '/login');
 // Rutas públicas — actualización de datos de estudiantes (sin autenticación)
 Route::get('/actualizar-datos', \App\Livewire\StudentDataRequest::class)
     ->name('student.data.request');
+
+// Rutas públicas — proceso de admisiones (sin autenticación)
+Route::get('/admisiones', \App\Livewire\AdmissionForm::class)
+    ->name('admissions.form');
+Route::view('/admisiones/gracias', 'admissions.done')
+    ->name('admissions.done');
 Route::view('/actualizar-datos/completado', 'student-data.done')
     ->name('student.data.done');
 Route::get('/actualizar-datos/{token}', [StudentDataController::class, 'verifyToken'])
@@ -34,4 +40,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/reauth', [ReauthController::class, 'store'])->name('reauth');
 
 // Las rutas de configuración adicionales de tu Starter Kit
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

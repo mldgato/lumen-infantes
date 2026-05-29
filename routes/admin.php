@@ -244,3 +244,13 @@ Route::get('/reports/student-history', fn () => view('admin.reports.student-hist
 Route::get('/reports/professor-workload', fn () => view('admin.reports.professor-workload.index'))
     ->name('admin.reports.professor-workload.index')
     ->middleware('can:admin.reports.professor-workload');
+
+// Configuraciones del sistema
+Route::get('/settings', fn () => view('admin.settings'))
+    ->name('admin.settings.index')
+    ->middleware('can:admin.settings.index');
+
+// Solicitudes de admisión
+Route::get('/students/admissions', fn () => view('admin.students.admissions'))
+    ->name('admin.admissions.index')
+    ->middleware('can:admin.admissions.index');

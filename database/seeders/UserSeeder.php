@@ -2,10 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Image;
+use App\Models\Level;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Image;
 
 class UserSeeder extends Seeder
 {
@@ -35,6 +36,7 @@ class UserSeeder extends Seeder
             'must_change_password' => false,
         ]);
         $user->assignRole('Super Administrador');
+        $user->levels()->attach(Level::pluck('id'));
         $user->image()->save(Image::factory()->make());
     }
 }

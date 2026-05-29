@@ -1,6 +1,17 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(php -l app/Livewire/Profesor/GradeBookGrid.php)",
+      "Bash(php -l app/Livewire/Profesor/GradeBooks.php)",
+      "Bash(php -l app/Livewire/Admin/ClassroomCourseAssignments.php)",
+      "Bash(git *)",
+      "Bash(vendor/bin/pint *)",
+      "PowerShell(php artisan make:livewire Admin/SystemSettings --class 2>&1; php artisan make:livewire AdmissionForm --class 2>&1; php artisan make:livewire Admin/Students/AdmissionList --class 2>&1)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "laravel-boost"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
