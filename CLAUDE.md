@@ -65,7 +65,7 @@ Livewire components validan con `$this->authorize('permiso')`.
 - **Plantilla email reset:** `resources/views/emails/reset-password.blade.php`
 - **Forced Password Change:** middleware `EnsurePasswordIsChanged` + componente Livewire
   - Redirige a `/forzar-cambio-clave` si `users.must_change_password = true`
-- **Re-autenticación:** ruta `POST /reauth` para sesiones expiradas (v1.5.0)
+- **Re-autenticación:** ruta `POST /reauth` para sesiones expiradas
 - **Session:** database driver, lifetime 120 min
 
 ## Módulos implementados
@@ -77,7 +77,7 @@ Livewire components validan con `$this->authorize('permiso')`.
 - Dashboard con KPIs: mis cursos, cursos en riesgo, % asistencia, unidades publicadas
 - Perfil propio (ruta `/profile` existente en `web.php`)
 
-### Módulo de Admisiones (v1.9.1 / mejoras v1.9.2)
+### Módulo de Admisiones
 - **Formulario público** en `/admisiones` (sin auth): 7 secciones — datos del alumno, grado, padre (toggle), madre (toggle), encargado, familia e hijos, cómo nos conoció
 - **Configuración** en `/admin/settings`: modo de inscripción (`direct` o `admissions`); en modo `admissions` el formulario público acepta solicitudes
 - **Panel admin** en `/admin/students/admissions`: listado filtrable, modal de detalle completo, gestión de papelería con checkboxes
@@ -85,32 +85,10 @@ Livewire components validan con `$this->authorize('permiso')`.
 - **Papelería** por solicitud: Boleta de pago, Calificaciones, Ficha, Carta de referencias, Fotografía; al completar los 5 el estado cambia automáticamente a `reviewed`
 - **Papelería bloqueada en `pending`**: checkboxes deshabilitados con aviso explicativo hasta que el estado sea al menos `emailed`; guard en `toggleDocument()` en el servidor
 - **Tabs del modal con Alpine.js**: las 4 pestañas usan `x-data="{ activeTab }"` + `x-show` en lugar de `data-toggle="tab"` de Bootstrap, preservando la pestaña activa durante re-renders de Livewire
-- **Confirmaciones SweetAlert2**: todos los botones de acción (`markEmailed`, `markAccepted`, `resetToPending`) tanto en la tabla como en el footer del modal usan `Swal.fire()` vía Alpine en lugar de `wire:confirm` (alert nativo del navegador)
+- **Confirmaciones SweetAlert2**: todos los botones de acción (`markEmailed`, `markAccepted`, `resetToPending`) tanto en la tabla como en el footer del modal usan `Swal.fire()` vía Alpine en lugar de `wire:confirm`
 - **NIT del encargado** solo se almacena cuando el tipo de encargado es "Otro"
 - **Interruptores padre/madre**: si se desactivan, sus datos quedan nulos; la opción de encargado se oculta dinámicamente
 - **Ciclo escolar del formulario**: enero–junio muestra año actual + siguiente; julio–diciembre solo el siguiente año
-
-### Administración
-- Gestión de usuarios, roles y permisos (Spatie)
-- Inscripciones de estudiantes (con guardianes y ficha médica)
-- Cuadros de calificaciones (actividades, scores, mejoras, totales)
-- Flujo de aprobación/rechazo de cuadros
-- Solicitudes de cambio de notas
-- Dashboard con gráficos (Chart.js)
-- Reportes PDF y Excel (sábanas, boletas, cuadros, listados, actividades no entregadas)
-- Auditoría general de eventos
-- Configuración académica por ciclo escolar
-
-### Profesor
-- Mis Cuadros (crear actividades, calificar, bloquear, reabrir)
-- Solicitar cambio de notas
-- Toma de asistencia diaria con historial
-- Reportes: acumulado, cuadros por unidad, cuadro vacío, listados PDF/Excel, actividades no entregadas
-
-### Autenticación
-- Login / Forgot Password / Reset Password en estilo AdminLTE
-- Correo de reset con plantilla HTML personalizada
-- `must_change_password` en tabla users — middleware implementado y funcional (v1.5.0)
 
 ## Modelos principales (app/Models/)
 
@@ -161,8 +139,8 @@ Livewire components validan con `$this->authorize('permiso')`.
 ### Períodos de inscripción y actualización
 - `EnrollmentPeriod` — year, start_date, end_date, allow_enrollments:boolean, allow_data_updates:boolean
   - Métodos estáticos: `activeForEnrollments(): bool`, `activeForDataUpdates(): bool`, `hasOverlap(string $flag, string $startDate, string $endDate, ?int $excludeId): bool`
-  - Regla de negocio: solo puede existir un período con `allow_enrollments=true` y un período con `allow_data_updates=true` activos simultáneamente (validado por `hasOverlap` antes de guardar).
-  - Cuando `activeForEnrollments()` es false, los botones "Existente" y "Nuevo" en `EnrollmentList` quedan deshabilitados con mensaje explicativo; `enrollExisting()` y `enrollNew()` también verifican al inicio.
+  - Regla de negocio: solo puede existir un período activo por cada flag simultáneamente (validado por `hasOverlap` antes de guardar).
+  - Cuando `activeForEnrollments()` es false, los botones "Existente" y "Nuevo" en `EnrollmentList` quedan deshabilitados; `enrollExisting()` y `enrollNew()` también verifican al inicio.
   - Cuando `activeForDataUpdates()` es false, `StudentDataRequest` muestra pantalla de período cerrado y bloquea `submit()`.
 
 ### Asistencia y auditoría
@@ -225,7 +203,7 @@ Los paneles info-box (`StatsGeneral`, `GradeBooksPending`, `ProfesorStats`) rend
 </div>
 ```
 
-**Paneles de Profesor — null-check obligatorio:** los paneles `ProfesorGradeBooksChart`, `ProfesorGradeBooksSummary` y `ActionableGradeBooks` dependen de `Auth::user()->professor`. Siempre verificar que la relación existe antes de usarla, porque un SuperAdmin (u otro usuario sin registro en `professors`) puede tener el permiso y llegar al panel:
+**Paneles de Profesor — null-check obligatorio:** los paneles `ProfesorGradeBooksChart`, `ProfesorGradeBooksSummary` y `ActionableGradeBooks` dependen de `Auth::user()->professor`. Siempre verificar que la relación existe antes de usarla, porque un SuperAdmin puede tener el permiso y llegar al panel:
 ```php
 $professor = Auth::user()->professor;
 
@@ -354,9 +332,6 @@ DB::transaction(function () {
 Todos los `<input>` usados como buscador deben llevar `autocomplete="new-password"`.
 `autocomplete="off"` es ignorado por Chrome; `new-password` le indica al navegador que
 no debe rellenar el campo con credenciales guardadas.
-
-Contexto: en componentes sin `type="email"` + `type="password"` en el mismo DOM,
-Chrome rellena el primer `<input type="text">` con el correo del usuario logueado.
 ```html
 <input type="text" wire:model.live.debounce.300ms="search" class="form-control"
     placeholder="Buscar..." autocomplete="new-password">
@@ -376,7 +351,7 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
 - `StudentListExport`, `ProfessorCoursesExport`
 - `MissingActivitiesAdminExport`, `MissingActivitiesProfesorExport` — actividades no entregadas (filtrado a `activity_type_id=1`)
 - `ActivitySummaryExport` — tabla pivot estudiantes×materias con columnas hechas/total por curso; encabezados coloreados y leyenda de colores; `WithCustomStartCell` + `startCell()='A5'`
-- `AuditLogExport` — exportación Excel del registro de auditoría con los mismos filtros activos del componente `Admin/AuditLog`; botón "Exportar Excel" en la cabecera
+- `AuditLogExport` — exportación Excel del registro de auditoría con los mismos filtros activos del componente `Admin/AuditLog`
 
 **Imports (app/Imports/):**
 - `ActivityScoresImport` — convierte Excel a array (validación de seguridad en Livewire)
@@ -395,9 +370,9 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
   - `classroom(classroom_id, unit)` — PDF de toda la sección (un alumno por página)
   - `studentCompact(classroom_id, student_id, unit)` — PDF resumen de una sola hoja (tabla por curso: hechas/total/faltantes, sin `SetAutoPageBreak`)
   - `classroomCompact(classroom_id, unit)` — PDF resumen de sección en oficio, 3 alumnos/hoja; llama `renderStudentCompactBlock(..., 'medium')`
-  - `classroomCompactCarta(classroom_id, unit)` — PDF resumen de sección en carta, 2 alumnos/hoja; llama `renderStudentCompactBlock(..., 'large')` con fuentes más grandes
+  - `classroomCompactCarta(classroom_id, unit)` — PDF resumen de sección en carta, 2 alumnos/hoja; llama `renderStudentCompactBlock(..., 'large')`
   - `buildCourseData(classroom, studentId, unit, ?int $maxActivities = null)` — método privado compartido; aplica filtro `activity_type_id=1`; acepta `max_activities` para limitar actividades mostradas
-  - `renderStudentCompactBlock(string $size = 'small')` — renderiza bloque de un alumno; `$size` puede ser `'small'` (original), `'medium'` (oficio, fuentes ligeramente mayores) o `'large'` (carta, fuentes grandes aprovechando más espacio)
+  - `renderStudentCompactBlock(string $size = 'small')` — `$size` puede ser `'small'` (original), `'medium'` (oficio), o `'large'` (carta, fuentes grandes)
   - Todos los métodos públicos aceptan `?int $maxActivities` vía query string validado (`nullable|integer|min:1|max:10`)
 
 ## Patrón de datos postgrado
@@ -445,7 +420,7 @@ Chrome rellena el primer `<input type="text">` con el correo del usuario loguead
 livewire/
 ├── admin/          Vistas de los componentes admin
 ├── profesor/       Vistas de los componentes de profesor
-├── dashboard/      Vistas de los 12 paneles del dashboard (un archivo por panel)
+├── dashboard/      Vistas de los 13 paneles del dashboard (un archivo por panel)
 ├── auth/           Login, register, 2FA, reset-password
 ├── settings/       Perfil, contraseña, apariencia, 2FA
 ├── profile/        UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo
@@ -490,111 +465,47 @@ composer run setup       # instala deps, genera .env, crea DB
 - Zona horaria: `America/Guatemala`
 - Locale: `es_GT`
 
-## Sistema de actualización de datos via enlace público
+## Sistema de actualización de datos (QR)
 
-### Flujo implementado (Prompt 1)
-1. Alumno accede a `GET /actualizar-datos` (ruta pública, sin auth)
-2. Ingresa su código personal o carné + correo electrónico
-3. Sistema verifica si ya actualizó datos este año (`student_data_updates.year`)
-4. Si no actualizó: genera token (60 chars), lo guarda en cache `"student_update_{token}"` por 60 min con `[student_id, email_nuevo]`, y envía `StudentDataUpdateNotification`
-5. Alumno hace clic en enlace del correo → `GET /actualizar-datos/{token}`
-6. `StudentDataController::verifyToken()` valida el token en cache → muestra formulario o vista de expirado
-
-### Componentes
-- `App\Livewire\StudentDataRequest` — Componente público (Paso 1)
-- `App\Http\Controllers\StudentDataController` — Validación de token
-- `App\Notifications\StudentDataUpdateNotification` — Email con enlace
-- `App\Models\StudentDataUpdate` — Registro de actualizaciones completadas
-- `resources/views/student-data/expired.blade.php` — Enlace expirado
-- `resources/views/student-data/form.blade.php` — Placeholder para Prompt 2
-- `resources/views/layouts/public.blade.php` — Layout sin auth para páginas públicas
-
-### El formulario completo (Prompt 2) debe:
-- Recibir `$token`, `$studentId`, `$emailNuevo` desde la vista `student-data/form.blade.php`
-- Cargar y editar datos del User, Student, Guardian(es), MedicalRecord
-- Al guardar: crear registro en `student_data_updates` con `completed_at = now()`, `ip_address`, limpiar el token del cache
-- Considerar que `email_nuevo` puede diferir del `user.email` actual
-
-## Sistema de actualización de datos — Formulario (Prompt 2)
-
-### Flujo implementado
-1. `StudentDataController::verifyToken()` valida token → `student-data/form.blade.php`
-2. `form.blade.php` extiende `layouts.public` e incrusta `<livewire:student-data-update-form :token="$token" />`
-3. `StudentDataUpdateForm` (app/Livewire/) carga datos del alumno en `mount()`, presenta 3 tabs Bootstrap 4
-4. `save()` ejecuta DB transaction: actualiza User, crea/actualiza MedicalRecord y Guardian, crea StudentDataUpdate, borra token del cache, hace audit log (módulo: 'Actualización QR'), redirige a `student.data.done`
-5. `student-data/done.blade.php` — página estática de confirmación (sin Livewire)
+### Flujo completo
+1. Alumno accede a `GET /actualizar-datos` (ruta pública, sin auth): ingresa código personal o carné + correo
+2. Sistema verifica si ya actualizó datos este año (`student_data_updates.year`)
+3. Si no actualizó: genera token (60 chars), lo guarda en cache `"student_update_{token}"` por 60 min con `[student_id, email_nuevo]`, y envía `StudentDataUpdateNotification`
+4. Alumno hace clic en enlace del correo → `GET /actualizar-datos/{token}`
+5. `StudentDataController::verifyToken()` valida el token → muestra formulario o vista de expirado
+6. `StudentDataUpdateForm` (app/Livewire/) carga datos del alumno en `mount()`, presenta 3 tabs Bootstrap 4
+7. `save()` ejecuta DB transaction: actualiza User, crea/actualiza MedicalRecord y Guardian, crea `StudentDataUpdate` con `completed_at=now()` e `ip_address`, borra token del cache, audit log (módulo: 'Actualización QR'), redirige a `student.data.done`
 
 ### Rutas públicas
 ```
-GET /actualizar-datos           → StudentDataRequest (Livewire)
-GET /actualizar-datos/completado → student-data.done (Route::view)
-GET /actualizar-datos/{token}   → StudentDataController::verifyToken
+GET /actualizar-datos            → StudentDataRequest (Livewire)
+GET /actualizar-datos/completado → student-data.done (Route::view)  ← debe ir ANTES de {token}
+GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 ```
-**IMPORTANTE:** la ruta `/completado` debe ir ANTES de `{token}` para no ser capturada como token.
+
+### Componentes clave
+- `App\Livewire\StudentDataRequest` — paso 1 (verificación de identidad)
+- `App\Livewire\StudentDataUpdateForm` — formulario completo de edición
+- `App\Http\Controllers\StudentDataController` — validación de token
+- `App\Notifications\StudentDataUpdateNotification` — email con enlace
+- `App\Models\StudentDataUpdate` — registro de actualizaciones completadas
 
 ### Layout public
 - `resources/views/layouts/public.blade.php` — layout sin auth con Bootstrap 4 + FontAwesome + SweetAlert2 CDN; soporta `@stack('styles')` y `@stack('scripts')`
-- `.public-card` (max-width: 520px) — para formularios pequeños
-- `.public-card-wide` (max-width: 760px) — para el formulario de 3 tabs
-- `.admission-card` (max-width: 960px) — para el formulario de admisiones de 7 secciones
-- Componentes de página completa (full-page Livewire) deben usar `->extends('layouts.public')->section('content')` en `render()`
+- `.public-card` (max-width: 520px) — formularios pequeños
+- `.public-card-wide` (max-width: 760px) — formulario de 3 tabs
+- `.admission-card` (max-width: 960px) — formulario de admisiones (7 secciones)
+- Componentes de página completa deben usar `->extends('layouts.public')->section('content')` en `render()`
 
 ## Pendientes
 
 ### Bug / Deuda técnica
 - Resolver codificación UTF-8 en correos (workaround actual: editar `.env` directamente en servidor con UTF-8)
-
-### Bug / Deuda técnica pendiente
 - **Campo `supervised_practice` en `Grade` — sin usar** — La columna existe en la BD y el modelo pero no se referencia en ningún componente ni vista. Implementar lógica para prácticas supervisadas o eliminar el campo.
-- **Campo `is_official` en `PensumCourse`** — ✅ Usado en `StudentsAtRisk`, `GradeProgressComparison`, `StudentHistory` y `StudentSummary` para filtrar cursos oficiales. Agregar badge/filtro visual en el CRUD de `Admin/Pensums` si se desea.
-
-### Prioridad alta — ✅ Todo completado en v1.9.0
-- **Filtrado de niveles por usuario** — ✅ v1.7.2–v1.7.5
-- **Componente `Admin/Professors`** — ✅ v1.9.0
-- **Componente `Admin/Guardians`** — ✅ v1.9.0
-- **Exportación del módulo de Auditoría** — ✅ v1.9.0
-
-### Prioridad media — ✅ Todo completado en v1.9.0
-- **CRUD de `ActivityType`** — ✅ v1.7.6
-- **Dashboard de Secretaria — inscripciones recientes** — ✅ v1.9.0
-- **Notificación: cuadro en `locked` sin revisar** — ✅ v1.9.0 (comando `gradebooks:notify-stale`, schedulado diariamente a las 08:00)
-- **Notificación: cambio de rol asignado** — ✅ v1.9.0 (`RoleAssigned` / `RoleRevoked` disparadas desde `UserList::save()`)
-- **Reporte de asistencia con % acumulado** — ✅ v1.9.0 (toggle Sesiones/Resumen en `AttendanceReport`, umbral configurable)
-- **Reporte: Estudiantes en riesgo de reprobación** — ✅ v1.9.0 (`Reports/StudentsAtRisk`)
-
-### Prioridad baja — ✅ Todo completado en v1.9.0
-- **Servicio `GradeBookCalculationService`** — ✅ v1.7.7
-- **Reporte: comparativo de rendimiento entre unidades** — ✅ v1.9.0 (`Reports/GradeProgressComparison`)
-- **Reporte: historial de calificaciones por estudiante** — ✅ v1.9.0 (`Reports/StudentHistory`)
-- **Reporte: carga docente por profesor** — ✅ v1.9.0 (`Reports/ProfessorWorkload`)
+- **Campo `is_official` en `PensumCourse`** — Usado en `StudentsAtRisk`, `GradeProgressComparison`, `StudentHistory` y `StudentSummary`. Agregar badge/filtro visual en el CRUD de `Admin/Pensums` si se desea.
 
 ## Historial de versiones
-- v1.0.0 — Base del sistema
-- v1.1.0 — Reportes PDF y Excel
-- v1.2.0 — Solicitudes de cambio de notas y dashboards
-- v1.3.0 — Inscripciones de estudiantes
-- v1.4.0 — Auditoría general y reorganización del menú
-- v1.4.1 — Correcciones PDF y validaciones
-- v1.4.2 — Fix autenticación y correo reset
-- v1.4.3 — Optimización integral de procesos académicos, reportes y auditoría
-- v1.5.0 — Modal de re-autenticación por sesión expirada, asistencia y cambio forzado de contraseña
-- v1.6.0 — Audit logging en componentes de perfil (UpdateProfile, UpdateProfessorInfo, UpdateMedicalInfo) + sistema de actualización de datos para estudiantes via QR (formulario público, notificación por correo, token con expiración, registro único por año)
-- v1.6.1 — Fix autorrelleno del navegador en buscadores: `autocomplete="new-password"` en los 19 inputs de búsqueda
-- v1.7.0 — Refactorización del dashboard: los 3 componentes monolíticos (Admin/Dashboard, Profesor/Dashboard, Secretary/Dashboard) se reemplazaron por 12 paneles independientes en `app/Livewire/Dashboard/`, cada uno con su propio permiso `dashboard.panel.*`. `dashboard.blade.php` los ensambla con `@can`; los paneles se asignan por rol desde el módulo de permisos
-- v1.7.1 — Fix dashboard Profesor: null-check defensivo en `ActionableGradeBooks`, `ProfesorGradeBooksChart` y `ProfesorGradeBooksSummary` para usuarios sin registro en `professors`; fix `RoleSeeder` para no asignar paneles exclusivos de Profesor al SuperAdmin; fix `ProfessorSeeder` para crear profesores (IDs 1–13) antes que el Director y preservar el orden de IDs que otros seeders esperan
-- v1.7.2 — Funcionalidad de clonar GradeBook con actividades a otros cuadros del profesor (mismo o distinto curso/unidad); relación M:M `User ↔ Level` con tabla pivote `level_user`; asignación de niveles por usuario desde `Admin/UserList`; filtrado de niveles por usuario en `EnrollmentList`
-- v1.7.3 — Filtrado por nivel de usuario extendido a `Classrooms`, `GradeBooks`, `ClassroomCourseAssignments` y `Students/StudentList`: restricción de listados, cascadas y `abort(403)` en operaciones de escritura (edit/save/delete/approve/reject/manage)
-- v1.7.4 — Filtrado por nivel de usuario completado en `GradeChangeRequests` (listado, openRequest/approve/reject con abort(403)) y todos los componentes de reportes admin: `MissingActivities`, `CuadrosClassroom`, `StudentListExcel`, `SabanaPromedio`, `StudentList`, `ReportCards`, `SabanaGeneral`, `SabanaUnidad` (años y niveles filtrados; abort(403) en métodos de acción)
-- v1.7.5 — Filtrado por nivel de usuario extendido a `AttendanceReport` (años, niveles; abort(403) en downloadPdf) y `GradeProgress` (años, niveles, unidades; whereIn en generateReport para restringir aunque no se seleccione nivel explícito)
-- v1.7.6 — CRUD `Admin/ActivityTypes`: búsqueda, paginación, modal create/edit, protección de eliminación, 4 permisos en RoleSeeder, ruta `/admin/activity-types`, entrada en menú Gestión Académica
-- v1.7.7 — `GradeBookCalculationService`: centraliza cálculo de totales de cuadros; `Profesor\GradeBooks` y `Admin\GradeChangeRequests` eliminan código duplicado y delegan al servicio; footer actualizado a v1.7.7
-- v1.7.8 — `EnrollmentPeriod`: modelo + migración + CRUD (`Admin/EnrollmentPeriods`) para gestionar períodos de inscripción y actualización de datos; integrado en `EnrollmentList` (botones deshabilitados + guard en `enrollExisting`/`enrollNew`) y `StudentDataRequest` (pantalla de período cerrado + guard en `submit`); menú bajo Gestión Estudiantil; 4 permisos `admin.enrollment-periods.*` asignados a SuperAdmin y Director
-- v1.8.0 — Módulo Student: rutas `/student/*` en `routes/student.php`; componentes `Livewire\Student\MyGrades`, `MyAttendance`, `MyReportCard`; panel dashboard `Dashboard\StudentSummary`; controlador `Student\ReportCardController` (genera PDF de boleta personal reutilizando lógica admin); 4 permisos `student.*` + `dashboard.panel.student-summary` asignados al rol Estudiante; `StudentPermissionsSeeder` para bases existentes (también migra nombres viejos `estudiante.*`); menú `ESTUDIANTE` en `adminlte.php`
-- v1.8.1 — Dos nuevos reportes de actividades admin: `Reports/ActivitySummary` (tabla pivot estudiantes×materias con hechas/total por curso, export Excel `ActivitySummaryExport` con encabezados coloreados y leyenda) + `Reports/StudentActivityDetail` (listado de alumnos con modal de detalle por curso, PDF detallado por alumno y PDF de toda la sección via `StudentActivityDetailPdfController`); menú "Actividades" con 3 ítems agrupados; seeders `ActivitySummaryPermissionSeeder` y `StudentActivityDetailPermissionSeeder` (SuperAdmin + Director)
-- v1.8.2 — Filtro `activity_type_id=1` aplicado consistentemente en `ActivitySummary` (Livewire + `ActivitySummaryExport`), `MissingActivities` (Livewire + `MissingActivitiesAdminExport`) y `StudentActivityDetail` (Livewire + `buildCourseData()`); PDF compacto de una sola hoja por alumno (`studentCompact()`) en `StudentActivityDetailPdfController` con `SetAutoPageBreak(false)` y tabla por curso; ruta `admin.reports.student-activity-detail.pdf.student-compact`; botón "PDF resumen" (amarillo, `fa-compress-alt`) en vista del listado
-- v1.8.3 — Filtro `filterMaxActivities` (1–10) en `Reports/StudentActivityDetail` para limitar actividades por curso en Livewire y todos los PDF (`max_activities` query param validado); nuevo PDF resumen por sección en carta con 2 alumnos/hoja (`classroomCompactCarta()`, ruta `admin.reports.student-activity-detail.pdf.classroom-compact-carta`); `renderStudentCompactBlock()` refactorizado de `bool $large` a `string $size` ('small'/'medium'/'large') para tres tiers de tamaño de fuente; nuevo componente Livewire `Profesor\GradeBookGrid` — cuadrícula tipo Excel con Alpine.js (estado cliente, guardado único vía `this.$wire.saveGrid()`), inputs `type="text" inputmode="decimal"` sin spinners, navegación Enter por columna, columnas sticky, soporte completo de mejoramiento, total en tiempo real; ruta `profesor.grade-books.grid`; botón de acceso desde `GradeBooks` por cuadro
-- v1.8.4 — `GradeBookGrid` enriquecido con Bloquear Cuadro (valida 100 pts normales, audita, notifica admins), Reabrir (para cuadros rechazados), Clonar actividades a otra sección (con restricción: actividades normales deben sumar 100 pts) y descarga de PDF cuando el cuadro está aprobado; misma restricción de 100 pts aplicada al clonar desde `GradeBooks`; `ClassroomCourseAssignments` mejorado para gestionar reemplazo de profesor: `lockedAssignments` ahora almacena `{status, activity_count}` en lugar de `true`, badges de color por estado del cuadro en la vista (verde/gris/azul/rojo con conteo de actividades y tooltip contextual), auto-reapertura de cuadros `rejected` al transferir con audit log via `AuditService`, mensaje de éxito diferenciado con conteo de transferencias y reaperturas
-- v1.8.5 — Fix `NotificationBell`: solo muestra notificaciones no leídas (desaparecen al marcar), scroll interno en lista (~3 visibles), clic navega a la URL y marca como leída (`markReadAndRedirect`); fix boletas PDF (`ReportCardController`): calificaciones por unidad menores a 60 se marcan en rojo RGB(156,0,6) igual que el acumulado; fix vistas auth `forgot-password` y `reset-password` traducidas al español, eliminados `__()`; `config/adminlte.php` título dinámico desde `APP_INSTITUTION_NAME`; fix `student-data-update-form`: opciones de `civil_status` corregidas con `value` explícito que coincide con el ENUM de BD (`Soltero`, `Casado`, `Divorciado`, `Viudo`), eliminada opción `Unión de hecho` que no existía en el ENUM
-- v1.9.2 — Fix y mejoras en `AdmissionList`: (1) tabs del modal migradas de Bootstrap `data-toggle="tab"` a Alpine.js `x-data/x-show` para preservar pestaña activa durante re-renders de Livewire; (2) `wire:confirm` (alert nativo) reemplazado por `Swal.fire()` en todos los botones de acción (`markEmailed`, `markAccepted`, `resetToPending`) en tabla y footer del modal; (3) confirmación `showAlert` al guardar cambios del formulario; (4) papelería deshabilitada cuando estado es `pending` (checkboxes con `disabled`, aviso explicativo, guard en servidor)
-- v1.9.1 — Módulo de Admisiones completo: formulario público en `/admisiones` (7 secciones, interruptores padre/madre, NIT de encargado, lógica de ciclo escolar por mes); configuración del sistema (`SystemSetting` key-value con caché); panel admin `AdmissionList` con filtros, modal detalle, gestión de papelería (5 documentos con auto-estado `reviewed` al completar), rechazo con notas; flujo de estados: `pending→emailed→reviewed→accepted/rejected` con historial completo en tabla `admission_application_statuses`; 3 permisos nuevos (`admin.settings.index`, `admin.admissions.index`, `admin.admissions.manage`) en RoleSeeder; rutas públicas `/admisiones` y `/admisiones/gracias`; `AdmissionApplicationSeeder` con 5 solicitudes de prueba
-- v1.9.0 — 11 mejoras implementadas: (1) `Admin/Professors` — gestión especializada de profesores con edición de datos laborales y vista de cursos asignados; (2) `Admin/Guardians` — búsqueda, edición y vista de estudiantes relacionados; (3) `AuditLogExport` + botón en `AuditLog` — exportación Excel con los filtros activos; (4) `RoleAssigned`/`RoleRevoked` notificaciones disparadas desde `UserList::save()`; (5) Dashboard Secretaria — panel de inscripciones recientes y conteo por estado; (6) `AttendanceReport` — toggle Sesiones/Resumen con % por alumno y umbral configurable; (7) `Reports/StudentsAtRisk` — alumnos con promedio ponderado < umbral por curso; (8) `gradebooks:notify-stale` — comando artisan schedulado diariamente para alertar cuadros bloqueados sin revisar; (9) `Reports/GradeProgressComparison` — promedio por unidad por curso en un aula; (10) `Reports/StudentHistory` — historial multi-año por alumno; (11) `Reports/ProfessorWorkload` — carga docente por año
+- v1.0.0–v1.8.5 — Base del sistema, autenticación Fortify + 2FA, reportes PDF/Excel, inscripciones, auditoría, dashboard por paneles independientes, módulo Estudiante, GradeBookGrid tipo Excel, sistema de actualización de datos QR, admisiones (formulario público + panel admin)
+- v1.9.0 — `Admin/Professors`, `Admin/Guardians`, `AuditLogExport`, notificaciones `RoleAssigned`/`RoleRevoked`, panel Secretaria inscripciones recientes, `AttendanceReport` Sesiones/Resumen, `StudentsAtRisk`, comando `gradebooks:notify-stale`, `GradeProgressComparison`, `StudentHistory`, `ProfessorWorkload`
+- v1.9.1 — Módulo de Admisiones completo: formulario público `/admisiones` (7 secciones), `SystemSetting` key-value, panel `AdmissionList`, flujo `pending→emailed→reviewed→accepted/rejected`, 3 permisos nuevos
+- v1.9.2 — Fix `AdmissionList`: tabs Alpine.js (preservan pestaña activa), confirmaciones SweetAlert2, papelería bloqueada en estado `pending`
