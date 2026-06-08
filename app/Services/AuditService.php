@@ -78,6 +78,45 @@ class AuditService
         );
     }
 
+    public static function gradeScoresCopied(
+        GradeBook $targetGradeBook,
+        array $oldScores,
+        array $newScores,
+        string $originCourseName,
+        int $originUnit,
+    ): void {
+        $targetGradeBook->loadMissing([
+            'assignment.pensumCourse.course',
+            'assignment.classroom.grade',
+            'assignment.classroom.section',
+        ]);
+
+        $assignment = $targetGradeBook->assignment;
+        $destCourseName = $assignment->pensumCourse->course->course_name ?? '—';
+        $destUnit = $assignment->unit ?? '—';
+        $gradeName = $assignment->classroom->grade->grade_name ?? '—';
+        $sectionName = $assignment->classroom->section->section_name ?? '—';
+
+        $description = sprintf(
+            'Notas copiadas de "%s" Unidad %d → "%s" Unidad %d — %s %s',
+            $originCourseName,
+            $originUnit,
+            $destCourseName,
+            $destUnit,
+            $gradeName,
+            $sectionName,
+        );
+
+        self::log(
+            event: 'scores_copied',
+            module: 'Cuadros',
+            description: $description,
+            auditable: $targetGradeBook,
+            oldValues: $oldScores ?: null,
+            newValues: $newScores ?: null,
+        );
+    }
+
     public static function scoreChanged(
         GradeBookScore $score,
         ?float $oldScore,

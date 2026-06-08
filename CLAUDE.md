@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.9.2
+v1.9.3
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -163,6 +163,7 @@ Livewire components validan con `$this->authorize('permiso')`.
   - Fórmula única: `total_points = ceil(normal_points + extra_points)`
 - `app/Services/AuditService.php` — métodos estáticos para registrar eventos:
   - `gradeBookStatusChanged`, `scoreChanged`
+  - `gradeScoresCopied(targetGradeBook, oldScores, newScores, originCourseName, originUnit)` — registra copia de notas entre cuadros; `old_values`/`new_values` contienen snapshot `[alumno => [actividad => nota]]`
   - `enrollmentCreated`, `enrollmentStatusChanged`
   - `userCreated`, `userUpdated`
   - `gradeChangeRequestCreated`, `gradeChangeRequestResolved`
@@ -223,7 +224,7 @@ if (! $professor) {
 | `AcademicConfigurations` | Config por ciclo escolar |
 | `GradeBooks` | Lista filtrable + aprobación/rechazo |
 | `GradeChangeRequests` | Gestión de solicitudes |
-| `AuditLog` | Registro de auditoría |
+| `AuditLog` | Registro de auditoría; la vista del modal de detalle maneja `old_values`/`new_values` arrays anidados (ej. snapshot de notas) renderizándolos como mini-tablas legibles |
 | `Reports/SabanaGeneral` | Sábana general |
 | `Reports/SabanaPromedio` | Sábana de promedios |
 | `Reports/SabanaUnidad` | Sábana por unidad |
@@ -246,6 +247,7 @@ if (! $professor) {
 | `Permissions/ShowPermissions` | Gestión de permisos |
 | `Students/EnrollmentList` | Listado de inscripciones |
 | `Students/AdmissionList` | Listado y gestión de solicitudes de admisión (papelería, estados, rechazo con notas); tabs con Alpine.js para persistir pestaña activa; confirmaciones SweetAlert2; papelería bloqueada en estado `pending` |
+| `Students/StudentSelector` | Copia de calificaciones entre cuadros (curso/unidad origen → destino); selección individual o masiva de alumnos; dos caminos: directo (reemplaza actividades completas) y mapeo manual (selección parcial con destino que ya tiene actividades); cuadro destino queda en `approved` al finalizar; registra auditoría con snapshot antes/después vía `AuditService::gradeScoresCopied` |
 | `Admin/SystemSettings` | Configuraciones globales del sistema (`enrollment_mode`: direct/admissions) |
 
 ### Profesor (app/Livewire/Profesor/)
@@ -509,3 +511,4 @@ GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 - v1.9.0 — `Admin/Professors`, `Admin/Guardians`, `AuditLogExport`, notificaciones `RoleAssigned`/`RoleRevoked`, panel Secretaria inscripciones recientes, `AttendanceReport` Sesiones/Resumen, `StudentsAtRisk`, comando `gradebooks:notify-stale`, `GradeProgressComparison`, `StudentHistory`, `ProfessorWorkload`
 - v1.9.1 — Módulo de Admisiones completo: formulario público `/admisiones` (7 secciones), `SystemSetting` key-value, panel `AdmissionList`, flujo `pending→emailed→reviewed→accepted/rejected`, 3 permisos nuevos
 - v1.9.2 — Fix `AdmissionList`: tabs Alpine.js (preservan pestaña activa), confirmaciones SweetAlert2, papelería bloqueada en estado `pending`
+- v1.9.3 — `StudentSelector`: cuadro destino queda `approved` al copiar notas; selección parcial permitida sobre cuadros `approved`; auditoría con snapshot `[alumno → actividad → nota]` antes/después; `AuditService::gradeScoresCopied`; vista `AuditLog` renderiza arrays anidados como mini-tablas

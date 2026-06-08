@@ -13,6 +13,7 @@ use App\Models\Pensum;
 use App\Models\PensumCourse;
 use App\Models\Section;
 use App\Models\Student;
+use App\Services\AuditService;
 use App\Services\GradeBookCalculationService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -211,7 +212,7 @@ class StudentSelector extends Component
                 return;
             }
 
-            if (! $isFullSelection && ($destGradeBook->isApproved() || $destGradeBook->isRejected())) {
+            if (! $isFullSelection && $destGradeBook->isRejected()) {
                 $this->addError('destinationCourseId',
                     'El cuadro de destino está '.$this->statusLabel($destGradeBook->status).' y no puede ser modificado.'
                 );
@@ -320,7 +321,6 @@ class StudentSelector extends Component
 
         $allEnrolledIds = $this->getAllEnrolledStudentIds($classroom);
         $selectedInts = array_map('intval', $this->selected);
-        $isFullSelection = empty(array_diff($allEnrolledIds, $selectedInts));
 
         $academicConfig = AcademicConfiguration::where('year', $classroom->year)->first();
         if (! $academicConfig) {
@@ -333,6 +333,10 @@ class StudentSelector extends Component
             return;
         }
 
+        $targetGradeBook = null;
+        $oldScoresSnapshot = [];
+        $newScoresSnapshot = [];
+
         DB::transaction(function () use (
             $originGradeBook,
             $destAssignment,
@@ -340,18 +344,26 @@ class StudentSelector extends Component
             $academicConfig,
             $allEnrolledIds,
             $selectedInts,
-            $useMapping
+            $useMapping,
+            &$targetGradeBook,
+            &$oldScoresSnapshot,
+            &$newScoresSnapshot,
         ) {
-            // Obtener o crear el cuadro de destino
             $targetGradeBook = $destGradeBook ?? GradeBook::create([
                 'classroom_course_assignment_id' => $destAssignment->id,
                 'academic_configuration_id' => $academicConfig->id,
-                'status' => 'open',
+                'status' => 'approved',
             ]);
 
             if (! $useMapping) {
                 // ── Camino directo: reemplazar actividades completas ──────────
-                $targetGradeBook->activities()->delete(); // cascadea scores
+                // Snapshot anterior ANTES de borrar (cascadea scores)
+                if ($destGradeBook) {
+                    $destGradeBook->load(['activities.scores']);
+                    $oldScoresSnapshot = $this->buildScoreSnapshot($destGradeBook, $allEnrolledIds);
+                }
+
+                $targetGradeBook->activities()->delete();
 
                 $activityMap = []; // [origin_activity_id => new_dest_activity_id]
                 foreach ($originGradeBook->activities as $originAct) {
@@ -384,9 +396,18 @@ class StudentSelector extends Component
 
                 GradeBookCalculationService::recalculateAll($targetGradeBook, $allEnrolledIds);
 
+                $targetGradeBook->load(['activities.scores']);
+                $newScoresSnapshot = $this->buildScoreSnapshot($targetGradeBook, $allEnrolledIds);
+
             } else {
                 // ── Camino con mapeo: solo actualizar alumnos seleccionados ──
                 $targetGradeBook->load(['activities.scores', 'activities.activityType']);
+
+                $mappedDestActIds = array_map('intval', array_keys(
+                    array_filter($this->activityMapping, fn ($v) => $v !== '' && $v !== null)
+                ));
+
+                $oldScoresSnapshot = $this->buildScoreSnapshot($targetGradeBook, $selectedInts, $mappedDestActIds);
 
                 foreach ($this->activityMapping as $destActIdStr => $originActIdStr) {
                     if ($originActIdStr === '' || $originActIdStr === null) {
@@ -415,8 +436,25 @@ class StudentSelector extends Component
                 }
 
                 GradeBookCalculationService::recalculateForStudents($targetGradeBook, $selectedInts);
+
+                $targetGradeBook->load(['activities.scores']);
+                $newScoresSnapshot = $this->buildScoreSnapshot($targetGradeBook, $selectedInts, $mappedDestActIds);
+            }
+
+            if ($targetGradeBook->status !== 'approved') {
+                $targetGradeBook->update(['status' => 'approved']);
             }
         });
+
+        $originAssignment->loadMissing(['pensumCourse.course']);
+
+        AuditService::gradeScoresCopied(
+            targetGradeBook: $targetGradeBook,
+            oldScores: $oldScoresSnapshot,
+            newScores: $newScoresSnapshot,
+            originCourseName: $originAssignment->pensumCourse->course->course_name ?? '—',
+            originUnit: (int) $this->originUnit,
+        );
 
         $this->resetModal();
         $this->dispatch('closeModalMessaje', [
@@ -430,6 +468,39 @@ class StudentSelector extends Component
     // ==========================================
     // HELPERS PRIVADOS
     // ==========================================
+
+    /**
+     * Builds a [studentName => [activityName => score]] snapshot from a loaded GradeBook.
+     * Pass $activityIds to restrict to specific destination activities (mapping path).
+     */
+    private function buildScoreSnapshot(GradeBook $gradeBook, array $studentIds, ?array $activityIds = null): array
+    {
+        $students = Student::with('user')
+            ->whereIn('id', $studentIds)
+            ->get()
+            ->keyBy('id');
+
+        $snapshot = [];
+
+        foreach ($gradeBook->activities as $activity) {
+            if ($activityIds !== null && ! in_array($activity->id, $activityIds)) {
+                continue;
+            }
+
+            foreach ($studentIds as $studentId) {
+                $student = $students->get($studentId);
+                if (! $student) {
+                    continue;
+                }
+
+                $studentKey = $student->user->full_full_name ?? "ID:{$studentId}";
+                $scoreRecord = $activity->scores->firstWhere('student_id', $studentId);
+                $snapshot[$studentKey][$activity->name] = $scoreRecord ? (float) $scoreRecord->score : null;
+            }
+        }
+
+        return $snapshot;
+    }
 
     private function resetModal(): void
     {

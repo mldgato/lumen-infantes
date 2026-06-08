@@ -242,10 +242,24 @@
                                                             {{ $key }}</td>
                                                         <td class="text-sm">
                                                             @if (is_null($value))
-                                                                <span class="text-muted font-italic">null</span>
+                                                                <span class="text-muted font-italic">—</span>
                                                             @elseif (is_bool($value))
-                                                                <span
-                                                                    class="badge badge-{{ $value ? 'success' : 'secondary' }}">{{ $value ? 'true' : 'false' }}</span>
+                                                                <span class="badge badge-{{ $value ? 'success' : 'secondary' }}">{{ $value ? 'true' : 'false' }}</span>
+                                                            @elseif (is_array($value))
+                                                                <table class="table table-xs mb-0" style="font-size:0.75rem">
+                                                                    @foreach ($value as $subKey => $subVal)
+                                                                        <tr>
+                                                                            <td class="py-0 pl-0 border-0" style="width:65%">{{ $subKey }}</td>
+                                                                            <td class="py-0 border-0 text-right font-weight-bold">
+                                                                                @if (is_null($subVal))
+                                                                                    <span class="text-muted">Sin nota</span>
+                                                                                @else
+                                                                                    {{ $subVal }}
+                                                                                @endif
+                                                                            </td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </table>
                                                             @else
                                                                 {{ $value }}
                                                             @endif
@@ -274,10 +288,24 @@
                                                             {{ $key }}</td>
                                                         <td class="text-sm">
                                                             @if (is_null($value))
-                                                                <span class="text-muted font-italic">null</span>
+                                                                <span class="text-muted font-italic">—</span>
                                                             @elseif (is_bool($value))
-                                                                <span
-                                                                    class="badge badge-{{ $value ? 'success' : 'secondary' }}">{{ $value ? 'true' : 'false' }}</span>
+                                                                <span class="badge badge-{{ $value ? 'success' : 'secondary' }}">{{ $value ? 'true' : 'false' }}</span>
+                                                            @elseif (is_array($value))
+                                                                <table class="table table-xs mb-0" style="font-size:0.75rem">
+                                                                    @foreach ($value as $subKey => $subVal)
+                                                                        <tr>
+                                                                            <td class="py-0 pl-0 border-0" style="width:65%">{{ $subKey }}</td>
+                                                                            <td class="py-0 border-0 text-right font-weight-bold">
+                                                                                @if (is_null($subVal))
+                                                                                    <span class="text-muted">Sin nota</span>
+                                                                                @else
+                                                                                    {{ $subVal }}
+                                                                                @endif
+                                                                            </td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </table>
                                                             @else
                                                                 {{ $value }}
                                                             @endif

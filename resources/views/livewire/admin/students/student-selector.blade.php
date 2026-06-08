@@ -202,8 +202,8 @@
                         <div class="alert alert-info py-2 mb-3">
                             <small>
                                 <i class="fas fa-info-circle mr-1"></i>
-                                Para cada <strong class="text-info">actividad del destino</strong> seleccione
-                                cuál <strong class="text-success">actividad del origen</strong> desea copiar.
+                                Para cada <strong class="text-primary">actividad del destino</strong> seleccione
+                                cuál <strong class="text-danger">actividad del origen</strong> desea copiar.
                                 Las actividades sin asignación <strong>no serán modificadas</strong> para los alumnos seleccionados.
                             </small>
                         </div>
