@@ -398,13 +398,18 @@ class GradeBookGrid extends Component
         $activityIds = $activities->pluck('id');
         $scoresFlat = GradeBookScore::whereIn('grade_book_activity_id', $activityIds)->get();
 
+        // Index by [activity_id][student_id] with explicit int cast to avoid
+        // PDO string-vs-int type mismatch between environments.
+        $scoresMap = [];
+        foreach ($scoresFlat as $score) {
+            $scoresMap[(int) $score->grade_book_activity_id][(int) $score->student_id] = $score;
+        }
+
         $initialGrid = [];
         foreach ($students as $student) {
             $initialGrid[$student->id] = [];
             foreach ($activities as $activity) {
-                $record = $scoresFlat->first(
-                    fn ($s) => $s->student_id === $student->id && $s->grade_book_activity_id === $activity->id
-                );
+                $record = $scoresMap[$activity->id][$student->id] ?? null;
                 $initialGrid[$student->id][$activity->id] = [
                     'score' => $record ? (string) $record->score : '',
                     'improvement' => ($record && ! is_null($record->improvement_score))
