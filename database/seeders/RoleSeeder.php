@@ -376,5 +376,8 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'student.attendance.view',      'description' => 'Estudiante - Ver mi asistencia'])->assignRole($role3);
         Permission::create(['name' => 'student.report-card.view',     'description' => 'Estudiante - Ver e imprimir mi boleta'])->assignRole($role3);
         Permission::create(['name' => 'dashboard.panel.student-summary', 'description' => 'Dashboard - Panel resumen del estudiante'])->assignRole($role3);
+
+        // Actualización de Notas
+        Permission::create(['name' => 'admin.grade-books.score-update.index', 'description' => 'Administración - Actualización de notas por sección'])->syncRoles([$role1, $role2]);
     }
 }

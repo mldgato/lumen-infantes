@@ -254,3 +254,8 @@ Route::get('/settings', fn () => view('admin.settings'))
 Route::get('/students/admissions', fn () => view('admin.students.admissions'))
     ->name('admin.admissions.index')
     ->middleware('can:admin.admissions.index');
+
+// Actualización de notas
+Route::get('/grade-books/score-update', fn () => view('admin.grade-books.score-update'))
+    ->name('admin.grade-books.score-update.index')
+    ->middleware('can:admin.grade-books.score-update.index');

@@ -505,6 +505,12 @@ return [
                     'icon' => 'fas fa-fw fa-clipboard-check',
                     'can' => 'admin.grade-change-requests.index',
                 ],
+                [
+                    'text' => 'Actualización de Notas',
+                    'route' => 'admin.grade-books.score-update.index',
+                    'icon' => 'fas fa-fw fa-edit',
+                    'can' => 'admin.grade-books.score-update.index',
+                ],
             ],
         ],
 
