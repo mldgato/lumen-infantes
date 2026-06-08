@@ -118,10 +118,11 @@
                                 <th class="grid-sticky-name"
                                     rowspan="{{ $hasImprovement ? 2 : 1 }}">Alumno</th>
                                 @foreach ($activities as $activity)
-                                    <th class="text-center" colspan="{{ $hasImprovement ? 2 : 1 }}"
+                                    <th class="text-center {{ $activity->activityType->is_extra ? 'table-warning' : '' }}"
+                                        colspan="{{ $hasImprovement ? 2 : 1 }}"
                                         style="min-width:{{ $hasImprovement ? 160 : 85 }}px;">
                                         <div style="font-size:.8rem;">{{ $activity->name }}</div>
-                                        <div style="font-size:.7rem;font-weight:normal;color:#adb5bd;">
+                                        <div style="font-size:.7rem;font-weight:normal;color:{{ $activity->activityType->is_extra ? '#856404' : '#adb5bd' }};">
                                             {{ $activity->activityType->name }}
                                             &nbsp;|&nbsp; Máx:&nbsp;{{ number_format($activity->max_points, 2) }}
                                         </div>
@@ -134,8 +135,9 @@
                             @if ($hasImprovement)
                                 <tr>
                                     @foreach ($activities as $activity)
-                                        <th class="text-center" style="font-size:.75rem;background:#495057;min-width:80px;">Nota</th>
-                                        <th class="text-center" style="font-size:.75rem;background:#495057;min-width:80px;">Mejora</th>
+                                        @php $subBg = $activity->activityType->is_extra ? '#b38600' : '#495057'; @endphp
+                                        <th class="text-center" style="font-size:.75rem;background:{{ $subBg }};min-width:80px;">Nota</th>
+                                        <th class="text-center" style="font-size:.75rem;background:{{ $subBg }};min-width:80px;">Mejora</th>
                                     @endforeach
                                 </tr>
                             @endif
@@ -156,8 +158,9 @@
                                     </td>
                                     {{-- Actividades --}}
                                     @foreach ($activities as $activity)
+                                        @php $isExtra = $activity->activityType->is_extra; @endphp
                                         {{-- Nota --}}
-                                        <td class="p-1 text-center align-middle">
+                                        <td class="p-1 text-center align-middle {{ $isExtra ? 'table-warning' : '' }}">
                                             <input
                                                 type="text"
                                                 inputmode="decimal"
@@ -173,7 +176,7 @@
                                         </td>
                                         {{-- Mejora --}}
                                         @if ($hasImprovement)
-                                            <td class="p-1 text-center align-middle">
+                                            <td class="p-1 text-center align-middle {{ $isExtra ? 'table-warning' : '' }}">
                                                 <input
                                                     type="text"
                                                     inputmode="decimal"
