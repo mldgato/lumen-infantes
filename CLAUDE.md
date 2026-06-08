@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.9.3
+v1.9.4
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -254,7 +254,7 @@ if (! $professor) {
 | Componente | Responsabilidad |
 |---|---|
 | `GradeBooks` | Edición completa de cuadros |
-| `GradeBookGrid` | Ingreso de calificaciones en formato cuadrícula tipo Excel (Alpine.js, guardado total sin round-trips); incluye Bloquear Cuadro, Reabrir, Clonar actividades a otra sección (requiere actividades normales = 100 pts) y descarga de PDF cuando el cuadro está aprobado |
+| `GradeBookGrid` | Ingreso de calificaciones en formato cuadrícula tipo Excel (Alpine.js, guardado total sin round-trips); incluye Bloquear Cuadro, Reabrir, Clonar actividades a otra sección (requiere actividades normales = 100 pts) y descarga de PDF cuando el cuadro está aprobado. **Importante:** en `render()`, el lookup de scores usa un mapa indexado con `(int)` explícito — nunca usar `===` para comparar IDs de Eloquent con campos de colecciones crudas (PDO puede devolver strings en producción) |
 | `GradeChangeRequests` | Crear solicitudes de cambio |
 | `TakeAttendance` | Asistencia diaria + historial |
 | `Reports/*` | Reportes específicos del profesor |
@@ -512,3 +512,4 @@ GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 - v1.9.1 — Módulo de Admisiones completo: formulario público `/admisiones` (7 secciones), `SystemSetting` key-value, panel `AdmissionList`, flujo `pending→emailed→reviewed→accepted/rejected`, 3 permisos nuevos
 - v1.9.2 — Fix `AdmissionList`: tabs Alpine.js (preservan pestaña activa), confirmaciones SweetAlert2, papelería bloqueada en estado `pending`
 - v1.9.3 — `StudentSelector`: cuadro destino queda `approved` al copiar notas; selección parcial permitida sobre cuadros `approved`; auditoría con snapshot `[alumno → actividad → nota]` antes/después; `AuditService::gradeScoresCopied`; vista `AuditLog` renderiza arrays anidados como mini-tablas
+- v1.9.4 — fix `GradeBookGrid`: lookup de notas usaba `===` (estricto) causando que el driver PDO en producción (strings) no coincidiera con IDs Eloquent (int); reemplazado por mapa indexado con cast explícito `(int)`
