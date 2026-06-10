@@ -390,6 +390,12 @@ return [
                     'can' => 'admin.admissions.index',
                 ],
                 [
+                    'text' => 'Facturación Admisiones',
+                    'route' => 'admin.admissions.billing.index',
+                    'icon' => 'fas fa-fw fa-file-invoice-dollar',
+                    'can' => 'admin.admissions.billing',
+                ],
+                [
                     'text' => 'Períodos de Inscripción',
                     'route' => 'admin.enrollment-periods.index',
                     'icon' => 'fas fa-fw fa-calendar-alt',

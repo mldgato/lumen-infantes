@@ -27,19 +27,17 @@ class DatabaseSeeder extends Seeder
             ProfessorSeeder::class,
             /* StudentEnrollmentSeeder::class, */
             CourseSeeder::class,
-            PensumSeederVariant::class,
-            ClassroomCourseAssignmentSeederVariant::class,
-            ActivityTypeSeeder::class,
-            AcademicConfigurationSeeder::class,
-            GradeBookSeederVariant::class,
-            /* PensumSeeder::class,
+            /* PensumSeederVariant::class, */
+            PensumSeeder::class,
             PensumCourseSeeder::class,
+            /* ClassroomCourseAssignmentSeederVariant::class, */
             ClassroomCourseAssignmentSeeder::class,
             ActivityTypeSeeder::class,
             AcademicConfigurationSeeder::class,
+            /* GradeBookSeederVariant::class, */
             GradeBookSeeder::class,
             SystemSettingsSeeder::class,
-            AdmissionApplicationSeeder::class, */
+            AdmissionApplicationSeeder::class,
         ]);
     }
 }

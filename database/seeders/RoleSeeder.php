@@ -18,29 +18,27 @@ class RoleSeeder extends Seeder
         $role3 = Role::create(['name' => 'Estudiante']);
         $role4 = Role::create(['name' => 'Profesor']);
         $role5 = Role::create(['name' => 'Secretaria']);
+        $role6 = Role::create(['name' => 'Caja']);
 
+        // 1 - admin.menu
         Permission::create([
             'name' => 'admin.menu',
             'description' => 'Administración - Menú Administrador',
         ])->syncRoles([$role1, $role2]);
 
+        // 2 - admin.users.index
         Permission::create([
             'name' => 'admin.users.index',
             'description' => 'Administración - Listado de usuarios',
         ])->syncRoles([$role1, $role2]);
 
-        Permission::create(['name' => 'admin.professors.index', 'description' => 'Administración - Listado de profesores'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.professors.edit',  'description' => 'Administración - Editar datos laborales de profesores'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'admin.guardians.index', 'description' => 'Administración - Listado de guardianes'])->syncRoles([$role1, $role2, $role5]);
-        Permission::create(['name' => 'admin.guardians.edit',  'description' => 'Administración - Editar datos de guardianes'])->syncRoles([$role1, $role2]);
-
+        // 3 - admin.students.index
         Permission::create([
             'name' => 'admin.students.index',
             'description' => 'Administración - Listado de estudiantes',
         ])->syncRoles([$role1, $role2]);
 
-        // Niveles
+        // Niveles (4–7)
         Permission::create([
             'name' => 'admin.levels.index',
             'description' => 'Administración - Listado de niveles',
@@ -61,7 +59,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar niveles',
         ])->syncRoles([$role1, $role2]);
 
-        // Grados
+        // Grados (8–11)
         Permission::create([
             'name' => 'admin.grades.index',
             'description' => 'Administración - Listado de grados',
@@ -82,7 +80,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar grados',
         ])->syncRoles([$role1, $role2]);
 
-        // Secciones
+        // Secciones (12–15)
         Permission::create([
             'name' => 'admin.sections.index',
             'description' => 'Administración - Listado de secciones',
@@ -103,7 +101,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar secciones',
         ])->syncRoles([$role1, $role2]);
 
-        // Aulas
+        // Aulas (16–19)
         Permission::create([
             'name' => 'admin.classrooms.index',
             'description' => 'Administración - Listado de aulas',
@@ -124,7 +122,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar aulas',
         ])->syncRoles([$role1, $role2]);
 
-        // Cursos
+        // Cursos (20–23)
         Permission::create([
             'name' => 'admin.courses.index',
             'description' => 'Administración - Listado de cursos',
@@ -145,7 +143,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar cursos',
         ])->syncRoles([$role1, $role2]);
 
-        // Pénsum
+        // Pénsum (24–27)
         Permission::create([
             'name' => 'admin.pensums.index',
             'description' => 'Administración - Listado de pénsum',
@@ -166,7 +164,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar pénsum',
         ])->syncRoles([$role1, $role2]);
 
-        // Asignación de Profesores
+        // Asignación de Profesores (28–31)
         Permission::create([
             'name' => 'admin.classroom-course-assignments.index',
             'description' => 'Administración - Listado de asignación de profesores',
@@ -187,7 +185,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar asignación de profesores',
         ])->syncRoles([$role1, $role2]);
 
-        // Configuración Académica
+        // Configuración Académica (32–35)
         Permission::create([
             'name' => 'admin.academic-configurations.index',
             'description' => 'Administración - Listado de configuración académica',
@@ -208,28 +206,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar configuración académica',
         ])->syncRoles([$role1, $role2]);
 
-        // Tipos de Actividad
-        Permission::create([
-            'name' => 'admin.activity-types.index',
-            'description' => 'Administración - Listado de tipos de actividad',
-        ])->syncRoles([$role1, $role2]);
-
-        Permission::create([
-            'name' => 'admin.activity-types.create',
-            'description' => 'Administración - Crear tipos de actividad',
-        ])->syncRoles([$role1, $role2]);
-
-        Permission::create([
-            'name' => 'admin.activity-types.edit',
-            'description' => 'Administración - Editar tipos de actividad',
-        ])->syncRoles([$role1, $role2]);
-
-        Permission::create([
-            'name' => 'admin.activity-types.delete',
-            'description' => 'Administración - Eliminar tipos de actividad',
-        ])->syncRoles([$role1, $role2]);
-
-        // Cuadros de Calificaciones - Admin
+        // Cuadros de Calificaciones - Admin (36–38)
         Permission::create([
             'name' => 'admin.grade-books.index',
             'description' => 'Administración - Listado de cuadros de calificaciones',
@@ -245,7 +222,7 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Rechazar cuadros de calificaciones',
         ])->syncRoles([$role1, $role2]);
 
-        // Cuadros de Calificaciones - Profesor
+        // Cuadros de Calificaciones - Profesor (39–42)
         Permission::create([
             'name' => 'profesor.grade-books.index',
             'description' => 'Profesor - Listado de cuadros de calificaciones',
@@ -266,72 +243,61 @@ class RoleSeeder extends Seeder
             'description' => 'Profesor - Bloquear cuadros de calificaciones',
         ])->assignRole($role4);
 
-        Permission::create([
-            'name' => 'admin.reports.sabana-unidad',
-            'description' => 'Administración - Generar sábana por unidad',
-        ])->syncRoles([$role1, $role2]);
+        // Reportes básicos (43–48)
+        Permission::create(['name' => 'admin.reports.sabana-unidad',      'description' => 'Administración - Generar sábana por unidad'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.roles.index',                'description' => 'Ver roles'])->assignRole($role1);
+        Permission::create(['name' => 'admin.permissions.index',          'description' => 'Ver permisos'])->assignRole($role1);
+        Permission::create(['name' => 'admin.reports.sabana-general',     'description' => 'Reporte sábana general por unidades'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.sabana-promedio',    'description' => 'Reporte sábana promedio final'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.cuadros-classroom',  'description' => 'Descarga de cuadros por aula'])->syncRoles([$role1, $role2]);
 
-        Permission::create(['name' => 'admin.roles.index',       'description' => 'Ver roles'])->assignRole($role1);
-        Permission::create(['name' => 'admin.permissions.index', 'description' => 'Ver permisos'])->assignRole($role1);
-        Permission::create(['name' => 'admin.reports.sabana-general', 'description' => 'Reporte sábana general por unidades'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.reports.sabana-promedio', 'description' => 'Reporte sábana promedio final'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.reports.cuadros-classroom', 'description' => 'Descarga de cuadros por aula'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'profesor.reports.sabana-promedio', 'description' => 'Sábana de calificaciones del profesor'])->assignRole($role4);
-        Permission::create(['name' => 'profesor.reports.cuadro-vacio', 'description' => 'Imprimir cuadro vacío'])->assignRole($role4);
-        Permission::create(['name' => 'profesor.reports.cuadros-unidad', 'description' => 'Mis cuadros por unidad'])->assignRole($role4);
-        Permission::create(['name' => 'profesor.reports.student-list', 'description' => 'Listado de estudiantes PDF'])->assignRole($role4);
+        // Reportes Profesor (49–53)
+        Permission::create(['name' => 'profesor.reports.sabana-promedio',    'description' => 'Sábana de calificaciones del profesor'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.reports.cuadro-vacio',       'description' => 'Imprimir cuadro vacío'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.reports.cuadros-unidad',     'description' => 'Mis cuadros por unidad'])->assignRole($role4);
+        Permission::create(['name' => 'profesor.reports.student-list',       'description' => 'Listado de estudiantes PDF'])->assignRole($role4);
         Permission::create(['name' => 'profesor.reports.student-list-excel', 'description' => 'Listado de estudiantes Excel'])->assignRole($role4);
+
+        // Reportes Admin listado estudiantes (54–55)
         Permission::create(['name' => 'admin.reports.student-list',       'description' => 'Listado de estudiantes PDF Administración'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.reports.student-list-excel', 'description' => 'Listado de estudiantes Excel Administración'])->syncRoles([$role1, $role2]);
 
-        Permission::create(['name' => 'admin.grade-change-requests.index',   'description' => 'Ver solicitudes de cambio de notas'])->syncRoles([$role1, $role2]);
+        // Solicitudes de cambio de notas (56–58)
+        Permission::create(['name' => 'admin.grade-change-requests.index',    'description' => 'Ver solicitudes de cambio de notas'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.grade-change-requests.approve',  'description' => 'Aprobar o rechazar solicitudes de cambio de notas'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'profesor.grade-change-requests.create', 'description' => 'Solicitar cambio de calificaciones'])->assignRole($role4);
 
-        Permission::create(['name' => 'admin.reports.report-cards', 'description' => 'Boletas de calificaciones'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'admin.reports.missing-activities',   'description' => 'Reporte actividades no entregadas (admin)'])->syncRoles([$role1, $role2]);
+        // Reportes adicionales Admin (59–63)
+        Permission::create(['name' => 'admin.reports.report-cards',          'description' => 'Boletas de calificaciones'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.missing-activities',    'description' => 'Reporte actividades no entregadas (admin)'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'profesor.reports.missing-activities', 'description' => 'Reporte actividades no entregadas (profesor)'])->assignRole($role4);
+        Permission::create(['name' => 'admin.students.enrollments.index',    'description' => 'Gestión de inscripciones de estudiantes'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.audit.index',                   'description' => 'Ver registro de auditoría'])->syncRoles([$role1, $role2]);
 
-        Permission::create(['name' => 'admin.reports.activity-summary', 'description' => 'Resumen consolidado de actividades por estudiante'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'admin.reports.student-activity-detail', 'description' => 'Informe detallado de actividades por estudiante'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'admin.students.enrollments.index', 'description' => 'Gestión de inscripciones de estudiantes'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'admin.audit.index', 'description' => 'Ver registro de auditoría'])->syncRoles([$role1, $role2]);
-
-        // Permisos de menú admin
+        // Permisos de menú Admin (64–70)
         Permission::create(['name' => 'admin.menu.personal',    'description' => 'Menú Gestión de Personal'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.menu.estudiantil', 'description' => 'Menú Gestión Estudiantil'])->syncRoles([$role1, $role2, $role5]);
         Permission::create(['name' => 'admin.menu.academica',   'description' => 'Menú Gestión Académica'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.menu.cuadros',     'description' => 'Menú Cuadros y Calificaciones'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.menu.reportes',    'description' => 'Menú Reportes Admin'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'admin.menu.sistema',     'description' => 'Menú Sistema'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.menu.encabezado',     'description' => 'Encabezado de Administración'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.menu.encabezado',  'description' => 'Encabezado de Administración'])->syncRoles([$role1, $role2]);
 
-        // Permisos de menú profesor
+        // Permisos de menú Profesor (71–72)
         Permission::create(['name' => 'profesor.menu.cuadros',  'description' => 'Menú Mis Cuadros Profesor'])->assignRole($role4);
         Permission::create(['name' => 'profesor.menu.reportes', 'description' => 'Menú Reportes Profesor'])->assignRole($role4);
 
+        // Sistema (73–74)
         Permission::create(['name' => 'admin.user.loginUser', 'description' => 'Adminsitración - Inpersonación'])->assignRole($role1);
+        Permission::create(['name' => 'admin.secretary',      'description' => 'Dashboard de secretaria'])->assignRole($role5);
 
-        Permission::create(['name' => 'admin.secretary', 'description' => 'Dashboard de secretaria'])->assignRole($role5);
+        // Reportes adicionales (75–78)
+        Permission::create(['name' => 'admin.reports.professor-courses', 'description' => 'Administración - Reporte de cursos asignados a los profesores'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'profesor.attendance.index',       'description' => 'Profesor - Tomar Asistencia'])->assignRole($role4);
+        Permission::create(['name' => 'admin.reports.attendance',        'description' => 'Administración - Reporte de Asistencia'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.grade-progress',    'description' => 'Administración - Reporte de avance de ingreso de calificaciones'])->syncRoles([$role1, $role2]);
 
-        Permission::create(['name' => 'admin.reports.professor-courses',     'description' => 'Administración - Reporte de cursos asignados a los profesores'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'profesor.attendance.index',  'description' => 'Profesor - Tomar Asistencia'])->assignRole($role4);
-
-        Permission::create(['name' => 'admin.reports.attendance',     'description' => 'Administración - Reporte de Asistencia'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'admin.reports.grade-progress', 'description' => 'Administración - Reporte de avance de ingreso de calificaciones'])->syncRoles([$role1, $role2]);
-
-        Permission::create(['name' => 'admin.reports.students-at-risk',          'description' => 'Administración - Reporte de estudiantes en riesgo de reprobación'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.reports.grade-progress-comparison', 'description' => 'Administración - Comparativo de rendimiento entre unidades'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.reports.student-history',           'description' => 'Administración - Historial multi-año de calificaciones por estudiante'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.reports.professor-workload',        'description' => 'Administración - Carga docente por profesor'])->syncRoles([$role1, $role2]);
-
-        // Dashboard panels
+        // Dashboard panels (79–90)
         Permission::create(['name' => 'dashboard.panel.stats-general',                'description' => 'Dashboard - KPI: estudiantes, profesores, aulas'])->syncRoles([$role1, $role2, $role5]);
         Permission::create(['name' => 'dashboard.panel.grade-books-pending',          'description' => 'Dashboard - KPI: cuadros pendientes de revisión'])->syncRoles([$role1, $role2]);
         Permission::create(['name' => 'dashboard.panel.students-by-grade',            'description' => 'Dashboard - Gráfico: estudiantes por grado'])->syncRoles([$role1, $role2, $role5]);
@@ -345,6 +311,28 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'dashboard.panel.birthday-students',            'description' => 'Dashboard - Panel: cumpleañeros del mes (estudiantes)'])->syncRoles([$role1, $role5]);
         Permission::create(['name' => 'dashboard.panel.upcoming-birthdays',           'description' => 'Dashboard - Panel: próximos cumpleaños del personal'])->syncRoles([$role1, $role5]);
 
+        // Tipos de Actividad (91–94)
+        Permission::create([
+            'name' => 'admin.activity-types.index',
+            'description' => 'Administración - Listado de tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.activity-types.create',
+            'description' => 'Administración - Crear tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.activity-types.edit',
+            'description' => 'Administración - Editar tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
+        Permission::create([
+            'name' => 'admin.activity-types.delete',
+            'description' => 'Administración - Eliminar tipos de actividad',
+        ])->syncRoles([$role1, $role2]);
+
+        // Períodos de Inscripción (95–98)
         Permission::create([
             'name' => 'admin.enrollment-periods.index',
             'description' => 'Administración - Ver períodos de inscripción',
@@ -365,19 +353,40 @@ class RoleSeeder extends Seeder
             'description' => 'Administración - Eliminar período de inscripción',
         ])->syncRoles([$role1, $role2]);
 
-        // Módulo Admisiones
-        Permission::create(['name' => 'admin.settings.index',     'description' => 'Administración - Configuraciones del sistema'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.admissions.index',   'description' => 'Administración - Listado de solicitudes de admisión'])->syncRoles([$role1, $role2, $role5]);
-        Permission::create(['name' => 'admin.admissions.manage',  'description' => 'Administración - Gestionar solicitudes de admisión (aceptar/rechazar)'])->syncRoles([$role1, $role2]);
-        Permission::create(['name' => 'admin.admissions.edit',  'description' => 'Administración - Editar solicitudes de admisión'])->syncRoles([$role1, $role2]);
-
-        // Módulo Student
-        Permission::create(['name' => 'student.grades.view',          'description' => 'Estudiante - Ver mis calificaciones'])->assignRole($role3);
-        Permission::create(['name' => 'student.attendance.view',      'description' => 'Estudiante - Ver mi asistencia'])->assignRole($role3);
-        Permission::create(['name' => 'student.report-card.view',     'description' => 'Estudiante - Ver e imprimir mi boleta'])->assignRole($role3);
+        // Módulo Estudiante (99–102)
+        Permission::create(['name' => 'student.grades.view',             'description' => 'Estudiante - Ver mis calificaciones'])->assignRole($role3);
+        Permission::create(['name' => 'student.attendance.view',         'description' => 'Estudiante - Ver mi asistencia'])->assignRole($role3);
+        Permission::create(['name' => 'student.report-card.view',        'description' => 'Estudiante - Ver e imprimir mi boleta'])->assignRole($role3);
         Permission::create(['name' => 'dashboard.panel.student-summary', 'description' => 'Dashboard - Panel resumen del estudiante'])->assignRole($role3);
 
-        // Actualización de Notas
+        // Reportes de actividades (103–104)
+        Permission::create(['name' => 'admin.reports.activity-summary',       'description' => 'Resumen consolidado de actividades por estudiante'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.student-activity-detail', 'description' => 'Informe detallado de actividades por estudiante'])->syncRoles([$role1, $role2]);
+
+        // Personal (105–106)
+        Permission::create(['name' => 'admin.professors.index', 'description' => 'Administración - Listado de profesores'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.professors.edit',  'description' => 'Administración - Editar datos laborales de profesores'])->syncRoles([$role1, $role2]);
+
+        // Guardianes (107–108)
+        Permission::create(['name' => 'admin.guardians.index', 'description' => 'Administración - Listado de guardianes'])->syncRoles([$role1, $role2, $role5]);
+        Permission::create(['name' => 'admin.guardians.edit',  'description' => 'Administración - Editar datos de guardianes'])->syncRoles([$role1, $role2]);
+
+        // Reportes analíticos (109–112)
+        Permission::create(['name' => 'admin.reports.students-at-risk',          'description' => 'Administración - Reporte de estudiantes en riesgo de reprobación'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.grade-progress-comparison', 'description' => 'Administración - Comparativo de rendimiento entre unidades'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.student-history',           'description' => 'Administración - Historial multi-año de calificaciones por estudiante'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.reports.professor-workload',        'description' => 'Administración - Carga docente por profesor'])->syncRoles([$role1, $role2]);
+
+        // Módulo Admisiones (113–116)
+        Permission::create(['name' => 'admin.settings.index',    'description' => 'Administración - Configuraciones del sistema'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.admissions.index',  'description' => 'Administración - Listado de solicitudes de admisión'])->syncRoles([$role1, $role2, $role5]);
+        Permission::create(['name' => 'admin.admissions.manage', 'description' => 'Administración - Gestionar solicitudes de admisión (aceptar/rechazar)'])->syncRoles([$role1, $role2]);
+        Permission::create(['name' => 'admin.admissions.edit',   'description' => 'Administración - Editar solicitudes de admisión'])->syncRoles([$role1, $role2]);
+
+        // Actualización de Notas (117)
         Permission::create(['name' => 'admin.grade-books.score-update.index', 'description' => 'Administración - Actualización de notas por sección'])->syncRoles([$role1, $role2]);
+
+        // Facturación de Admisiones (118)
+        Permission::create(['name' => 'admin.admissions.billing', 'description' => 'Administración - Facturación de solicitudes de admisión'])->syncRoles([$role1, $role6]);
     }
 }

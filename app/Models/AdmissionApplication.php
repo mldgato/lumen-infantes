@@ -83,6 +83,31 @@ class AdmissionApplication extends Model
         return $this->hasOne(AdmissionApplicationDocument::class);
     }
 
+    public function billing(): HasOne
+    {
+        return $this->hasOne(AdmissionBilling::class);
+    }
+
+    public function guardianNit(): ?string
+    {
+        return match ($this->guardian_type) {
+            'father' => $this->father_nit,
+            'mother' => $this->mother_nit,
+            'other' => $this->guardian_nit,
+            default => null,
+        };
+    }
+
+    public function fullStudentName(): string
+    {
+        return trim(implode(' ', array_filter([
+            $this->student_first_name,
+            $this->student_second_name,
+            $this->student_first_surname,
+            $this->student_second_surname,
+        ])));
+    }
+
     public function guardianTypeLabel(): string
     {
         return match ($this->guardian_type) {

@@ -113,13 +113,6 @@
                                                 class="btn btn-xs btn-primary" title="Correo enviado">
                                                 <i class="fas fa-envelope"></i>
                                             </button>
-                                        @endif
-                                        @if ($app->isReviewed())
-                                            <button
-                                                @click="Swal.fire({ title: '¿Aceptar esta solicitud?', icon: 'question', showCancelButton: true, confirmButtonText: 'Aceptar', cancelButtonText: 'Cancelar', confirmButtonColor: '#28a745' }).then(r => r.isConfirmed && $wire.markAccepted({{ $app->id }}))"
-                                                class="btn btn-xs btn-success" title="Aceptar">
-                                                <i class="fas fa-check"></i>
-                                            </button>
                                             <button wire:click="openReject({{ $app->id }})"
                                                 class="btn btn-xs btn-danger" title="Rechazar">
                                                 <i class="fas fa-times"></i>
@@ -662,6 +655,11 @@
                                                 <i class="fas fa-info-circle mr-1"></i>
                                                 Primero debe marcarse el correo como enviado al postulante para poder gestionar la papelería.
                                             </div>
+                                        @elseif ($viewing->documents?->isComplete() && (! $viewing->url_documents || ! $viewing->url_payment))
+                                            <div class="alert alert-info py-2 mb-3">
+                                                <i class="fas fa-link mr-1"></i>
+                                                Los documentos están marcados como recibidos, pero faltan los enlaces de la nube para completar la papelería.
+                                            </div>
                                         @endif
                                         <div class="row">
                                             @foreach (\App\Models\AdmissionApplicationDocument::fields() as $field => $label)
@@ -759,13 +757,6 @@
                                         class="btn btn-primary btn-sm">
                                         <i class="fas fa-envelope mr-1"></i> Correo enviado
                                     </button>
-                                @endif
-                                @if ($viewing->isReviewed())
-                                    <button
-                                        @click="Swal.fire({ title: '¿Aceptar esta solicitud de admisión?', icon: 'question', showCancelButton: true, confirmButtonText: 'Aceptar', cancelButtonText: 'Cancelar', confirmButtonColor: '#28a745' }).then(r => r.isConfirmed && $wire.markAccepted({{ $viewing->id }}))"
-                                        class="btn btn-success btn-sm">
-                                        <i class="fas fa-check mr-1"></i> Aceptar
-                                    </button>
                                     <button wire:click="openReject({{ $viewing->id }})"
                                         class="btn btn-danger btn-sm">
                                         <i class="fas fa-times mr-1"></i> Rechazar
@@ -850,6 +841,33 @@
     });
     $wire.on('closeRejectModal', () => {
         $('#rejectModal').modal('hide');
+    });
+
+    $wire.on('showAlert', (data) => {
+        let p = Array.isArray(data) ? (data[0] || {}) : (data || {});
+        Swal.fire({
+            position: 'top-end',
+            icon: p.type || 'info',
+            title: p.title,
+            text: p.message,
+            showConfirmButton: false,
+            timer: 3500
+        });
+    });
+
+    $wire.on('toastMessage', (data) => {
+        let p = Array.isArray(data) ? (data[0] || {}) : (data || {});
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+        Toast.fire({
+            icon: p.type || 'info',
+            title: p.message || p.title
+        });
     });
 </script>
 @endscript

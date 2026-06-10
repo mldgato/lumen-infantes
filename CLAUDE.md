@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.9.4
+v1.9.5
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -54,6 +54,7 @@ v1.9.4
 3. Estudiante (`$role3`)
 4. Profesor (`$role4`)
 5. Secretaria (`$role5`)
+6. Caja (`$role6`)
 
 Permisos con convención `admin.recurso.accion`, `profesor.recurso.accion` y `dashboard.panel.nombre`.
 Livewire components validan con `$this->authorize('permiso')`.
@@ -81,14 +82,19 @@ Livewire components validan con `$this->authorize('permiso')`.
 - **Formulario público** en `/admisiones` (sin auth): 7 secciones — datos del alumno, grado, padre (toggle), madre (toggle), encargado, familia e hijos, cómo nos conoció
 - **Configuración** en `/admin/settings`: modo de inscripción (`direct` o `admissions`); en modo `admissions` el formulario público acepta solicitudes
 - **Panel admin** en `/admin/students/admissions`: listado filtrable, modal de detalle completo, gestión de papelería con checkboxes
-- **Flujo de estados**: `pending` → `emailed` (correo enviado, manual) → `reviewed` (documentación completa, automático cuando se marcan los 5 docs) → `accepted`/`rejected`
-- **Papelería** por solicitud: Boleta de pago, Calificaciones, Ficha, Carta de referencias, Fotografía; al completar los 5 el estado cambia automáticamente a `reviewed`
+- **Flujo de estados**: `pending` → `emailed` (correo enviado, manual) → `reviewed` (documentación completa, automático) → flujo de evaluación/facturación (pendiente) → `accepted`/`rejected`
+- **Papelería completa** = 5 checkboxes marcados **Y** ambas URLs (`url_documents` + `url_payment`) guardadas; solo entonces el estado cambia a `reviewed`. Se puede guardar parcialmente sin que cambie el estado.
+- **`syncDocumentStatus()`** (método privado en `AdmissionList`): evalúa completitud real (checkboxes + URLs) y transiciona entre `emailed` ↔ `reviewed`; se llama desde `toggleDocument()` y `updateApplication()`.
 - **Papelería bloqueada en `pending`**: checkboxes deshabilitados con aviso explicativo hasta que el estado sea al menos `emailed`; guard en `toggleDocument()` en el servidor
+- **Botón Rechazar**: visible **solo** en estado `pending` (tabla + footer del modal); desaparece al cambiar de estado
+- **Botón Aceptar**: removido temporalmente; aparecerá cuando todos los estados del flujo de admisión estén completos (implementación pendiente)
+- **Handlers de eventos** (`showAlert`, `toastMessage`): definidos por componente en el bloque `@script` con `$wire.on()`; no son globales. Dispatch con array `['title' => '...', 'type' => 'success']`
 - **Tabs del modal con Alpine.js**: las 4 pestañas usan `x-data="{ activeTab }"` + `x-show` en lugar de `data-toggle="tab"` de Bootstrap, preservando la pestaña activa durante re-renders de Livewire
-- **Confirmaciones SweetAlert2**: todos los botones de acción (`markEmailed`, `markAccepted`, `resetToPending`) tanto en la tabla como en el footer del modal usan `Swal.fire()` vía Alpine en lugar de `wire:confirm`
-- **NIT del encargado** solo se almacena cuando el tipo de encargado es "Otro"
+- **Confirmaciones SweetAlert2**: botones de acción usan `Swal.fire()` vía Alpine en lugar de `wire:confirm`
+- **NIT del encargado** solo se almacena en `guardian_nit` cuando el tipo es "Otro"; para padre/madre se usa su propio campo `father_nit`/`mother_nit`
 - **Interruptores padre/madre**: si se desactivan, sus datos quedan nulos; la opción de encargado se oculta dinámicamente
 - **Ciclo escolar del formulario**: enero–junio muestra año actual + siguiente; julio–diciembre solo el siguiente año
+- **Vista de Facturación** en `/admin/students/admissions/billing`: listado filtrable con nombre del encargado y NIT según tipo (`guardianNit()`); botón de factura deshabilitado si la solicitud no tiene `url_payment`; modal de dos estados: formulario (sin factura) o detalle de solo lectura (con factura); datos de factura en tabla `admission_billings`
 
 ## Modelos principales (app/Models/)
 
@@ -246,7 +252,8 @@ if (! $professor) {
 | `Roles/ShowRoles` | Gestión de roles (Spatie) |
 | `Permissions/ShowPermissions` | Gestión de permisos |
 | `Students/EnrollmentList` | Listado de inscripciones |
-| `Students/AdmissionList` | Listado y gestión de solicitudes de admisión (papelería, estados, rechazo con notas); tabs con Alpine.js para persistir pestaña activa; confirmaciones SweetAlert2; papelería bloqueada en estado `pending` |
+| `Students/AdmissionList` | Listado y gestión de solicitudes de admisión; papelería completa = 5 checkboxes + ambas URLs; `syncDocumentStatus()` evalúa y transiciona `emailed`↔`reviewed`; Rechazar solo en `pending`; Aceptar removido (condiciones pendientes) |
+| `Students/AdmissionBillingList` | Facturación de admisiones: tabla con encargado + NIT por tipo (`guardianNit()`); modal de dos estados: formulario (invoice_number + invoice_date + link a boleta) cuando no hay factura, o detalle de solo lectura cuando ya está registrada; botón deshabilitado sin `url_payment` |
 | `Students/StudentSelector` | Copia de calificaciones entre cuadros (curso/unidad origen → destino); selección individual o masiva de alumnos; dos caminos: directo (reemplaza actividades completas) y mapeo manual (selección parcial con destino que ya tiene actividades); cuadro destino queda en `approved` al finalizar; registra auditoría con snapshot antes/después vía `AuditService::gradeScoresCopied` |
 | `Admin/SystemSettings` | Configuraciones globales del sistema (`enrollment_mode`: direct/admissions) |
 
@@ -416,6 +423,7 @@ no debe rellenar el campo con credenciales guardadas.
 | `admission_applications` | Solicitudes de admisión con datos del alumno, padres, encargado y familia |
 | `admission_application_statuses` | Historial de cambios de estado por solicitud (user_id, notes) |
 | `admission_application_documents` | Papelería por solicitud: payment_receipt, grades_certificate, registration_form, reference_letter, photo |
+| `admission_billings` | Factura por solicitud: invoice_number, invoice_date, user_id; relación 1:1 con admission_applications |
 
 ## Estructura de vistas (resources/views/)
 ```
@@ -513,3 +521,4 @@ GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 - v1.9.2 — Fix `AdmissionList`: tabs Alpine.js (preservan pestaña activa), confirmaciones SweetAlert2, papelería bloqueada en estado `pending`
 - v1.9.3 — `StudentSelector`: cuadro destino queda `approved` al copiar notas; selección parcial permitida sobre cuadros `approved`; auditoría con snapshot `[alumno → actividad → nota]` antes/después; `AuditService::gradeScoresCopied`; vista `AuditLog` renderiza arrays anidados como mini-tablas
 - v1.9.4 — fix `GradeBookGrid`: lookup de notas usaba `===` (estricto) causando que el driver PDO en producción (strings) no coincidiera con IDs Eloquent (int); reemplazado por mapa indexado con cast explícito `(int)`
+- v1.9.5 — `AdmissionList`: papelería completa requiere 5 checkboxes + ambas URLs; `syncDocumentStatus()` como método privado reutilizable; Rechazar solo en `pending`; Aceptar removido; handlers `showAlert`/`toastMessage` por componente. Nuevo rol `Caja`. Nuevo módulo `AdmissionBillingList`: tabla de facturación, modelo `AdmissionBilling`, tabla `admission_billings`, métodos `guardianNit()` y `fullStudentName()` en `AdmissionApplication`
