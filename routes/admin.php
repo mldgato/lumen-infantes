@@ -259,6 +259,10 @@ Route::get('/students/admissions/billing', fn () => view('admin.students.admissi
     ->name('admin.admissions.billing.index')
     ->middleware('can:admin.admissions.billing');
 
+Route::get('/students/admissions/psychometric', fn () => view('admin.students.admission-psychometric'))
+    ->name('admin.admissions.psychometric.index')
+    ->middleware('can:admin.admissions.psychometric');
+
 // Actualización de notas
 Route::get('/grade-books/score-update', fn () => view('admin.grade-books.score-update'))
     ->name('admin.grade-books.score-update.index')

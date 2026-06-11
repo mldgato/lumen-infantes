@@ -396,6 +396,12 @@ return [
                     'can' => 'admin.admissions.billing',
                 ],
                 [
+                    'text' => 'Evaluación Psicométrica',
+                    'route' => 'admin.admissions.psychometric.index',
+                    'icon' => 'fas fa-fw fa-brain',
+                    'can' => 'admin.admissions.psychometric',
+                ],
+                [
                     'text' => 'Períodos de Inscripción',
                     'route' => 'admin.enrollment-periods.index',
                     'icon' => 'fas fa-fw fa-calendar-alt',

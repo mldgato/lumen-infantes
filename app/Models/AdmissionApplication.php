@@ -88,6 +88,11 @@ class AdmissionApplication extends Model
         return $this->hasOne(AdmissionBilling::class);
     }
 
+    public function psychometric(): HasOne
+    {
+        return $this->hasOne(AdmissionPsychometric::class);
+    }
+
     public function guardianNit(): ?string
     {
         return match ($this->guardian_type) {
@@ -141,6 +146,16 @@ class AdmissionApplication extends Model
     public function isReviewed(): bool
     {
         return $this->current_status === 'reviewed';
+    }
+
+    public function isBilled(): bool
+    {
+        return $this->current_status === 'billed';
+    }
+
+    public function isPsychometric(): bool
+    {
+        return $this->current_status === 'psychometric';
     }
 
     public function isAccepted(): bool

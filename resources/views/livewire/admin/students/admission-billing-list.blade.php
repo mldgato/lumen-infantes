@@ -24,6 +24,8 @@
                             <option value="pending">Pendiente</option>
                             <option value="emailed">Correo enviado</option>
                             <option value="reviewed">Documentación completa</option>
+                            <option value="billed">Facturado</option>
+                            <option value="psychometric">Psicométrica registrada</option>
                             <option value="accepted">Aceptado</option>
                             <option value="rejected">Rechazado</option>
                         </select>

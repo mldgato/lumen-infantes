@@ -19,6 +19,8 @@ class RoleSeeder extends Seeder
         $role4 = Role::create(['name' => 'Profesor']);
         $role5 = Role::create(['name' => 'Secretaria']);
         $role6 = Role::create(['name' => 'Caja']);
+        $role7 = Role::create(['name' => 'Orientador']);
+
 
         // 1 - admin.menu
         Permission::create([
@@ -388,5 +390,8 @@ class RoleSeeder extends Seeder
 
         // Facturación de Admisiones (118)
         Permission::create(['name' => 'admin.admissions.billing', 'description' => 'Administración - Facturación de solicitudes de admisión'])->syncRoles([$role1, $role6]);
+
+        // Evaluación Psicométrica de Admisiones (119)
+        Permission::create(['name' => 'admin.admissions.psychometric', 'description' => 'Administración - Evaluación psicométrica de solicitudes de admisión'])->syncRoles([$role1, $role7]);
     }
 }

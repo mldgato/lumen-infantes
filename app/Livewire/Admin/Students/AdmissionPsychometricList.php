@@ -3,13 +3,13 @@
 namespace App\Livewire\Admin\Students;
 
 use App\Models\AdmissionApplication;
-use App\Models\AdmissionBilling;
+use App\Models\AdmissionPsychometric;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class AdmissionBillingList extends Component
+class AdmissionPsychometricList extends Component
 {
     use WithPagination;
 
@@ -27,14 +27,14 @@ class AdmissionBillingList extends Component
     // ── Modal ────────────────────────────────────────────────────
     public ?AdmissionApplication $viewing = null;
 
-    public string $invoiceNumber = '';
+    public string $psychometricResult = '';
 
-    public string $invoiceDate = '';
+    public string $psychometricNotes = '';
 
     // ── Mount ────────────────────────────────────────────────────
     public function mount(): void
     {
-        $this->authorize('admin.admissions.billing');
+        $this->authorize('admin.admissions.psychometric');
         $this->filterYear = (string) now()->year;
     }
 
@@ -63,7 +63,7 @@ class AdmissionBillingList extends Component
     #[Computed]
     public function applications()
     {
-        return AdmissionApplication::with(['level', 'grade', 'billing'])
+        return AdmissionApplication::with(['level', 'grade', 'psychometric'])
             ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             ->when($this->filterStatus, fn ($q) => $q->where('current_status', $this->filterStatus))
             ->when($this->search, function ($q) {
@@ -91,59 +91,62 @@ class AdmissionBillingList extends Component
     // ── Abrir modal ───────────────────────────────────────────────
     public function openModal(int $id): void
     {
-        $this->authorize('admin.admissions.billing');
+        $this->authorize('admin.admissions.psychometric');
 
-        $this->viewing = AdmissionApplication::with(['level', 'grade', 'billing.user'])
-            ->findOrFail($id);
+        $this->viewing = AdmissionApplication::with([
+            'level', 'grade', 'statuses.user', 'documents', 'psychometric.user',
+        ])->findOrFail($id);
 
-        $this->invoiceNumber = '';
-        $this->invoiceDate = '';
+        $this->psychometricResult = $this->viewing->psychometric?->result ?? '';
+        $this->psychometricNotes = $this->viewing->psychometric?->notes ?? '';
         $this->resetValidation();
 
-        $this->dispatch('openBillingModal');
+        $this->dispatch('openPsychometricDetailModal');
     }
 
-    // ── Guardar factura ───────────────────────────────────────────
-    public function saveBilling(): void
+    // ── Guardar evaluación ────────────────────────────────────────
+    public function savePsychometric(string $notes = ''): void
     {
-        $this->authorize('admin.admissions.billing');
+        $this->authorize('admin.admissions.psychometric');
 
-        if ($this->viewing->billing) {
-            return;
-        }
+        $this->psychometricNotes = $notes;
 
         $this->validate([
-            'invoiceNumber' => ['required', 'string', 'max:100'],
-            'invoiceDate' => ['required', 'date'],
+            'psychometricResult' => ['required', 'string', 'max:100'],
+            'psychometricNotes' => ['nullable', 'string'],
         ], [
-            'invoiceNumber.required' => 'El número de factura es requerido.',
-            'invoiceDate.required' => 'La fecha de la factura es requerida.',
-            'invoiceDate.date' => 'Ingrese una fecha válida.',
+            'psychometricResult.required' => 'El resultado psicométrico es requerido.',
         ]);
 
-        AdmissionBilling::create([
-            'admission_application_id' => $this->viewing->id,
-            'invoice_number' => trim($this->invoiceNumber),
-            'invoice_date' => $this->invoiceDate,
-            'user_id' => Auth::id(),
-        ]);
+        $isFirst = ! $this->viewing->psychometric;
 
-        $this->viewing->update(['current_status' => 'billed']);
-        $this->viewing->statuses()->create([
-            'status' => 'billed',
-            'notes' => 'Factura No. '.trim($this->invoiceNumber).' registrada.',
-            'user_id' => Auth::id(),
-        ]);
+        AdmissionPsychometric::updateOrCreate(
+            ['admission_application_id' => $this->viewing->id],
+            [
+                'result' => $this->psychometricResult,
+                'notes' => $this->psychometricNotes ?: null,
+                'user_id' => Auth::id(),
+            ]
+        );
 
-        $this->viewing->load('billing.user');
+        if ($isFirst) {
+            $this->viewing->update(['current_status' => 'psychometric']);
+            $this->viewing->statuses()->create([
+                'status' => 'psychometric',
+                'notes' => 'Evaluación psicométrica registrada. Resultado: '.$this->psychometricResult,
+                'user_id' => Auth::id(),
+            ]);
+        }
+
+        $this->viewing->load('statuses.user', 'documents', 'psychometric.user');
         $this->viewing->refresh();
         unset($this->applications);
 
-        $this->dispatch('showAlert', ['title' => 'Factura registrada correctamente.', 'type' => 'success']);
+        $this->dispatch('showAlert', ['title' => 'Evaluación psicométrica guardada correctamente.', 'type' => 'success']);
     }
 
     public function render(): \Illuminate\View\View
     {
-        return view('livewire.admin.students.admission-billing-list');
+        return view('livewire.admin.students.admission-psychometric-list');
     }
 }

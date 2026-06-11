@@ -24,6 +24,8 @@
                             <option value="pending">Pendiente</option>
                             <option value="emailed">Correo enviado</option>
                             <option value="reviewed">Documentación completa</option>
+                            <option value="billed">Facturado</option>
+                            <option value="psychometric">Psicométrica registrada</option>
                             <option value="accepted">Aceptado</option>
                             <option value="rejected">Rechazado</option>
                         </select>
@@ -118,7 +120,7 @@
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         @endif
-                                        @if (! $app->isPending())
+                                        @if ($app->isEmailed() || $app->isRejected())
                                             <button
                                                 @click="Swal.fire({ title: '¿Regresar a Pendiente?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí', cancelButtonText: 'No', confirmButtonColor: '#ffc107' }).then(r => r.isConfirmed && $wire.resetToPending({{ $app->id }}))"
                                                 class="btn btn-xs btn-warning" title="Regresar a pendiente">
@@ -762,7 +764,7 @@
                                         <i class="fas fa-times mr-1"></i> Rechazar
                                     </button>
                                 @endif
-                                @if (! $viewing->isPending())
+                                @if ($viewing->isEmailed() || $viewing->isRejected())
                                     <button
                                         @click="Swal.fire({ title: '¿Regresar a Pendiente?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí', cancelButtonText: 'No', confirmButtonColor: '#ffc107' }).then(r => r.isConfirmed && $wire.resetToPending({{ $viewing->id }}))"
                                         class="btn btn-warning btn-sm">

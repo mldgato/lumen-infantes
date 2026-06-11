@@ -478,6 +478,13 @@ class AdmissionList extends Component
 
     public function resetToPending(int $id): void
     {
+        $this->authorize('admin.admissions.manage');
+
+        $app = AdmissionApplication::findOrFail($id);
+        if (in_array($app->current_status, ['reviewed', 'billed', 'psychometric', 'accepted'])) {
+            return;
+        }
+
         $this->applyStatus($id, 'pending');
     }
 
