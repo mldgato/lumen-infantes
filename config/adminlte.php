@@ -402,6 +402,18 @@ return [
                     'can' => 'admin.admissions.psychometric',
                 ],
                 [
+                    'text' => 'Evaluaciones Académicas',
+                    'route' => 'admin.admissions.academic.index',
+                    'icon' => 'fas fa-fw fa-graduation-cap',
+                    'can' => 'admin.admissions.academic',
+                ],
+                [
+                    'text' => 'Materias de Admisión',
+                    'route' => 'admin.admission-courses.index',
+                    'icon' => 'fas fa-fw fa-book',
+                    'can' => 'admin.admission-courses.index',
+                ],
+                [
                     'text' => 'Períodos de Inscripción',
                     'route' => 'admin.enrollment-periods.index',
                     'icon' => 'fas fa-fw fa-calendar-alt',

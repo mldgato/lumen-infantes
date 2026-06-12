@@ -38,6 +38,8 @@ class DatabaseSeeder extends Seeder
             GradeBookSeeder::class,
             SystemSettingsSeeder::class,
             AdmissionApplicationSeeder::class,
+            AdmissionCoursesSeeder::class,
+            AdmissionCoursesSeeder::class
         ]);
     }
 }

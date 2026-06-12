@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.9.5
+v1.9.9
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -253,8 +253,11 @@ if (! $professor) {
 | `Permissions/ShowPermissions` | Gestión de permisos |
 | `Students/EnrollmentList` | Listado de inscripciones |
 | `Students/AdmissionList` | Listado y gestión de solicitudes de admisión; papelería completa = 5 checkboxes + ambas URLs; `syncDocumentStatus()` evalúa y transiciona `emailed`↔`reviewed`; Rechazar solo en `pending`; Aceptar removido (condiciones pendientes) |
-| `Students/AdmissionBillingList` | Facturación de admisiones: tabla con encargado + NIT por tipo (`guardianNit()`); modal de dos estados: formulario (invoice_number + invoice_date + link a boleta) cuando no hay factura, o detalle de solo lectura cuando ya está registrada; botón deshabilitado sin `url_payment` |
+| `Students/AdmissionBillingList` | Facturación de admisiones: tabla con encargado + NIT por tipo (`guardianNit()`); modal de dos estados: formulario (invoice_number + invoice_date + link a boleta) cuando no hay factura, o detalle de solo lectura cuando ya está registrada; modal solo abre en estado `reviewed`; botón deshabilitado sin `url_payment` |
+| `Students/AdmissionPsychometricList` | Evaluación psicométrica: modal solo abre en estado `billed`; TAB Psicométrica editable (editor Quill) en estado `billed`, solo lectura en `psychometric`/`accepted`/`rejected`; transiciona a `psychometric` al guardar por primera vez; filtro Nivel restringido a niveles del usuario |
+| `Students/AdmissionAcademicList` | Evaluaciones académicas: modal editable solo en estado `psychometric` (agregar/eliminar punteos, botón "Finalizar" con SweetAlert transiciona a `academic`); modal de solo lectura (datos del alumno + punteos + promedio) en cualquier otro estado que tenga punteos registrados; filtro Nivel restringido a niveles del usuario; permiso `admin.admissions.academic` (Coordinador + Super Admin) |
 | `Students/StudentSelector` | Copia de calificaciones entre cuadros (curso/unidad origen → destino); selección individual o masiva de alumnos; dos caminos: directo (reemplaza actividades completas) y mapeo manual (selección parcial con destino que ya tiene actividades); cuadro destino queda en `approved` al finalizar; registra auditoría con snapshot antes/después vía `AuditService::gradeScoresCopied` |
+| `Admin/AdmissionCourses` | CRUD de materias de admisión (`AdmissionCourse`); campos: nombre + orden; permiso `admin.admission-courses.index` (Secretaria + Super Admin) |
 | `Admin/SystemSettings` | Configuraciones globales del sistema (`enrollment_mode`: direct/admissions) |
 
 ### Profesor (app/Livewire/Profesor/)
@@ -424,6 +427,9 @@ no debe rellenar el campo con credenciales guardadas.
 | `admission_application_statuses` | Historial de cambios de estado por solicitud (user_id, notes) |
 | `admission_application_documents` | Papelería por solicitud: payment_receipt, grades_certificate, registration_form, reference_letter, photo |
 | `admission_billings` | Factura por solicitud: invoice_number, invoice_date, user_id; relación 1:1 con admission_applications |
+| `admission_psychometrics` | Evaluación psicométrica por solicitud: result, notes (HTML), user_id; relación 1:1 con admission_applications |
+| `admission_courses` | Catálogo de materias de admisión: name, ordering |
+| `admission_academic_scores` | Punteo por solicitud y materia: admission_application_id, admission_course_id, score decimal(5,2), user_id; unique `aas_application_course_unique` |
 
 ## Estructura de vistas (resources/views/)
 ```
@@ -513,8 +519,9 @@ GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 - Resolver codificación UTF-8 en correos (workaround actual: editar `.env` directamente en servidor con UTF-8)
 - **Campo `supervised_practice` en `Grade` — sin usar** — La columna existe en la BD y el modelo pero no se referencia en ningún componente ni vista. Implementar lógica para prácticas supervisadas o eliminar el campo.
 - **Campo `is_official` en `PensumCourse`** — Usado en `StudentsAtRisk`, `GradeProgressComparison`, `StudentHistory` y `StudentSummary`. Agregar badge/filtro visual en el CRUD de `Admin/Pensums` si se desea.
-- **`AdmissionPsychometricList` — modal no se cierra al guardar** — Después de ejecutar `savePsychometric()` exitosamente el modal permanece abierto. Dispatchar un evento Livewire y manejarlo en `@script` con `$('#psychometricDetailModal').modal('hide')` o redirigir al éxito con `dispatch('closeModal')`.
-- **`AdmissionPsychometricList` — campos editables tras estado `psychometric`** — Una vez que la solicitud alcanza el estado `psychometric`, el campo `psychometricResult` y el editor Quill deberían quedar en solo lectura. Implementar lógica en la vista: si `$viewing->isPsychometric()` (o estado posterior), deshabilitar el input y el editor; mostrar solo el contenido guardado con `{!! $viewing->psychometric->notes !!}`.
+
+### Funcionalidad pendiente — Admisiones
+- **Botón Aceptar en `AdmissionList`** — Removido temporalmente. Debe reaparecer una vez que la solicitud haya completado todo el flujo de admisión: `reviewed` → `billed` → `psychometric` → `academic`. La condición exacta para habilitarlo es que `current_status === 'academic'`. Implementación pendiente.
 
 ## Historial de versiones
 - v1.0.0–v1.8.5 — Base del sistema, autenticación Fortify + 2FA, reportes PDF/Excel, inscripciones, auditoría, dashboard por paneles independientes, módulo Estudiante, GradeBookGrid tipo Excel, sistema de actualización de datos QR, admisiones (formulario público + panel admin)
@@ -525,3 +532,6 @@ GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 - v1.9.4 — fix `GradeBookGrid`: lookup de notas usaba `===` (estricto) causando que el driver PDO en producción (strings) no coincidiera con IDs Eloquent (int); reemplazado por mapa indexado con cast explícito `(int)`
 - v1.9.5 — `AdmissionList`: papelería completa requiere 5 checkboxes + ambas URLs; `syncDocumentStatus()` como método privado reutilizable; Rechazar solo en `pending`; Aceptar removido; handlers `showAlert`/`toastMessage` por componente. Nuevo rol `Caja`. Nuevo módulo `AdmissionBillingList`: tabla de facturación, modelo `AdmissionBilling`, tabla `admission_billings`, métodos `guardianNit()` y `fullStudentName()` en `AdmissionApplication`
 - v1.9.6 — Flujo de admisiones extendido: nuevos estados `billed` y `psychometric` en `AdmissionApplicationStatus`; `AdmissionBillingList::saveBilling()` transiciona a `billed` y registra historial; botón "Regresar a Pendiente" bloqueado desde `reviewed` en adelante (vista + guard servidor); nuevo módulo `AdmissionPsychometricList` con modelo `AdmissionPsychometric`, tabla `admission_psychometrics`, editor Quill (títulos/color/alineación), modal de 5 tabs solo lectura + pestaña Psicométrica editable; permiso `admin.admissions.psychometric` asignado a roles Director y Super Administrador; nuevo rol `Orientador` en seeder
+- v1.9.7 — fix `AdmissionPsychometricList`: modal se cierra automáticamente al guardar evaluación (`dispatch('closePsychometricModal')` + handler JS `modal('hide')`); TAB Psicométrica queda en solo lectura cuando `current_status` es `psychometric`, `accepted` o `rejected` (muestra resultado como badge e HTML de anotaciones sin editor Quill); guard en `initPsychometricQuill` evita error si el editor no está en el DOM
+- v1.9.8 — filtro Nivel (Level) agregado a `AdmissionList` y `AdmissionPsychometricList` (filtro por `level_id`, con `allLevels` Computed en ambos); distribución de cols de filtros ajustada a 2/2/3/3/2; modal de `AdmissionList` agrega tabs condicionales: Facturación (si `billing` existe) y Psicométrica (si `psychometric` existe), ambas en solo lectura; `viewApplication()` carga relaciones `billing.user` y `psychometric.user`
+- v1.9.9 — nuevo estado `academic` en flujo de admisiones; nuevo módulo `AdmissionAcademicList` (permiso `admin.admissions.academic`, rol Coordinador + Super Admin): modal editable en estado `psychometric` (agregar/eliminar punteos, finalizar con SweetAlert) y de solo lectura en estados posteriores; nuevo CRUD `AdmissionCourses` (permiso `admin.admission-courses.index`, rol Secretaria + Super Admin) con 6 materias seeder (Lenguaje, Destrezas, Matemáticas, Inglés, Educación Católica, Tecnología); modelos `AdmissionCourse` y `AdmissionAcademicScore`, tablas `admission_courses` y `admission_academic_scores` (unique `aas_application_course_unique`); filtro Nivel restringido en los 3 módulos de admisiones; modal `AdmissionList` agrega tabs condicionales Académico, Facturación y Psicométrica; select de estado incluye `academic` en todos los módulos; menú y rutas para ambos componentes; rol `Coordinador` en seeder; botón Aceptar pendiente (condición: `current_status === 'academic'`)

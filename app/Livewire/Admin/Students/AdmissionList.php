@@ -23,9 +23,11 @@ class AdmissionList extends Component
 
     public string $filterStatus = '';
 
+    public string $filterLevel = '';
+
     public int $cant = 15;
 
-    protected $queryString = ['search', 'filterYear', 'filterStatus', 'cant'];
+    protected $queryString = ['search', 'filterYear', 'filterStatus', 'filterLevel', 'cant'];
 
     // ── Modal de detalle / edición ───────────────────────────────
     public ?AdmissionApplication $viewing = null;
@@ -139,6 +141,11 @@ class AdmissionList extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterLevel(): void
+    {
+        $this->resetPage();
+    }
+
     // ── Cascading en formulario de edición ───────────────────────
     public function updatedEditLevelId(): void
     {
@@ -203,9 +210,13 @@ class AdmissionList extends Component
     #[Computed]
     public function applications()
     {
+        $allowedLevelIds = Auth::user()->levels()->pluck('levels.id');
+
         return AdmissionApplication::with(['level', 'grade'])
+            ->whereIn('level_id', $allowedLevelIds)
             ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             ->when($this->filterStatus, fn ($q) => $q->where('current_status', $this->filterStatus))
+            ->when($this->filterLevel, fn ($q) => $q->where('level_id', $this->filterLevel))
             ->when($this->search, function ($q) {
                 $q->where(function ($q) {
                     $q->where('student_first_name', 'like', "%{$this->search}%")
@@ -231,7 +242,10 @@ class AdmissionList extends Component
     #[Computed]
     public function pendingCount(): int
     {
+        $allowedLevelIds = Auth::user()->levels()->pluck('levels.id');
+
         return AdmissionApplication::where('current_status', 'pending')
+            ->whereIn('level_id', $allowedLevelIds)
             ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             ->count();
     }
@@ -239,7 +253,7 @@ class AdmissionList extends Component
     #[Computed]
     public function allLevels(): Collection
     {
-        return Level::orderBy('ordering')->get();
+        return Auth::user()->levels()->orderBy('ordering')->get();
     }
 
     #[Computed]
@@ -259,8 +273,9 @@ class AdmissionList extends Component
     // ── Ver / Editar solicitud ───────────────────────────────────
     public function viewApplication(int $id): void
     {
-        $this->viewing = AdmissionApplication::with(['level', 'grade', 'statuses.user', 'documents'])
-            ->findOrFail($id);
+        $this->viewing = AdmissionApplication::with([
+            'level', 'grade', 'statuses.user', 'documents', 'billing.user', 'psychometric.user', 'academicScores.course',
+        ])->findOrFail($id);
 
         if (! $this->viewing->documents) {
             $this->viewing->documents()->create([]);

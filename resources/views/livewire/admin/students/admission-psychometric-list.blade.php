@@ -5,13 +5,24 @@
     <div class="card card-outline card-primary">
         <div class="card-body pb-2">
             <div class="row">
-                <div class="col-sm-12 col-md-3">
+                <div class="col-sm-12 col-md-2">
                     <div class="form-group">
                         <label class="control-label">Ciclo Escolar</label>
                         <select wire:model.live="filterYear" class="form-control">
                             <option value="">— Todos —</option>
                             @foreach ($this->availableYears as $yr)
                                 <option value="{{ $yr }}">{{ $yr }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-2">
+                    <div class="form-group">
+                        <label class="control-label">Nivel</label>
+                        <select wire:model.live="filterLevel" class="form-control">
+                            <option value="">— Todos —</option>
+                            @foreach ($this->allLevels as $level)
+                                <option value="{{ $level->id }}">{{ $level->level_name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -26,12 +37,13 @@
                             <option value="reviewed">Documentación completa</option>
                             <option value="billed">Facturado</option>
                             <option value="psychometric">Psicométrica registrada</option>
+                            <option value="academic">Evaluaciones académicas</option>
                             <option value="accepted">Aceptado</option>
                             <option value="rejected">Rechazado</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-sm-12 col-md-4">
+                <div class="col-sm-12 col-md-3">
                     <div class="form-group">
                         <label class="control-label">Buscar</label>
                         <input type="text" wire:model.live.debounce.300ms="search"
@@ -104,10 +116,17 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <button wire:click="openModal({{ $app->id }})"
-                                        class="btn btn-xs btn-info" title="Ver / Registrar evaluación">
-                                        <i class="fas fa-brain"></i>
-                                    </button>
+                                    @if ($app->isBilled())
+                                        <button wire:click="openModal({{ $app->id }})"
+                                            class="btn btn-xs btn-info" title="Ver / Registrar evaluación">
+                                            <i class="fas fa-brain"></i>
+                                        </button>
+                                    @else
+                                        <button class="btn btn-xs btn-secondary" disabled
+                                            title="Solo disponible en estado 'Facturado'">
+                                            <i class="fas fa-brain"></i>
+                                        </button>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -424,6 +443,7 @@
 
                             {{-- ── TAB 5: Psicométrica ──────────────────── --}}
                             <div role="tabpanel" x-show="activeTab === 'tab-psicometrica'">
+                                @php $isLocked = $viewing->isPsychometric() || $viewing->isAccepted() || $viewing->isRejected(); @endphp
 
                                 @if ($viewing->psychometric)
                                     <div class="alert alert-success py-2 mb-3">
@@ -434,57 +454,84 @@
                                     </div>
                                 @endif
 
-                                <div class="row">
-                                    <div class="col-sm-12 col-md-6">
-                                        <div class="form-group">
-                                            <label>
-                                                Resultado Psicométrico
-                                                <span class="text-danger">*</span>
-                                            </label>
-                                            <input type="text"
-                                                wire:model="psychometricResult"
-                                                list="psychometric-result-datalist"
-                                                class="form-control @error('psychometricResult') is-invalid @enderror"
-                                                placeholder="Seleccione o escriba el resultado..."
-                                                autocomplete="off">
-                                            <datalist id="psychometric-result-datalist">
-                                                <option value="Arriba del Promedio">
-                                                <option value="Promedio">
-                                                <option value="Debajo del promedio">
-                                                <option value="Alto">
-                                                <option value="Bajo">
-                                            </datalist>
-                                            @error('psychometricResult')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                @if ($isLocked)
+                                    {{-- Solo lectura --}}
+                                    <div class="row">
+                                        <div class="col-sm-12 col-md-6">
+                                            <div class="form-group">
+                                                <label class="font-weight-bold">Resultado Psicométrico</label>
+                                                <p class="mb-0">
+                                                    <span class="badge badge-info" style="font-size: .95rem; padding: .4em .75em;">
+                                                        {{ $viewing->psychometric?->result ?? '—' }}
+                                                    </span>
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="form-group mb-0">
-                                    <label>Anotaciones</label>
-                                    <div wire:ignore>
-                                        <div id="psychometric-quill-editor"></div>
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">Anotaciones</label>
+                                        @if ($viewing->psychometric?->notes)
+                                            <div class="border rounded p-3 bg-light" style="min-height: 80px; font-size: .9rem;">
+                                                {!! $viewing->psychometric->notes !!}
+                                            </div>
+                                        @else
+                                            <p class="text-muted small mb-0">No hay anotaciones registradas.</p>
+                                        @endif
                                     </div>
-                                </div>
+                                @else
+                                    {{-- Formulario editable --}}
+                                    <div class="row">
+                                        <div class="col-sm-12 col-md-6">
+                                            <div class="form-group">
+                                                <label>
+                                                    Resultado Psicométrico
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text"
+                                                    wire:model="psychometricResult"
+                                                    list="psychometric-result-datalist"
+                                                    class="form-control @error('psychometricResult') is-invalid @enderror"
+                                                    placeholder="Seleccione o escriba el resultado..."
+                                                    autocomplete="off">
+                                                <datalist id="psychometric-result-datalist">
+                                                    <option value="Arriba del Promedio">
+                                                    <option value="Promedio">
+                                                    <option value="Debajo del promedio">
+                                                    <option value="Alto">
+                                                    <option value="Bajo">
+                                                </datalist>
+                                                @error('psychometricResult')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                <div class="text-right mt-3">
-                                    <button type="button" class="btn btn-primary btn-sm"
-                                        @click="$wire.savePsychometric(
-                                            window.psychometricQuill
-                                                ? (window.psychometricQuill.root.innerHTML === '<p><br></p>' ? '' : window.psychometricQuill.root.innerHTML)
-                                                : ''
-                                        )"
-                                        wire:loading.attr="disabled"
-                                        wire:target="savePsychometric">
-                                        <span wire:loading.remove wire:target="savePsychometric">
-                                            <i class="fas fa-save mr-1"></i> Guardar evaluación
-                                        </span>
-                                        <span wire:loading wire:target="savePsychometric">
-                                            <i class="fas fa-spinner fa-spin mr-1"></i> Guardando...
-                                        </span>
-                                    </button>
-                                </div>
+                                    <div class="form-group mb-0">
+                                        <label>Anotaciones</label>
+                                        <div wire:ignore>
+                                            <div id="psychometric-quill-editor"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-right mt-3">
+                                        <button type="button" class="btn btn-primary btn-sm"
+                                            @click="$wire.savePsychometric(
+                                                window.psychometricQuill
+                                                    ? (window.psychometricQuill.root.innerHTML === '<p><br></p>' ? '' : window.psychometricQuill.root.innerHTML)
+                                                    : ''
+                                            )"
+                                            wire:loading.attr="disabled"
+                                            wire:target="savePsychometric">
+                                            <span wire:loading.remove wire:target="savePsychometric">
+                                                <i class="fas fa-save mr-1"></i> Guardar evaluación
+                                            </span>
+                                            <span wire:loading wire:target="savePsychometric">
+                                                <i class="fas fa-spinner fa-spin mr-1"></i> Guardando...
+                                            </span>
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
 
                         </div>{{-- /tab-content --}}
@@ -506,6 +553,9 @@
     window.psychometricQuill = null;
 
     window.initPsychometricQuill = function () {
+        if (!document.getElementById('psychometric-quill-editor')) {
+            return;
+        }
         if (!window.psychometricQuill) {
             window.psychometricQuill = new Quill('#psychometric-quill-editor', {
                 theme: 'snow',
@@ -530,6 +580,10 @@
             window.psychometricQuill.root.innerHTML = $wire.psychometricNotes || '';
         }
         $('#psychometricDetailModal').modal('show');
+    });
+
+    $wire.on('closePsychometricModal', () => {
+        $('#psychometricDetailModal').modal('hide');
     });
 
     $wire.on('showAlert', (data) => {

@@ -5,13 +5,24 @@
     <div class="card card-outline card-primary">
         <div class="card-body pb-2">
             <div class="row">
-                <div class="col-sm-12 col-md-3">
+                <div class="col-sm-12 col-md-2">
                     <div class="form-group">
                         <label class="control-label">Ciclo Escolar</label>
                         <select wire:model.live="filterYear" class="form-control">
                             <option value="">— Todos —</option>
                             @foreach ($this->availableYears as $yr)
                                 <option value="{{ $yr }}">{{ $yr }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-2">
+                    <div class="form-group">
+                        <label class="control-label">Nivel</label>
+                        <select wire:model.live="filterLevel" class="form-control">
+                            <option value="">— Todos —</option>
+                            @foreach ($this->allLevels as $level)
+                                <option value="{{ $level->id }}">{{ $level->level_name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -26,12 +37,13 @@
                             <option value="reviewed">Documentación completa</option>
                             <option value="billed">Facturado</option>
                             <option value="psychometric">Psicométrica registrada</option>
+                            <option value="academic">Evaluaciones académicas</option>
                             <option value="accepted">Aceptado</option>
                             <option value="rejected">Rechazado</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-sm-12 col-md-4">
+                <div class="col-sm-12 col-md-3">
                     <div class="form-group">
                         <label class="control-label">Buscar</label>
                         <input type="text" wire:model.live.debounce.300ms="search"
@@ -197,6 +209,30 @@
                                     @endif
                                 </a>
                             </li>
+                            @if ($viewing->billing)
+                                <li class="nav-item">
+                                    <a class="nav-link" :class="{ 'active': activeTab === 'tab-factura' }"
+                                        @click.prevent="activeTab = 'tab-factura'" href="#" role="tab">
+                                        <i class="fas fa-file-invoice-dollar mr-1"></i> Facturación
+                                    </a>
+                                </li>
+                            @endif
+                            @if ($viewing->psychometric)
+                                <li class="nav-item">
+                                    <a class="nav-link" :class="{ 'active': activeTab === 'tab-psicometrica' }"
+                                        @click.prevent="activeTab = 'tab-psicometrica'" href="#" role="tab">
+                                        <i class="fas fa-brain mr-1"></i> Psicométrica
+                                    </a>
+                                </li>
+                            @endif
+                            @if ($viewing->academicScores->isNotEmpty())
+                                <li class="nav-item">
+                                    <a class="nav-link" :class="{ 'active': activeTab === 'tab-academico' }"
+                                        @click.prevent="activeTab = 'tab-academico'" href="#" role="tab">
+                                        <i class="fas fa-graduation-cap mr-1"></i> Académico
+                                    </a>
+                                </li>
+                            @endif
                             <li class="nav-item">
                                 <a class="nav-link" :class="{ 'active': activeTab === 'tab-historial' }"
                                     @click.prevent="activeTab = 'tab-historial'" href="#" role="tab">
@@ -719,7 +755,109 @@
                                 </fieldset>
                             </div>
 
-                            {{-- ── TAB 4: Historial ─────────────────────── --}}
+                            {{-- ── TAB 4: Facturación (condicional) ─────── --}}
+                            @if ($viewing->billing)
+                                <div id="tab-factura" role="tabpanel" x-show="activeTab === 'tab-factura'">
+                                    <fieldset class="edit-section mb-3">
+                                        <legend><i class="fas fa-file-invoice-dollar mr-1"></i> Datos de la Factura</legend>
+                                        <dl class="row mb-0 small">
+                                            <dt class="col-sm-4">Número de factura</dt>
+                                            <dd class="col-sm-8">
+                                                <strong>{{ $viewing->billing->invoice_number }}</strong>
+                                            </dd>
+                                            <dt class="col-sm-4">Fecha de factura</dt>
+                                            <dd class="col-sm-8">
+                                                {{ $viewing->billing->invoice_date->format('d/m/Y') }}
+                                            </dd>
+                                            <dt class="col-sm-4">Registrado por</dt>
+                                            <dd class="col-sm-8">
+                                                {{ $viewing->billing->user?->first_name }} {{ $viewing->billing->user?->first_surname }}
+                                            </dd>
+                                            <dt class="col-sm-4">Fecha de registro</dt>
+                                            <dd class="col-sm-8">
+                                                {{ $viewing->billing->created_at->format('d/m/Y H:i') }}
+                                            </dd>
+                                        </dl>
+                                    </fieldset>
+                                    @if ($viewing->url_payment)
+                                        <fieldset class="edit-section mb-0">
+                                            <legend><i class="fas fa-receipt mr-1"></i> Boleta de Pago</legend>
+                                            <a href="{{ $viewing->url_payment }}" target="_blank"
+                                                class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-external-link-alt mr-1"></i> Ver boleta de pago
+                                            </a>
+                                        </fieldset>
+                                    @endif
+                                </div>
+                            @endif
+
+                            {{-- ── TAB 6: Psicométrica (condicional) ─────── --}}
+                            @if ($viewing->psychometric)
+                                <div id="tab-psicometrica" role="tabpanel" x-show="activeTab === 'tab-psicometrica'">
+                                    <div class="alert alert-success py-2 mb-3">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Evaluación registrada por
+                                        <strong>{{ $viewing->psychometric->user?->first_name }} {{ $viewing->psychometric->user?->first_surname }}</strong>
+                                        el {{ $viewing->psychometric->updated_at->format('d/m/Y H:i') }}.
+                                    </div>
+                                    <fieldset class="edit-section mb-3">
+                                        <legend><i class="fas fa-brain mr-1"></i> Resultado Psicométrico</legend>
+                                        <p class="mb-0">
+                                            <span class="badge badge-info" style="font-size: .95rem; padding: .4em .75em;">
+                                                {{ $viewing->psychometric->result }}
+                                            </span>
+                                        </p>
+                                    </fieldset>
+                                    @if ($viewing->psychometric->notes)
+                                        <fieldset class="edit-section mb-0">
+                                            <legend><i class="fas fa-file-alt mr-1"></i> Anotaciones</legend>
+                                            <div class="border rounded p-3 bg-light" style="min-height: 60px; font-size: .9rem;">
+                                                {!! $viewing->psychometric->notes !!}
+                                            </div>
+                                        </fieldset>
+                                    @else
+                                        <p class="text-muted small">No hay anotaciones registradas.</p>
+                                    @endif
+                                </div>
+                            @endif
+
+                            {{-- ── TAB 7: Académico (condicional) ──────── --}}
+                            @if ($viewing->academicScores->isNotEmpty())
+                                <div id="tab-academico" role="tabpanel" x-show="activeTab === 'tab-academico'">
+                                    <table class="table table-sm table-bordered mb-3">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Materia</th>
+                                                <th class="text-center" style="width:120px;">Punteo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($viewing->academicScores->sortBy('course.ordering') as $item)
+                                                <tr>
+                                                    <td>{{ $item->course?->name ?? '—' }}</td>
+                                                    <td class="text-center">
+                                                        <span class="badge badge-{{ $item->score >= 60 ? 'success' : 'danger' }} px-2">
+                                                            {{ number_format($item->score, 2) }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="thead-light">
+                                            <tr>
+                                                <th>Promedio</th>
+                                                <th class="text-center">
+                                                    <span class="badge badge-{{ $viewing->academicScores->avg('score') >= 60 ? 'success' : 'danger' }} px-2">
+                                                        {{ number_format($viewing->academicScores->avg('score'), 2) }}
+                                                    </span>
+                                                </th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            @endif
+
+                            {{-- ── TAB: Historial (siempre al final) ────── --}}
                             <div id="tab-historial" role="tabpanel" x-show="activeTab === 'tab-historial'">
                                 <table class="table table-sm table-bordered mb-0">
                                     <thead class="thead-light">
@@ -746,6 +884,7 @@
                                     </tbody>
                                 </table>
                             </div>
+
                         </div>{{-- /tab-content --}}
                     </div>{{-- /modal-body --}}
 

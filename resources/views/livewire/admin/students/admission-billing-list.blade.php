@@ -5,13 +5,24 @@
     <div class="card card-outline card-primary">
         <div class="card-body pb-2">
             <div class="row">
-                <div class="col-sm-12 col-md-3">
+                <div class="col-sm-12 col-md-2">
                     <div class="form-group">
                         <label class="control-label">Ciclo Escolar</label>
                         <select wire:model.live="filterYear" class="form-control">
                             <option value="">— Todos —</option>
                             @foreach ($this->availableYears as $yr)
                                 <option value="{{ $yr }}">{{ $yr }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-2">
+                    <div class="form-group">
+                        <label class="control-label">Nivel</label>
+                        <select wire:model.live="filterLevel" class="form-control">
+                            <option value="">— Todos —</option>
+                            @foreach ($this->allLevels as $level)
+                                <option value="{{ $level->id }}">{{ $level->level_name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -26,12 +37,13 @@
                             <option value="reviewed">Documentación completa</option>
                             <option value="billed">Facturado</option>
                             <option value="psychometric">Psicométrica registrada</option>
+                            <option value="academic">Evaluaciones académicas</option>
                             <option value="accepted">Aceptado</option>
                             <option value="rejected">Rechazado</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-sm-12 col-md-4">
+                <div class="col-sm-12 col-md-3">
                     <div class="form-group">
                         <label class="control-label">Buscar</label>
                         <input type="text" wire:model.live.debounce.300ms="search"
@@ -108,14 +120,14 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if ($app->url_payment)
+                                    @if ($app->isReviewed())
                                         <button wire:click="openModal({{ $app->id }})"
                                             class="btn btn-xs btn-info" title="Ver / Registrar factura">
                                             <i class="fas fa-file-invoice"></i>
                                         </button>
                                     @else
                                         <button class="btn btn-xs btn-secondary" disabled
-                                            title="Sin boleta de pago registrada">
+                                            title="Solo disponible en estado 'Documentación completa'">
                                             <i class="fas fa-file-invoice"></i>
                                         </button>
                                     @endif

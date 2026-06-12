@@ -20,6 +20,7 @@ class RoleSeeder extends Seeder
         $role5 = Role::create(['name' => 'Secretaria']);
         $role6 = Role::create(['name' => 'Caja']);
         $role7 = Role::create(['name' => 'Orientador']);
+        $role8 = Role::create(['name' => 'Coordinador']);
 
 
         // 1 - admin.menu
@@ -393,5 +394,11 @@ class RoleSeeder extends Seeder
 
         // Evaluación Psicométrica de Admisiones (119)
         Permission::create(['name' => 'admin.admissions.psychometric', 'description' => 'Administración - Evaluación psicométrica de solicitudes de admisión'])->syncRoles([$role1, $role7]);
+
+        // Evaluaciones Académicas de Admisiones (120)
+        Permission::create(['name' => 'admin.admissions.academic', 'description' => 'Administración - Evaluaciones académicas de solicitudes de admisión'])->syncRoles([$role1, $role8]);
+
+        // CRUD Materias de Admisión (121)
+        Permission::create(['name' => 'admin.admission-courses.index', 'description' => 'Administración - Gestión de materias de admisión'])->syncRoles([$role1, $role5]);
     }
 }

@@ -93,6 +93,11 @@ class AdmissionApplication extends Model
         return $this->hasOne(AdmissionPsychometric::class);
     }
 
+    public function academicScores(): HasMany
+    {
+        return $this->hasMany(AdmissionAcademicScore::class);
+    }
+
     public function guardianNit(): ?string
     {
         return match ($this->guardian_type) {
@@ -156,6 +161,11 @@ class AdmissionApplication extends Model
     public function isPsychometric(): bool
     {
         return $this->current_status === 'psychometric';
+    }
+
+    public function isAcademic(): bool
+    {
+        return $this->current_status === 'academic';
     }
 
     public function isAccepted(): bool

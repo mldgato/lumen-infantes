@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Students;
 
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionPsychometric;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -20,9 +21,11 @@ class AdmissionPsychometricList extends Component
 
     public string $filterStatus = '';
 
+    public string $filterLevel = '';
+
     public int $cant = 15;
 
-    protected $queryString = ['search', 'filterYear', 'filterStatus', 'cant'];
+    protected $queryString = ['search', 'filterYear', 'filterStatus', 'filterLevel', 'cant'];
 
     // ── Modal ────────────────────────────────────────────────────
     public ?AdmissionApplication $viewing = null;
@@ -54,6 +57,11 @@ class AdmissionPsychometricList extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterLevel(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatingCant(): void
     {
         $this->resetPage();
@@ -63,9 +71,13 @@ class AdmissionPsychometricList extends Component
     #[Computed]
     public function applications()
     {
+        $allowedLevelIds = Auth::user()->levels()->pluck('levels.id');
+
         return AdmissionApplication::with(['level', 'grade', 'psychometric'])
+            ->whereIn('level_id', $allowedLevelIds)
             ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             ->when($this->filterStatus, fn ($q) => $q->where('current_status', $this->filterStatus))
+            ->when($this->filterLevel, fn ($q) => $q->where('level_id', $this->filterLevel))
             ->when($this->search, function ($q) {
                 $q->where(function ($inner) {
                     $inner->where('student_first_name', 'like', "%{$this->search}%")
@@ -75,6 +87,12 @@ class AdmissionPsychometricList extends Component
             })
             ->orderByDesc('created_at')
             ->paginate($this->cant);
+    }
+
+    #[Computed]
+    public function allLevels(): Collection
+    {
+        return Auth::user()->levels()->orderBy('ordering')->get();
     }
 
     #[Computed]
@@ -96,6 +114,10 @@ class AdmissionPsychometricList extends Component
         $this->viewing = AdmissionApplication::with([
             'level', 'grade', 'statuses.user', 'documents', 'psychometric.user',
         ])->findOrFail($id);
+
+        if ($this->viewing->current_status !== 'billed') {
+            return;
+        }
 
         $this->psychometricResult = $this->viewing->psychometric?->result ?? '';
         $this->psychometricNotes = $this->viewing->psychometric?->notes ?? '';
@@ -142,6 +164,7 @@ class AdmissionPsychometricList extends Component
         $this->viewing->refresh();
         unset($this->applications);
 
+        $this->dispatch('closePsychometricModal');
         $this->dispatch('showAlert', ['title' => 'Evaluación psicométrica guardada correctamente.', 'type' => 'success']);
     }
 
