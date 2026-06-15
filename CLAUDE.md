@@ -15,7 +15,7 @@ Carlos de Guatemala. Está autorizado para uso en el Instituto Clemente Martíne
 - MySQL / Session driver: database / Queue driver: database
 
 ## Versión actual
-v1.9.9
+v2.0.0
 
 ## Variables de entorno clave
 - `APP_NAME=Lumen` — nunca debe cambiar
@@ -37,6 +37,7 @@ v1.9.9
 - Casts definidos en método `casts(): array` (no en propiedad `$casts`)
 - Enums con keys en TitleCase
 - Return types explícitos en todos los métodos
+- **IMPORTANTE — permisos siempre en `RoleSeeder`:** Los nuevos permisos deben agregarse **siempre al final** de `database/seeders/RoleSeeder.php`. Nunca crear seeders separados para permisos (ej. `XPermissionsSeeder`). El `RoleSeeder` es la única fuente de verdad para permisos y roles.
 
 ## Estructura de rutas
 - `routes/web.php` — login, dashboard, profile, reauth
@@ -87,7 +88,7 @@ Livewire components validan con `$this->authorize('permiso')`.
 - **`syncDocumentStatus()`** (método privado en `AdmissionList`): evalúa completitud real (checkboxes + URLs) y transiciona entre `emailed` ↔ `reviewed`; se llama desde `toggleDocument()` y `updateApplication()`.
 - **Papelería bloqueada en `pending`**: checkboxes deshabilitados con aviso explicativo hasta que el estado sea al menos `emailed`; guard en `toggleDocument()` en el servidor
 - **Botón Rechazar**: visible **solo** en estado `pending` (tabla + footer del modal); desaparece al cambiar de estado
-- **Botón Aceptar**: removido temporalmente; aparecerá cuando todos los estados del flujo de admisión estén completos (implementación pendiente)
+- **Botón Aceptar**: visible cuando `current_status === 'academic'` (tabla + footer del modal); protegido por `admin.admissions.manage`; transiciona a `accepted`
 - **Handlers de eventos** (`showAlert`, `toastMessage`): definidos por componente en el bloque `@script` con `$wire.on()`; no son globales. Dispatch con array `['title' => '...', 'type' => 'success']`
 - **Tabs del modal con Alpine.js**: las 4 pestañas usan `x-data="{ activeTab }"` + `x-show` en lugar de `data-toggle="tab"` de Bootstrap, preservando la pestaña activa durante re-renders de Livewire
 - **Confirmaciones SweetAlert2**: botones de acción usan `Swal.fire()` vía Alpine en lugar de `wire:confirm`
@@ -521,7 +522,13 @@ GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 - **Campo `is_official` en `PensumCourse`** — Usado en `StudentsAtRisk`, `GradeProgressComparison`, `StudentHistory` y `StudentSummary`. Agregar badge/filtro visual en el CRUD de `Admin/Pensums` si se desea.
 
 ### Funcionalidad pendiente — Admisiones
-- **Botón Aceptar en `AdmissionList`** — Removido temporalmente. Debe reaparecer una vez que la solicitud haya completado todo el flujo de admisión: `reviewed` → `billed` → `psychometric` → `academic`. La condición exacta para habilitarlo es que `current_status === 'academic'`. Implementación pendiente.
+- No hay pendientes en el flujo de admisiones en este momento.
+
+### Sistema de desbloqueo para corrección
+- **Flags de desbloqueo**: `billing_unlocked`, `psychometric_unlocked`, `academic_unlocked` en `admission_applications` (boolean, default false).
+- **Permisos**: `admin.admissions.billing.unlock`, `admin.admissions.psychometric.unlock`, `admin.admissions.academic.unlock` — solo Super Administrador.
+- **Flujo**: Admin desbloquea desde pestaña en modal de `AdmissionList` → el componente respectivo muestra formulario editable → al guardar se actualiza `user_id` y el flag se apaga automáticamente.
+- **Sin cambio de estado**: el desbloqueo no modifica `current_status`; solo habilita edición del registro existente.
 
 ## Historial de versiones
 - v1.0.0–v1.8.5 — Base del sistema, autenticación Fortify + 2FA, reportes PDF/Excel, inscripciones, auditoría, dashboard por paneles independientes, módulo Estudiante, GradeBookGrid tipo Excel, sistema de actualización de datos QR, admisiones (formulario público + panel admin)
@@ -535,3 +542,4 @@ GET /actualizar-datos/{token}    → StudentDataController::verifyToken
 - v1.9.7 — fix `AdmissionPsychometricList`: modal se cierra automáticamente al guardar evaluación (`dispatch('closePsychometricModal')` + handler JS `modal('hide')`); TAB Psicométrica queda en solo lectura cuando `current_status` es `psychometric`, `accepted` o `rejected` (muestra resultado como badge e HTML de anotaciones sin editor Quill); guard en `initPsychometricQuill` evita error si el editor no está en el DOM
 - v1.9.8 — filtro Nivel (Level) agregado a `AdmissionList` y `AdmissionPsychometricList` (filtro por `level_id`, con `allLevels` Computed en ambos); distribución de cols de filtros ajustada a 2/2/3/3/2; modal de `AdmissionList` agrega tabs condicionales: Facturación (si `billing` existe) y Psicométrica (si `psychometric` existe), ambas en solo lectura; `viewApplication()` carga relaciones `billing.user` y `psychometric.user`
 - v1.9.9 — nuevo estado `academic` en flujo de admisiones; nuevo módulo `AdmissionAcademicList` (permiso `admin.admissions.academic`, rol Coordinador + Super Admin): modal editable en estado `psychometric` (agregar/eliminar punteos, finalizar con SweetAlert) y de solo lectura en estados posteriores; nuevo CRUD `AdmissionCourses` (permiso `admin.admission-courses.index`, rol Secretaria + Super Admin) con 6 materias seeder (Lenguaje, Destrezas, Matemáticas, Inglés, Educación Católica, Tecnología); modelos `AdmissionCourse` y `AdmissionAcademicScore`, tablas `admission_courses` y `admission_academic_scores` (unique `aas_application_course_unique`); filtro Nivel restringido en los 3 módulos de admisiones; modal `AdmissionList` agrega tabs condicionales Académico, Facturación y Psicométrica; select de estado incluye `academic` en todos los módulos; menú y rutas para ambos componentes; rol `Coordinador` en seeder; botón Aceptar pendiente (condición: `current_status === 'academic'`)
+- v2.0.0 — sistema de desbloqueo para corrección: 3 flags booleanos en `admission_applications` (`billing_unlocked`, `psychometric_unlocked`, `academic_unlocked`); 3 permisos nuevos agregados al final de `RoleSeeder` asignados a Super Administrador (`admin.admissions.billing.unlock`, `admin.admissions.psychometric.unlock`, `admin.admissions.academic.unlock`); botones "Desbloquear para corrección" en las pestañas Facturación/Psicométrica/Académico del modal de `AdmissionList` con confirmación SweetAlert y guard `@can`; cuando un flag está activo el componente respectivo muestra formulario editable con aviso "Modo corrección", actualiza `user_id` y apaga el flag al guardar sin cambiar `current_status`; corrección académica no crea entrada duplicada en historial de estados; botones Psicométrica y Académico habilitados desde estado `reviewed` (sin requerir factura); botón Aceptar habilitado cuando `current_status === 'academic'`; Quill con resaltado de texto (`{ background: [] }`); badges `.badge-purple` y `.badge-teal` en `public/css/custom.css` referenciado globalmente desde `resources/views/vendor/adminlte/page.blade.php`

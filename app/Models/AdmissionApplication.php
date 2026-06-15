@@ -46,6 +46,9 @@ class AdmissionApplication extends Model
         'url_documents',
         'url_payment',
         'current_status',
+        'billing_unlocked',
+        'psychometric_unlocked',
+        'academic_unlocked',
         'ip_address',
     ];
 
@@ -55,6 +58,9 @@ class AdmissionApplication extends Model
             'student_birthdate' => 'date',
             'sons_count' => 'integer',
             'daughters_count' => 'integer',
+            'billing_unlocked' => 'boolean',
+            'psychometric_unlocked' => 'boolean',
+            'academic_unlocked' => 'boolean',
         ];
     }
 
@@ -166,6 +172,13 @@ class AdmissionApplication extends Model
     public function isAcademic(): bool
     {
         return $this->current_status === 'academic';
+    }
+
+    public function hasAllStagesCompleted(): bool
+    {
+        return $this->isAcademic()
+            && $this->billing !== null
+            && $this->psychometric !== null;
     }
 
     public function isAccepted(): bool

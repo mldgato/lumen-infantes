@@ -141,7 +141,8 @@ class AdmissionAcademicList extends Component
     {
         $this->authorize('admin.admissions.academic');
 
-        if ($this->viewing->current_status !== 'psychometric') {
+        $isEditableStatus = in_array($this->viewing->current_status, ['reviewed', 'billed', 'psychometric']);
+        if (! $isEditableStatus && ! $this->viewing->academic_unlocked) {
             return;
         }
 
@@ -190,7 +191,8 @@ class AdmissionAcademicList extends Component
     {
         $this->authorize('admin.admissions.academic');
 
-        if ($this->viewing->current_status !== 'psychometric') {
+        $isEditableStatus = in_array($this->viewing->current_status, ['reviewed', 'billed', 'psychometric']);
+        if (! $isEditableStatus && ! $this->viewing->academic_unlocked) {
             return;
         }
 
@@ -210,7 +212,10 @@ class AdmissionAcademicList extends Component
     {
         $this->authorize('admin.admissions.academic');
 
-        if ($this->viewing->current_status !== 'psychometric') {
+        $isCorrection = $this->viewing->academic_unlocked;
+        $isEditableStatus = in_array($this->viewing->current_status, ['reviewed', 'billed', 'psychometric']);
+
+        if (! $isEditableStatus && ! $isCorrection) {
             return;
         }
 
@@ -225,12 +230,16 @@ class AdmissionAcademicList extends Component
 
         $count = $this->viewing->academicScores->count();
 
-        $this->viewing->update(['current_status' => 'academic']);
-        $this->viewing->statuses()->create([
-            'status' => 'academic',
-            'notes' => 'Evaluaciones académicas registradas. '.$count.' materia(s).',
-            'user_id' => Auth::id(),
-        ]);
+        if ($isCorrection) {
+            $this->viewing->update(['academic_unlocked' => false]);
+        } else {
+            $this->viewing->update(['current_status' => 'academic']);
+            $this->viewing->statuses()->create([
+                'status' => 'academic',
+                'notes' => 'Evaluaciones académicas registradas. '.$count.' materia(s).',
+                'user_id' => Auth::id(),
+            ]);
+        }
 
         $this->viewing->load('statuses.user', 'academicScores.course');
         $this->viewing->refresh();

@@ -114,12 +114,13 @@ class AdmissionBillingList extends Component
         $this->viewing = AdmissionApplication::with(['level', 'grade', 'billing.user'])
             ->findOrFail($id);
 
-        if ($this->viewing->current_status !== 'reviewed') {
+        $canOpen = $this->viewing->current_status === 'reviewed' || $this->viewing->billing_unlocked;
+        if (! $canOpen) {
             return;
         }
 
-        $this->invoiceNumber = '';
-        $this->invoiceDate = '';
+        $this->invoiceNumber = $this->viewing->billing_unlocked ? ($this->viewing->billing?->invoice_number ?? '') : '';
+        $this->invoiceDate = $this->viewing->billing_unlocked ? ($this->viewing->billing?->invoice_date?->format('Y-m-d') ?? '') : '';
         $this->resetValidation();
 
         $this->dispatch('openBillingModal');
@@ -130,7 +131,9 @@ class AdmissionBillingList extends Component
     {
         $this->authorize('admin.admissions.billing');
 
-        if ($this->viewing->billing) {
+        $isCorrection = $this->viewing->billing_unlocked && $this->viewing->billing;
+
+        if ($this->viewing->billing && ! $isCorrection) {
             return;
         }
 
@@ -142,6 +145,23 @@ class AdmissionBillingList extends Component
             'invoiceDate.required' => 'La fecha de la factura es requerida.',
             'invoiceDate.date' => 'Ingrese una fecha válida.',
         ]);
+
+        if ($isCorrection) {
+            $this->viewing->billing->update([
+                'invoice_number' => trim($this->invoiceNumber),
+                'invoice_date' => $this->invoiceDate,
+                'user_id' => Auth::id(),
+            ]);
+
+            $this->viewing->update(['billing_unlocked' => false]);
+            $this->viewing->load('billing.user');
+            $this->viewing->refresh();
+            unset($this->applications);
+
+            $this->dispatch('showAlert', ['title' => 'Factura actualizada correctamente.', 'type' => 'success']);
+
+            return;
+        }
 
         AdmissionBilling::create([
             'admission_application_id' => $this->viewing->id,

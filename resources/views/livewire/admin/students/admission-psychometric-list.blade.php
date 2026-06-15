@@ -116,14 +116,15 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if ($app->isBilled())
+                                    @if (! $app->isPending() && ! $app->isEmailed())
                                         <button wire:click="openModal({{ $app->id }})"
-                                            class="btn btn-xs btn-info" title="Ver / Registrar evaluación">
-                                            <i class="fas fa-brain"></i>
+                                            class="btn btn-xs {{ $app->psychometric_unlocked ? 'btn-warning' : 'btn-info' }}"
+                                            title="{{ $app->psychometric_unlocked ? 'Corregir evaluación psicométrica (desbloqueada)' : 'Ver / Registrar evaluación psicométrica' }}">
+                                            <i class="fas {{ $app->psychometric_unlocked ? 'fa-unlock' : 'fa-brain' }}"></i>
                                         </button>
                                     @else
                                         <button class="btn btn-xs btn-secondary" disabled
-                                            title="Solo disponible en estado 'Facturado'">
+                                            title="Disponible a partir de 'Documentación completa'">
                                             <i class="fas fa-brain"></i>
                                         </button>
                                     @endif
@@ -443,9 +444,15 @@
 
                             {{-- ── TAB 5: Psicométrica ──────────────────── --}}
                             <div role="tabpanel" x-show="activeTab === 'tab-psicometrica'">
-                                @php $isLocked = $viewing->isPsychometric() || $viewing->isAccepted() || $viewing->isRejected(); @endphp
+                                @php $isLocked = ($viewing->isPsychometric() || $viewing->isAccepted() || $viewing->isRejected()) && ! $viewing->psychometric_unlocked; @endphp
 
-                                @if ($viewing->psychometric)
+                                @if ($viewing->psychometric_unlocked)
+                                    <div class="alert alert-warning py-2 mb-3">
+                                        <i class="fas fa-unlock mr-1"></i>
+                                        <strong>Modo corrección.</strong> Modifique los datos y guarde para actualizar la evaluación.
+                                        El registro de quién realizó la corrección quedará actualizado.
+                                    </div>
+                                @elseif ($viewing->psychometric)
                                     <div class="alert alert-success py-2 mb-3">
                                         <i class="fas fa-check-circle mr-1"></i>
                                         Evaluación {{ $viewing->psychometric->created_at === $viewing->psychometric->updated_at ? 'registrada' : 'actualizada' }}
@@ -564,7 +571,7 @@
                     toolbar: [
                         [{ header: [1, 2, 3, false] }],
                         ['bold', 'italic', 'underline'],
-                        [{ color: [] }],
+                        [{ color: [] }, { background: [] }],
                         [{ list: 'ordered' }, { list: 'bullet' }],
                         [{ align: [] }],
                         ['clean']

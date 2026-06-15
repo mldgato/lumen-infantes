@@ -116,13 +116,23 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if ($app->isPsychometric())
+                                    @php
+                                        $academicEditable = in_array($app->current_status, ['reviewed', 'billed', 'psychometric']);
+                                        $academicReadable = $app->academicScores->isNotEmpty() || in_array($app->current_status, ['academic', 'accepted', 'rejected']);
+                                    @endphp
+                                    @if ($app->academic_unlocked)
+                                        <button wire:click="openModal({{ $app->id }})"
+                                            class="btn btn-xs btn-warning"
+                                            title="Corregir evaluaciones académicas (desbloqueadas)">
+                                            <i class="fas fa-unlock"></i>
+                                        </button>
+                                    @elseif ($academicEditable)
                                         <button wire:click="openModal({{ $app->id }})"
                                             class="btn btn-xs btn-info"
                                             title="Registrar evaluaciones académicas">
                                             <i class="fas fa-graduation-cap"></i>
                                         </button>
-                                    @elseif ($app->academicScores->isNotEmpty() || in_array($app->current_status, ['academic', 'accepted', 'rejected']))
+                                    @elseif ($academicReadable)
                                         <button wire:click="openModal({{ $app->id }})"
                                             class="btn btn-xs btn-secondary"
                                             title="Ver evaluaciones académicas">
@@ -130,7 +140,7 @@
                                         </button>
                                     @else
                                         <button class="btn btn-xs btn-light" disabled
-                                            title="No disponible en este estado">
+                                            title="Disponible a partir de 'Documentación completa'">
                                             <i class="fas fa-graduation-cap"></i>
                                         </button>
                                     @endif
@@ -162,7 +172,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 @if ($viewing)
-                    @php $isEditable = $viewing->isPsychometric(); @endphp
+                    @php $isEditable = in_array($viewing->current_status, ['reviewed', 'billed', 'psychometric']) || $viewing->academic_unlocked; @endphp
 
                     <div class="modal-header">
                         <h5 class="modal-title">
@@ -177,6 +187,13 @@
                     </div>
 
                     <div class="modal-body">
+
+                        @if ($viewing->academic_unlocked)
+                            <div class="alert alert-warning py-2 mb-3">
+                                <i class="fas fa-unlock mr-1"></i>
+                                <strong>Modo corrección.</strong> Agregue, elimine materias y presione "Finalizar" para guardar los cambios.
+                            </div>
+                        @endif
 
                         {{-- ── Información del alumno ────────────────── --}}
                         <fieldset class="edit-section mb-3">
@@ -400,7 +417,6 @@
 
 @push('css')
 <style>
-    .badge-teal { background-color: #20c997; color: #fff; }
     fieldset.edit-section { border: 1px solid #dee2e6; border-radius: .25rem; padding: .75rem 1rem; }
     fieldset.edit-section legend { width: auto; font-size: .85rem; font-weight: 600; color: #6c757d; padding: 0 .4rem; margin-bottom: .5rem; }
 </style>

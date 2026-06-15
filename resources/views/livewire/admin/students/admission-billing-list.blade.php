@@ -120,10 +120,11 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if ($app->isReviewed())
+                                    @if ($app->isReviewed() || $app->billing_unlocked)
                                         <button wire:click="openModal({{ $app->id }})"
-                                            class="btn btn-xs btn-info" title="Ver / Registrar factura">
-                                            <i class="fas fa-file-invoice"></i>
+                                            class="btn btn-xs {{ $app->billing_unlocked ? 'btn-warning' : 'btn-info' }}"
+                                            title="{{ $app->billing_unlocked ? 'Corregir factura (desbloqueada)' : 'Ver / Registrar factura' }}">
+                                            <i class="fas {{ $app->billing_unlocked ? 'fa-unlock' : 'fa-file-invoice' }}"></i>
                                         </button>
                                     @else
                                         <button class="btn btn-xs btn-secondary" disabled
@@ -167,7 +168,7 @@
                         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     </div>
 
-                    @if ($viewing->billing)
+                    @if ($viewing->billing && ! $viewing->billing_unlocked)
                         {{-- ── Vista de detalle (factura ya registrada) ── --}}
                         <div class="modal-body">
                             <dl class="row mb-0">
@@ -203,8 +204,15 @@
                             <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cerrar</button>
                         </div>
                     @else
-                        {{-- ── Formulario (sin factura aún) ── --}}
+                        {{-- ── Formulario (nueva o corrección desbloqueada) ── --}}
                         <div class="modal-body">
+                            @if ($viewing->billing_unlocked)
+                                <div class="alert alert-warning py-2 mb-3">
+                                    <i class="fas fa-unlock mr-1"></i>
+                                    <strong>Modo corrección.</strong> Modifique los datos y guarde para actualizar la factura.
+                                    El registro de quién realizó la corrección quedará actualizado.
+                                </div>
+                            @endif
                             <div class="form-group">
                                 <label>Número de factura <span class="text-danger">*</span></label>
                                 <input type="text" wire:model="invoiceNumber"
@@ -238,7 +246,8 @@
                                 wire:loading.attr="disabled" wire:target="saveBilling"
                                 class="btn btn-primary btn-sm">
                                 <span wire:loading.remove wire:target="saveBilling">
-                                    <i class="fas fa-save mr-1"></i> Guardar factura
+                                    <i class="fas fa-save mr-1"></i>
+                                    {{ $viewing->billing_unlocked ? 'Actualizar factura' : 'Guardar factura' }}
                                 </span>
                                 <span wire:loading wire:target="saveBilling">
                                     <i class="fas fa-spinner fa-spin mr-1"></i> Guardando...

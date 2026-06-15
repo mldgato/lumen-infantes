@@ -400,5 +400,10 @@ class RoleSeeder extends Seeder
 
         // CRUD Materias de Admisión (121)
         Permission::create(['name' => 'admin.admission-courses.index', 'description' => 'Administración - Gestión de materias de admisión'])->syncRoles([$role1, $role5]);
+
+        // Desbloqueo de secciones de admisión para corrección (122–124)
+        Permission::create(['name' => 'admin.admissions.billing.unlock',     'description' => 'Administración - Desbloquear facturación de admisión para corrección'])->syncRoles([$role1]);
+        Permission::create(['name' => 'admin.admissions.psychometric.unlock', 'description' => 'Administración - Desbloquear evaluación psicométrica de admisión para corrección'])->syncRoles([$role1]);
+        Permission::create(['name' => 'admin.admissions.academic.unlock',     'description' => 'Administración - Desbloquear evaluaciones académicas de admisión para corrección'])->syncRoles([$role1]);
     }
 }

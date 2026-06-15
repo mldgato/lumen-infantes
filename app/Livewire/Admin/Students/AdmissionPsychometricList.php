@@ -115,7 +115,8 @@ class AdmissionPsychometricList extends Component
             'level', 'grade', 'statuses.user', 'documents', 'psychometric.user',
         ])->findOrFail($id);
 
-        if ($this->viewing->current_status !== 'billed') {
+        $canOpen = ! in_array($this->viewing->current_status, ['pending', 'emailed']) || $this->viewing->psychometric_unlocked;
+        if (! $canOpen) {
             return;
         }
 
@@ -141,6 +142,7 @@ class AdmissionPsychometricList extends Component
         ]);
 
         $isFirst = ! $this->viewing->psychometric;
+        $isCorrection = $this->viewing->psychometric_unlocked && ! $isFirst;
 
         AdmissionPsychometric::updateOrCreate(
             ['admission_application_id' => $this->viewing->id],
@@ -158,6 +160,8 @@ class AdmissionPsychometricList extends Component
                 'notes' => 'Evaluación psicométrica registrada. Resultado: '.$this->psychometricResult,
                 'user_id' => Auth::id(),
             ]);
+        } elseif ($isCorrection) {
+            $this->viewing->update(['psychometric_unlocked' => false]);
         }
 
         $this->viewing->load('statuses.user', 'documents', 'psychometric.user');

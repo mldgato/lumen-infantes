@@ -5,7 +5,6 @@ namespace App\Livewire\Admin\Students;
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionApplicationDocument;
 use App\Models\Grade;
-use App\Models\Level;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -212,7 +211,7 @@ class AdmissionList extends Component
     {
         $allowedLevelIds = Auth::user()->levels()->pluck('levels.id');
 
-        return AdmissionApplication::with(['level', 'grade'])
+        return AdmissionApplication::with(['level', 'grade', 'billing', 'psychometric'])
             ->whereIn('level_id', $allowedLevelIds)
             ->when($this->filterYear, fn ($q) => $q->where('year', $this->filterYear))
             ->when($this->filterStatus, fn ($q) => $q->where('current_status', $this->filterStatus))
@@ -466,7 +465,28 @@ class AdmissionList extends Component
 
     public function markAccepted(int $id): void
     {
+        $this->authorize('admin.admissions.manage');
+
+        $app = AdmissionApplication::with(['billing', 'psychometric'])->findOrFail($id);
+        if (! $app->hasAllStagesCompleted()) {
+            $this->dispatch('showAlert', ['title' => 'La solicitud no ha completado todos los pasos requeridos (facturación, psicométrica y académico).', 'type' => 'error']);
+
+            return;
+        }
+
         $this->applyStatus($id, 'accepted');
+    }
+
+    public function revokeAccepted(int $id): void
+    {
+        $this->authorize('admin.admissions.manage');
+
+        $app = AdmissionApplication::findOrFail($id);
+        if (! $app->isAccepted()) {
+            return;
+        }
+
+        $this->applyStatus($id, 'academic', 'Aceptación revertida.');
     }
 
     public function openReject(int $id): void
@@ -501,6 +521,51 @@ class AdmissionList extends Component
         }
 
         $this->applyStatus($id, 'pending');
+    }
+
+    public function unlockBilling(int $id): void
+    {
+        $this->authorize('admin.admissions.billing.unlock');
+
+        $app = AdmissionApplication::findOrFail($id);
+        $app->update(['billing_unlocked' => true]);
+
+        if ($this->viewing?->id === $id) {
+            $this->viewing->refresh();
+        }
+
+        unset($this->applications);
+        $this->dispatch('toastMessage', ['message' => 'Facturación desbloqueada para corrección.', 'type' => 'warning']);
+    }
+
+    public function unlockPsychometric(int $id): void
+    {
+        $this->authorize('admin.admissions.psychometric.unlock');
+
+        $app = AdmissionApplication::findOrFail($id);
+        $app->update(['psychometric_unlocked' => true]);
+
+        if ($this->viewing?->id === $id) {
+            $this->viewing->refresh();
+        }
+
+        unset($this->applications);
+        $this->dispatch('toastMessage', ['message' => 'Evaluación psicométrica desbloqueada para corrección.', 'type' => 'warning']);
+    }
+
+    public function unlockAcademic(int $id): void
+    {
+        $this->authorize('admin.admissions.academic.unlock');
+
+        $app = AdmissionApplication::findOrFail($id);
+        $app->update(['academic_unlocked' => true]);
+
+        if ($this->viewing?->id === $id) {
+            $this->viewing->refresh();
+        }
+
+        unset($this->applications);
+        $this->dispatch('toastMessage', ['message' => 'Evaluaciones académicas desbloqueadas para corrección.', 'type' => 'warning']);
     }
 
     public function toggleDocument(string $field): void

@@ -139,6 +139,20 @@
                                                 <i class="fas fa-undo"></i>
                                             </button>
                                         @endif
+                                        @if ($app->hasAllStagesCompleted())
+                                            <button
+                                                @click="Swal.fire({ title: '¿Aceptar la solicitud?', icon: 'success', showCancelButton: true, confirmButtonText: 'Sí, aceptar', cancelButtonText: 'Cancelar', confirmButtonColor: '#28a745' }).then(r => r.isConfirmed && $wire.markAccepted({{ $app->id }}))"
+                                                class="btn btn-xs btn-success" title="Aceptar admisión">
+                                                <i class="fas fa-check-circle"></i>
+                                            </button>
+                                        @endif
+                                        @if ($app->isAccepted())
+                                            <button
+                                                @click="Swal.fire({ title: '¿Revertir la aceptación?', text: 'El estado regresará a Evaluaciones académicas.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, revertir', cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545' }).then(r => r.isConfirmed && $wire.revokeAccepted({{ $app->id }}))"
+                                                class="btn btn-xs btn-danger" title="Revertir aceptación">
+                                                <i class="fas fa-undo-alt"></i>
+                                            </button>
+                                        @endif
                                     @endcan
                                 </td>
                             </tr>
@@ -758,6 +772,12 @@
                             {{-- ── TAB 4: Facturación (condicional) ─────── --}}
                             @if ($viewing->billing)
                                 <div id="tab-factura" role="tabpanel" x-show="activeTab === 'tab-factura'">
+                                    @if ($viewing->billing_unlocked)
+                                        <div class="alert alert-warning py-2 mb-3">
+                                            <i class="fas fa-unlock mr-1"></i>
+                                            <strong>Desbloqueada.</strong> Puede editar esta factura en el módulo de Facturación.
+                                        </div>
+                                    @endif
                                     <fieldset class="edit-section mb-3">
                                         <legend><i class="fas fa-file-invoice-dollar mr-1"></i> Datos de la Factura</legend>
                                         <dl class="row mb-0 small">
@@ -780,7 +800,7 @@
                                         </dl>
                                     </fieldset>
                                     @if ($viewing->url_payment)
-                                        <fieldset class="edit-section mb-0">
+                                        <fieldset class="edit-section mb-3">
                                             <legend><i class="fas fa-receipt mr-1"></i> Boleta de Pago</legend>
                                             <a href="{{ $viewing->url_payment }}" target="_blank"
                                                 class="btn btn-sm btn-outline-secondary">
@@ -788,18 +808,44 @@
                                             </a>
                                         </fieldset>
                                     @endif
+                                    @can('admin.admissions.billing.unlock')
+                                        @unless ($viewing->billing_unlocked)
+                                            <div class="mt-2">
+                                                <button type="button"
+                                                    @click="Swal.fire({
+                                                        title: '¿Desbloquear factura para corrección?',
+                                                        text: 'El registro podrá editarse desde el módulo de Facturación.',
+                                                        icon: 'warning',
+                                                        showCancelButton: true,
+                                                        confirmButtonText: 'Sí, desbloquear',
+                                                        cancelButtonText: 'Cancelar',
+                                                        confirmButtonColor: '#fd7e14'
+                                                    }).then(r => r.isConfirmed && $wire.unlockBilling({{ $viewing->id }}))"
+                                                    class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-unlock mr-1"></i> Desbloquear para corrección
+                                                </button>
+                                            </div>
+                                        @endunless
+                                    @endcan
                                 </div>
                             @endif
 
                             {{-- ── TAB 6: Psicométrica (condicional) ─────── --}}
                             @if ($viewing->psychometric)
                                 <div id="tab-psicometrica" role="tabpanel" x-show="activeTab === 'tab-psicometrica'">
-                                    <div class="alert alert-success py-2 mb-3">
-                                        <i class="fas fa-check-circle mr-1"></i>
-                                        Evaluación registrada por
-                                        <strong>{{ $viewing->psychometric->user?->first_name }} {{ $viewing->psychometric->user?->first_surname }}</strong>
-                                        el {{ $viewing->psychometric->updated_at->format('d/m/Y H:i') }}.
-                                    </div>
+                                    @if ($viewing->psychometric_unlocked)
+                                        <div class="alert alert-warning py-2 mb-3">
+                                            <i class="fas fa-unlock mr-1"></i>
+                                            <strong>Desbloqueada.</strong> Puede editar esta evaluación en el módulo de Psicométrica.
+                                        </div>
+                                    @else
+                                        <div class="alert alert-success py-2 mb-3">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Evaluación registrada por
+                                            <strong>{{ $viewing->psychometric->user?->first_name }} {{ $viewing->psychometric->user?->first_surname }}</strong>
+                                            el {{ $viewing->psychometric->updated_at->format('d/m/Y H:i') }}.
+                                        </div>
+                                    @endif
                                     <fieldset class="edit-section mb-3">
                                         <legend><i class="fas fa-brain mr-1"></i> Resultado Psicométrico</legend>
                                         <p class="mb-0">
@@ -809,7 +855,7 @@
                                         </p>
                                     </fieldset>
                                     @if ($viewing->psychometric->notes)
-                                        <fieldset class="edit-section mb-0">
+                                        <fieldset class="edit-section mb-3">
                                             <legend><i class="fas fa-file-alt mr-1"></i> Anotaciones</legend>
                                             <div class="border rounded p-3 bg-light" style="min-height: 60px; font-size: .9rem;">
                                                 {!! $viewing->psychometric->notes !!}
@@ -818,12 +864,37 @@
                                     @else
                                         <p class="text-muted small">No hay anotaciones registradas.</p>
                                     @endif
+                                    @can('admin.admissions.psychometric.unlock')
+                                        @unless ($viewing->psychometric_unlocked)
+                                            <div class="mt-2">
+                                                <button type="button"
+                                                    @click="Swal.fire({
+                                                        title: '¿Desbloquear evaluación psicométrica para corrección?',
+                                                        text: 'El resultado podrá editarse desde el módulo de Psicométrica.',
+                                                        icon: 'warning',
+                                                        showCancelButton: true,
+                                                        confirmButtonText: 'Sí, desbloquear',
+                                                        cancelButtonText: 'Cancelar',
+                                                        confirmButtonColor: '#fd7e14'
+                                                    }).then(r => r.isConfirmed && $wire.unlockPsychometric({{ $viewing->id }}))"
+                                                    class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-unlock mr-1"></i> Desbloquear para corrección
+                                                </button>
+                                            </div>
+                                        @endunless
+                                    @endcan
                                 </div>
                             @endif
 
                             {{-- ── TAB 7: Académico (condicional) ──────── --}}
                             @if ($viewing->academicScores->isNotEmpty())
                                 <div id="tab-academico" role="tabpanel" x-show="activeTab === 'tab-academico'">
+                                    @if ($viewing->academic_unlocked)
+                                        <div class="alert alert-warning py-2 mb-3">
+                                            <i class="fas fa-unlock mr-1"></i>
+                                            <strong>Desbloqueadas.</strong> Puede editar las evaluaciones desde el módulo Académico.
+                                        </div>
+                                    @endif
                                     <table class="table table-sm table-bordered mb-3">
                                         <thead class="thead-light">
                                             <tr>
@@ -854,6 +925,23 @@
                                             </tr>
                                         </tfoot>
                                     </table>
+                                    @can('admin.admissions.academic.unlock')
+                                        @unless ($viewing->academic_unlocked)
+                                            <button type="button"
+                                                @click="Swal.fire({
+                                                    title: '¿Desbloquear evaluaciones académicas para corrección?',
+                                                    text: 'Los punteos podrán editarse desde el módulo Académico.',
+                                                    icon: 'warning',
+                                                    showCancelButton: true,
+                                                    confirmButtonText: 'Sí, desbloquear',
+                                                    cancelButtonText: 'Cancelar',
+                                                    confirmButtonColor: '#fd7e14'
+                                                }).then(r => r.isConfirmed && $wire.unlockAcademic({{ $viewing->id }}))"
+                                                class="btn btn-sm btn-warning">
+                                                <i class="fas fa-unlock mr-1"></i> Desbloquear para corrección
+                                            </button>
+                                        @endunless
+                                    @endcan
                                 </div>
                             @endif
 
@@ -908,6 +996,22 @@
                                         @click="Swal.fire({ title: '¿Regresar a Pendiente?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí', cancelButtonText: 'No', confirmButtonColor: '#ffc107' }).then(r => r.isConfirmed && $wire.resetToPending({{ $viewing->id }}))"
                                         class="btn btn-warning btn-sm">
                                         <i class="fas fa-undo mr-1"></i> Pendiente
+                                    </button>
+                                @endif
+                                @if ($viewing->hasAllStagesCompleted())
+                                    <button
+                                        @click="Swal.fire({ title: '¿Aceptar la solicitud de admisión?', text: 'Esta acción confirma que el postulante ha completado todo el proceso.', icon: 'success', showCancelButton: true, confirmButtonText: 'Sí, aceptar', cancelButtonText: 'Cancelar', confirmButtonColor: '#28a745' }).then(r => r.isConfirmed && $wire.markAccepted({{ $viewing->id }}))"
+                                        wire:loading.attr="disabled" wire:target="markAccepted"
+                                        class="btn btn-success btn-sm">
+                                        <i class="fas fa-check-circle mr-1"></i> Aceptar admisión
+                                    </button>
+                                @endif
+                                @if ($viewing->isAccepted())
+                                    <button
+                                        @click="Swal.fire({ title: '¿Revertir la aceptación?', text: 'El estado regresará a Evaluaciones académicas.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, revertir', cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545' }).then(r => r.isConfirmed && $wire.revokeAccepted({{ $viewing->id }}))"
+                                        wire:loading.attr="disabled" wire:target="revokeAccepted"
+                                        class="btn btn-danger btn-sm">
+                                        <i class="fas fa-undo-alt mr-1"></i> Revertir aceptación
                                     </button>
                                 @endif
                             @endcan

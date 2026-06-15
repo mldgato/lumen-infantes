@@ -7,3 +7,18 @@
     background-color: transparent !important;
     /* Para que no se vea el fondo gris debajo */
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Badge extra colors — extiende Bootstrap 4 con la paleta AdminLTE
+   ────────────────────────────────────────────────────────────── */
+.badge-purple    { background-color: #6f42c1; color: #fff; }
+.badge-indigo    { background-color: #6610f2; color: #fff; }
+.badge-teal      { background-color: #20c997; color: #fff; }
+.badge-olive     { background-color: #3d9970; color: #fff; }
+.badge-maroon    { background-color: #d81b60; color: #fff; }
+.badge-navy      { background-color: #001f3f; color: #fff; }
+.badge-fuchsia   { background-color: #f012be; color: #fff; }
+.badge-lightblue { background-color: #3c8dbc; color: #fff; }
+.badge-lime      { background-color: #01ff70; color: #1f2d3d; }
+.badge-orange    { background-color: #fd7e14; color: #fff; }
+.badge-cyan      { background-color: #17a2b8; color: #fff; }
