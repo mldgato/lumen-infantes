@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Students;
 
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionPsychometric;
+use App\Services\AuditService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -163,6 +164,8 @@ class AdmissionPsychometricList extends Component
         } elseif ($isCorrection) {
             $this->viewing->update(['psychometric_unlocked' => false]);
         }
+
+        AuditService::admissionPsychometricSaved($this->viewing, $isCorrection, $this->psychometricResult);
 
         $this->viewing->load('statuses.user', 'documents', 'psychometric.user');
         $this->viewing->refresh();

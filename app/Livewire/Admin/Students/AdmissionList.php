@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Students;
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionApplicationDocument;
 use App\Models\Grade;
+use App\Services\AuditService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -407,6 +408,18 @@ class AdmissionList extends Component
 
         $this->validate($this->editRules(), $this->editMessages());
 
+        $trackedFields = [
+            'year', 'level_id', 'grade_id',
+            'student_first_name', 'student_second_name', 'student_first_surname', 'student_second_surname',
+            'student_birthdate', 'student_address', 'student_previous_school', 'student_religion',
+            'father_first_name', 'father_last_name', 'father_phone', 'father_workplace', 'father_nit', 'father_profession',
+            'mother_first_name', 'mother_last_name', 'mother_phone', 'mother_workplace', 'mother_nit', 'mother_profession',
+            'guardian_type', 'guardian_name', 'guardian_phone', 'guardian_nit', 'guardian_email',
+            'sons_count', 'sons_ages', 'daughters_count', 'daughters_ages',
+            'referral_source', 'url_documents', 'url_payment',
+        ];
+        $originalValues = $this->viewing->only($trackedFields);
+
         $this->viewing->update([
             'year' => $this->editYear,
             'level_id' => $this->editLevelId,
@@ -444,6 +457,11 @@ class AdmissionList extends Component
             'url_documents' => $this->editUrlDocuments ?: null,
             'url_payment' => $this->editUrlPayment ?: null,
         ]);
+
+        $changes = array_diff_key($this->viewing->getChanges(), ['updated_at' => true]);
+        if ($changes) {
+            AuditService::admissionUpdated($this->viewing, array_intersect_key($originalValues, $changes), $changes);
+        }
 
         $this->viewing->load('level', 'grade');
         $this->viewing->refresh();
@@ -529,6 +547,7 @@ class AdmissionList extends Component
 
         $app = AdmissionApplication::findOrFail($id);
         $app->update(['billing_unlocked' => true]);
+        AuditService::admissionUnlocked($app, 'billing');
 
         if ($this->viewing?->id === $id) {
             $this->viewing->refresh();
@@ -544,6 +563,7 @@ class AdmissionList extends Component
 
         $app = AdmissionApplication::findOrFail($id);
         $app->update(['psychometric_unlocked' => true]);
+        AuditService::admissionUnlocked($app, 'psychometric');
 
         if ($this->viewing?->id === $id) {
             $this->viewing->refresh();
@@ -559,6 +579,7 @@ class AdmissionList extends Component
 
         $app = AdmissionApplication::findOrFail($id);
         $app->update(['academic_unlocked' => true]);
+        AuditService::admissionUnlocked($app, 'academic');
 
         if ($this->viewing?->id === $id) {
             $this->viewing->refresh();
@@ -581,8 +602,10 @@ class AdmissionList extends Component
         }
 
         $doc = $this->viewing->documents;
-        $doc->update([$field => ! $doc->$field]);
+        $newValue = ! $doc->$field;
+        $doc->update([$field => $newValue]);
         $doc->refresh();
+        AuditService::admissionDocumentToggled($this->viewing, $field, $newValue);
 
         $this->syncDocumentStatus();
 
@@ -616,6 +639,7 @@ class AdmissionList extends Component
                 'notes' => 'Documentación completa recibida.',
                 'user_id' => Auth::id(),
             ]);
+            AuditService::admissionStatusChanged($this->viewing, 'emailed', 'reviewed');
         } elseif (! $isComplete && $isReviewed) {
             $doc->update(['completed_at' => null]);
             $this->viewing->update(['current_status' => 'emailed']);
@@ -624,6 +648,7 @@ class AdmissionList extends Component
                 'notes' => 'Documentación incompleta.',
                 'user_id' => Auth::id(),
             ]);
+            AuditService::admissionStatusChanged($this->viewing, 'reviewed', 'emailed');
         }
     }
 
@@ -632,12 +657,14 @@ class AdmissionList extends Component
         $this->authorize('admin.admissions.manage');
 
         $app = AdmissionApplication::findOrFail($id);
+        $oldStatus = $app->current_status ?? 'pending';
         $app->update(['current_status' => $status]);
         $app->statuses()->create([
             'status' => $status,
             'notes' => $notes ?: null,
             'user_id' => Auth::id(),
         ]);
+        AuditService::admissionStatusChanged($app, $oldStatus, $status, $notes);
 
         if ($this->viewing?->id === $id) {
             $this->viewing->load('statuses.user', 'documents');

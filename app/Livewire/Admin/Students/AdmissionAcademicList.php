@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Students;
 use App\Models\AdmissionAcademicScore;
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionCourse;
+use App\Services\AuditService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -168,12 +169,16 @@ class AdmissionAcademicList extends Component
             return;
         }
 
+        $course = AdmissionCourse::find($this->selectedCourseId);
+
         AdmissionAcademicScore::create([
             'admission_application_id' => $this->viewing->id,
             'admission_course_id' => $this->selectedCourseId,
             'score' => $this->score,
             'user_id' => Auth::id(),
         ]);
+
+        AuditService::admissionScoreChanged($this->viewing, $course?->name ?? '—', $this->score, 'added');
 
         $this->selectedCourseId = '';
         $this->score = '';
@@ -196,9 +201,21 @@ class AdmissionAcademicList extends Component
             return;
         }
 
-        AdmissionAcademicScore::where('id', $scoreId)
+        $scoreRecord = AdmissionAcademicScore::with('course')
+            ->where('id', $scoreId)
             ->where('admission_application_id', $this->viewing->id)
-            ->delete();
+            ->first();
+
+        if (! $scoreRecord) {
+            return;
+        }
+
+        $courseName = $scoreRecord->course?->name ?? '—';
+        $scoreValue = $scoreRecord->score;
+
+        $scoreRecord->delete();
+
+        AuditService::admissionScoreChanged($this->viewing, $courseName, $scoreValue, 'removed');
 
         $this->viewing->load('academicScores.course');
         $this->viewing->refresh();
@@ -240,6 +257,8 @@ class AdmissionAcademicList extends Component
                 'user_id' => Auth::id(),
             ]);
         }
+
+        AuditService::admissionEvaluationFinalized($this->viewing, $isCorrection, $count);
 
         $this->viewing->load('statuses.user', 'academicScores.course');
         $this->viewing->refresh();

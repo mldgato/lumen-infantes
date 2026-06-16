@@ -384,13 +384,40 @@ return [
                     'can' => 'admin.students.enrollments.index',
                 ],
                 [
-                    'text' => 'Admisiones',
+                    'text' => 'Períodos de Inscripción',
+                    'route' => 'admin.enrollment-periods.index',
+                    'icon' => 'fas fa-fw fa-calendar-alt',
+                    'can' => 'admin.enrollment-periods.index',
+                ],
+                [
+                    'text' => 'Estudiantes',
+                    'route' => 'admin.students.index',
+                    'icon' => 'fas fa-fw fa-users',
+                    'can' => 'admin.students.index',
+                ],
+                [
+                    'text' => 'Guardianes',
+                    'route' => 'admin.guardians.index',
+                    'icon' => 'fas fa-fw fa-user-friends',
+                    'can' => 'admin.guardians.index',
+                ],
+            ],
+        ],
+
+        // Proceso de Admisiones
+        [
+            'text' => 'Proceso de Admisiones',
+            'icon' => 'fas fa-fw fa-file-signature',
+            'can' => 'admin.menu.admisiones',
+            'submenu' => [
+                [
+                    'text' => 'Solicitudes',
                     'route' => 'admin.admissions.index',
-                    'icon' => 'fas fa-fw fa-file-signature',
+                    'icon' => 'fas fa-fw fa-inbox',
                     'can' => 'admin.admissions.index',
                 ],
                 [
-                    'text' => 'Facturación Admisiones',
+                    'text' => 'Facturación',
                     'route' => 'admin.admissions.billing.index',
                     'icon' => 'fas fa-fw fa-file-invoice-dollar',
                     'can' => 'admin.admissions.billing',
@@ -414,22 +441,10 @@ return [
                     'can' => 'admin.admission-courses.index',
                 ],
                 [
-                    'text' => 'Períodos de Inscripción',
-                    'route' => 'admin.enrollment-periods.index',
-                    'icon' => 'fas fa-fw fa-calendar-alt',
-                    'can' => 'admin.enrollment-periods.index',
-                ],
-                [
-                    'text' => 'Estudiantes',
-                    'route' => 'admin.students.index',
-                    'icon' => 'fas fa-fw fa-users',
-                    'can' => 'admin.students.index',
-                ],
-                [
-                    'text' => 'Guardianes',
-                    'route' => 'admin.guardians.index',
-                    'icon' => 'fas fa-fw fa-user-friends',
-                    'can' => 'admin.guardians.index',
+                    'text' => 'Reporte',
+                    'route' => 'admin.admissions.report.index',
+                    'icon' => 'fas fa-fw fa-file-excel',
+                    'can' => 'admin.admissions.report',
                 ],
             ],
         ],

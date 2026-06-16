@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Students;
 
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionBilling;
+use App\Services\AuditService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -154,6 +155,8 @@ class AdmissionBillingList extends Component
             ]);
 
             $this->viewing->update(['billing_unlocked' => false]);
+            AuditService::admissionBillingSaved($this->viewing, true, trim($this->invoiceNumber), $this->invoiceDate);
+
             $this->viewing->load('billing.user');
             $this->viewing->refresh();
             unset($this->applications);
@@ -176,6 +179,7 @@ class AdmissionBillingList extends Component
             'notes' => 'Factura No. '.trim($this->invoiceNumber).' registrada.',
             'user_id' => Auth::id(),
         ]);
+        AuditService::admissionBillingSaved($this->viewing, false, trim($this->invoiceNumber), $this->invoiceDate);
 
         $this->viewing->load('billing.user');
         $this->viewing->refresh();

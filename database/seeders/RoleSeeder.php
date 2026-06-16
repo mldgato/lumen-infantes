@@ -22,7 +22,6 @@ class RoleSeeder extends Seeder
         $role7 = Role::create(['name' => 'Orientador']);
         $role8 = Role::create(['name' => 'Coordinador']);
 
-
         // 1 - admin.menu
         Permission::create([
             'name' => 'admin.menu',
@@ -405,5 +404,11 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'admin.admissions.billing.unlock',     'description' => 'Administración - Desbloquear facturación de admisión para corrección'])->syncRoles([$role1]);
         Permission::create(['name' => 'admin.admissions.psychometric.unlock', 'description' => 'Administración - Desbloquear evaluación psicométrica de admisión para corrección'])->syncRoles([$role1]);
         Permission::create(['name' => 'admin.admissions.academic.unlock',     'description' => 'Administración - Desbloquear evaluaciones académicas de admisión para corrección'])->syncRoles([$role1]);
+
+        // Reporte Excel de Admisiones (125)
+        Permission::create(['name' => 'admin.admissions.report', 'description' => 'Administración - Reporte Excel de solicitudes de admisión'])->syncRoles([$role1, $role2, $role5]);
+
+        // Encabezado de menú — Proceso de Admisiones (126)
+        Permission::create(['name' => 'admin.menu.admisiones', 'description' => 'Administración - Menú Proceso de Admisiones'])->syncRoles([$role1, $role2, $role5, $role6, $role7, $role8]);
     }
 }

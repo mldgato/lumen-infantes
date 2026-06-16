@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\AdmissionApplication;
+use App\Models\AdmissionApplicationDocument;
+use App\Models\AdmissionApplicationStatus;
 use App\Models\AuditLog;
 use App\Models\GradeBook;
 use App\Models\GradeBookScore;
@@ -272,6 +275,185 @@ class AuditService
             description: $description,
             auditable: $user,
             // Omitimos old_values y new_values por seguridad, no debemos registrar hashes de contraseñas.
+        );
+    }
+
+    // ── Admisiones ───────────────────────────────────────────────
+
+    public static function admissionStatusChanged(
+        AdmissionApplication $app,
+        string $oldStatus,
+        string $newStatus,
+        ?string $notes = null,
+    ): void {
+        $description = sprintf(
+            'Solicitud de "%s" cambió de estado "%s" a "%s"',
+            $app->fullStudentName(),
+            AdmissionApplicationStatus::labelFor($oldStatus),
+            AdmissionApplicationStatus::labelFor($newStatus),
+        );
+
+        if ($notes) {
+            $description .= " — nota: {$notes}";
+        }
+
+        $newValues = ['status' => $newStatus];
+        if ($notes) {
+            $newValues['notes'] = $notes;
+        }
+
+        self::log(
+            event: 'status_changed',
+            module: 'Admisiones',
+            description: $description,
+            auditable: $app,
+            oldValues: ['status' => $oldStatus],
+            newValues: $newValues,
+        );
+    }
+
+    public static function admissionUpdated(
+        AdmissionApplication $app,
+        array $oldValues,
+        array $newValues,
+    ): void {
+        if (empty($newValues)) {
+            return;
+        }
+
+        $fields = implode(', ', array_keys($newValues));
+
+        self::log(
+            event: 'updated',
+            module: 'Admisiones',
+            description: sprintf('Solicitud de "%s" fue actualizada — campos: %s', $app->fullStudentName(), $fields),
+            auditable: $app,
+            oldValues: $oldValues ?: null,
+            newValues: $newValues,
+        );
+    }
+
+    public static function admissionDocumentToggled(
+        AdmissionApplication $app,
+        string $field,
+        bool $newValue,
+    ): void {
+        $label = AdmissionApplicationDocument::fields()[$field] ?? $field;
+        $action = $newValue ? 'marcado' : 'desmarcado';
+
+        self::log(
+            event: 'document_toggled',
+            module: 'Admisiones',
+            description: sprintf('Documento "%s" %s en solicitud de "%s"', $label, $action, $app->fullStudentName()),
+            auditable: $app,
+            oldValues: [$field => ! $newValue],
+            newValues: [$field => $newValue],
+        );
+    }
+
+    public static function admissionUnlocked(
+        AdmissionApplication $app,
+        string $section,
+    ): void {
+        $sectionLabel = match ($section) {
+            'billing' => 'Facturación',
+            'psychometric' => 'Psicométrica',
+            'academic' => 'Académico',
+            default => $section,
+        };
+
+        self::log(
+            event: 'unlocked',
+            module: 'Admisiones',
+            description: sprintf('Sección "%s" desbloqueada para corrección en solicitud de "%s"', $sectionLabel, $app->fullStudentName()),
+            auditable: $app,
+            newValues: ["{$section}_unlocked" => true],
+        );
+    }
+
+    public static function admissionBillingSaved(
+        AdmissionApplication $app,
+        bool $isCorrection,
+        string $invoiceNumber,
+        string $invoiceDate,
+    ): void {
+        $action = $isCorrection ? 'corregida' : 'registrada';
+
+        self::log(
+            event: $isCorrection ? 'billing_corrected' : 'billing_registered',
+            module: 'Admisiones',
+            description: sprintf('Factura %s para solicitud de "%s" — No. %s', $action, $app->fullStudentName(), $invoiceNumber),
+            auditable: $app,
+            newValues: ['invoice_number' => $invoiceNumber, 'invoice_date' => $invoiceDate],
+        );
+    }
+
+    public static function admissionPsychometricSaved(
+        AdmissionApplication $app,
+        bool $isCorrection,
+        string $result,
+    ): void {
+        $action = $isCorrection ? 'corregida' : 'registrada';
+
+        self::log(
+            event: $isCorrection ? 'psychometric_corrected' : 'psychometric_registered',
+            module: 'Admisiones',
+            description: sprintf('Evaluación psicométrica %s para solicitud de "%s" — Resultado: %s', $action, $app->fullStudentName(), $result),
+            auditable: $app,
+            newValues: ['result' => $result],
+        );
+    }
+
+    public static function admissionScoreChanged(
+        AdmissionApplication $app,
+        string $courseName,
+        float|string $score,
+        string $action,
+    ): void {
+        $actionLabel = $action === 'added' ? 'agregada' : 'eliminada';
+
+        self::log(
+            event: "score_{$action}",
+            module: 'Admisiones',
+            description: sprintf('Materia "%s" %s con punteo %s en solicitud de "%s"', $courseName, $actionLabel, $score, $app->fullStudentName()),
+            auditable: $app,
+            newValues: ['course' => $courseName, 'score' => $score],
+        );
+    }
+
+    public static function admissionEvaluationFinalized(
+        AdmissionApplication $app,
+        bool $isCorrection,
+        int $courseCount,
+    ): void {
+        $action = $isCorrection ? 'corregida' : 'finalizada';
+
+        self::log(
+            event: $isCorrection ? 'evaluation_corrected' : 'evaluation_finalized',
+            module: 'Admisiones',
+            description: sprintf('Evaluación académica %s para solicitud de "%s" — %d materia(s)', $action, $app->fullStudentName(), $courseCount),
+            auditable: $app,
+            newValues: ['course_count' => $courseCount],
+        );
+    }
+
+    public static function admissionReportDownloaded(array $filters): void
+    {
+        $user = Auth::user();
+        $filterDesc = collect($filters)
+            ->filter(fn ($v) => $v !== '' && $v !== null && $v !== [])
+            ->map(fn ($v, $k) => "{$k}: {$v}")
+            ->implode(', ');
+
+        self::log(
+            event: 'report_downloaded',
+            module: 'Admisiones',
+            description: sprintf(
+                'Reporte Excel de admisiones descargado por "%s"%s',
+                $user?->name ?? 'Sistema',
+                $filterDesc ? " — filtros: {$filterDesc}" : '',
+            ),
+            newValues: array_filter($filters, fn ($v) => $v !== '' && $v !== null && $v !== []),
         );
     }
 }

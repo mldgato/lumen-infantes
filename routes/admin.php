@@ -271,6 +271,10 @@ Route::get('/admissions/courses', fn () => view('admin.admission-courses'))
     ->name('admin.admission-courses.index')
     ->middleware('can:admin.admission-courses.index');
 
+Route::get('/students/admissions/report', fn () => view('admin.students.admission-report'))
+    ->name('admin.admissions.report.index')
+    ->middleware('can:admin.admissions.report');
+
 // Actualización de notas
 Route::get('/grade-books/score-update', fn () => view('admin.grade-books.score-update'))
     ->name('admin.grade-books.score-update.index')
