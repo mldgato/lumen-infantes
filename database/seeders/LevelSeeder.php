@@ -10,8 +10,10 @@ class LevelSeeder extends Seeder
     public function run(): void
     {
         $levels = [
-            ['level_name' => 'Básicos',     'ordering' => 1],
-            ['level_name' => 'Diversificado', 'ordering' => 2],
+            ['level_name' => 'Preprimaria',     'ordering' => 1],
+            ['level_name' => 'Primaria', 'ordering' => 2],
+            ['level_name' => 'Básicos',     'ordering' => 3],
+            ['level_name' => 'Diversificado', 'ordering' => 4],
         ];
 
         foreach ($levels as $level) {
